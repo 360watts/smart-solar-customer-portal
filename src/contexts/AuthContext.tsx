@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuthenticated()) {
       api
-        .get("/api/portal/profile/")
+        .get("/api/profile/")
         .then((res) => setUser(res.data))
         .catch(() => clearTokens())
         .finally(() => setLoading(false));
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function login(email: string, password: string) {
     const res = await api.post("/api/token/", { email, password });
     setTokens(res.data.access, res.data.refresh);
-    const profile = await api.get("/api/portal/profile/");
+    const profile = await api.get("/api/profile/");
     setUser(profile.data);
     router.push("/");
   }

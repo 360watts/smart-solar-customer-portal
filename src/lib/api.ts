@@ -33,12 +33,45 @@ export default api;
 
 // Portal-specific endpoints
 export const portalApi = {
-  getSiteOverview: (siteId: string) => api.get(`/api/portal/sites/${siteId}/overview/`),
-  getEnergyReadings: (siteId: string, from: string, to: string) =>
-    api.get(`/api/portal/sites/${siteId}/readings/`, { params: { from, to } }),
-  getForecast: (siteId: string) => api.get(`/api/portal/sites/${siteId}/forecast/`),
-  getAlerts: (siteId: string) => api.get(`/api/portal/sites/${siteId}/alerts/`),
-  getDeviceStatus: (siteId: string) => api.get(`/api/portal/sites/${siteId}/device/`),
-  getWeather: (siteId: string) => api.get(`/api/portal/sites/${siteId}/weather/`),
-  getProfile: () => api.get("/api/portal/profile/"),
+  getTelemetry: (siteId: string, params?: { days?: number; aggregate?: string }) =>
+    api.get(`/api/sites/${siteId}/telemetry/`, { params }),
+
+  getEnergySummary: (siteId: string, params?: { date?: string; aggregate?: string }) =>
+    api.get(`/api/sites/${siteId}/energy-summary/`, { params }),
+
+  getHistory: (siteId: string, params?: { aggregate?: string }) =>
+    api.get(`/api/sites/${siteId}/history/`, { params }),
+
+  getForecast: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/forecast/`),
+
+  getLoadForecast: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/load-forecast/`),
+
+  getWeather: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/weather/`),
+
+  getSiteAlerts: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/alerts/`),
+
+  acknowledgeAlert: (alertId: string) =>
+    api.post(`/api/alerts/${alertId}/acknowledge/`),
+
+  getGatewayStatus: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/gateway-status/`),
+
+  getEquipment: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/equipment/`),
+
+  getHardwareHealth: (siteId: string, days?: number) =>
+    api.get(`/api/sites/${siteId}/hardware-health/`, { params: { days } }),
+
+  getProfile: () =>
+    api.get(`/api/profile/`),
+
+  updateProfile: (data: Record<string, unknown>) =>
+    api.put(`/api/profile/`, data),
+
+  getSite: (siteId: string) =>
+    api.get(`/api/sites/${siteId}/`),
 };
