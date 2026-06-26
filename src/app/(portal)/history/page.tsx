@@ -85,6 +85,7 @@ export default function HistoryPage() {
   const [chartView, setChartView] = useState<"energy" | "savings">("energy");
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<MonthRow[]>(buildMockRows);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.site_id) return;
@@ -92,6 +93,7 @@ export default function HistoryPage() {
     portalApi
       .getEnergySummary(user.site_id, { aggregate: "monthly" })
       .then((res) => {
+        setError("");
         const results: Array<{
           month?: string;
           generation_kwh?: number;
@@ -121,7 +123,7 @@ export default function HistoryPage() {
         }
       })
       .catch(() => {
-        // Keep mock data on API failure
+        setError("Live history data is unavailable right now.");
       })
       .finally(() => setLoading(false));
   }, [user?.site_id]);
@@ -190,6 +192,12 @@ export default function HistoryPage() {
           Export CSV
         </button>
       </div>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* Annual KPI tiles */}
       <div

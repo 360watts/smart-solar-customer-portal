@@ -81,16 +81,20 @@ export default function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.site_id) return;
     portalApi
       .getSiteAlerts(user.site_id)
       .then((res) => {
+        setError("");
         const data = res.data?.results ?? res.data;
         if (Array.isArray(data) && data.length > 0) setAlerts(data);
       })
-      .catch(() => {})
+      .catch(() => {
+        setError("Live alerts could not be loaded.");
+      })
       .finally(() => setLoaded(true));
   }, [user?.site_id]);
 
@@ -135,6 +139,12 @@ export default function AlertsPage() {
           System health &amp; notifications
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       {/* Summary bar */}
       <div className="flex flex-wrap gap-3">

@@ -161,6 +161,7 @@ export default function ConsumptionPage() {
   const { user } = useAuth();
   const [view, setView] = useState<"Day" | "Week" | "Month">("Day");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // KPI state (mock defaults)
   const [consumptionKwh, setConsumptionKwh] = useState(18.3);
@@ -179,8 +180,9 @@ export default function ConsumptionPage() {
       portalApi.getTelemetry(user.site_id, { days: 1 }),
       portalApi.getLoadForecast(user.site_id),
       portalApi.getEnergySummary(user.site_id, { date: "today" }),
-    ])
+      ])
       .then(([telRes, forecastRes, summaryRes]) => {
+        setError("");
         // Energy summary → KPIs
         const summary = summaryRes.data;
         if (summary?.consumption_kwh != null) setConsumptionKwh(Number(summary.consumption_kwh));
@@ -281,7 +283,7 @@ export default function ConsumptionPage() {
         }
       })
       .catch(() => {
-        // Silently keep mock data on API failure
+        setError("Live consumption data is unavailable right now.");
       })
       .finally(() => setLoading(false));
   }, [user?.site_id]);
@@ -298,6 +300,12 @@ export default function ConsumptionPage() {
         </h1>
         <p className="text-muted-foreground text-sm">Energy usage breakdown and load forecast</p>
       </div>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* Hero KPI row */}
       <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 transition-opacity duration-300 ${loading ? "opacity-50 animate-pulse" : ""}`}>

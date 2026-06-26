@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, User, ChevronLeft,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV = [
   { href: "/", icon: LayoutDashboard, label: "Overview" },
@@ -22,6 +24,9 @@ const NAV = [
 export default function PortalSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase() || "C";
+  const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Customer";
 
   return (
     <>
@@ -171,8 +176,8 @@ export default function PortalSidebar() {
               className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/25 transition-colors"
               whileHover={{ scale: 1.05 }}
             >
-              <span className="text-xs font-bold text-emerald-400">J</span>
-            </motion.div>
+                  <span className="text-xs font-bold text-emerald-400">{initials}</span>
+                </motion.div>
             <AnimatePresence>
               {!collapsed && (
                 <motion.div
@@ -182,13 +187,29 @@ export default function PortalSidebar() {
                   transition={{ duration: 0.15 }}
                   className="min-w-0"
                 >
-                  <p className="text-xs font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">John Doe</p>
-                  <p className="text-xs text-white/55 truncate group-hover:text-white/65 transition-colors">Pro Plan</p>
+                  <p className="text-xs font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">{displayName}</p>
+                  <p className="text-xs text-white/55 truncate group-hover:text-white/65 transition-colors">Customer Portal</p>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
         </Link>
+        <button
+          onClick={() => void logout()}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white/80 hover:bg-white/4 transition-colors",
+            collapsed ? "justify-center" : "",
+          )}
+        >
+          <LogOut size={16} className="shrink-0" />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium">
+                Sign out
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
       </div>
     </motion.aside>
     </>

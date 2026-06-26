@@ -94,6 +94,7 @@ export default function SolarPage() {
   const { user } = useAuth();
   const [forecastRange, setForecastRange] = useState<"today" | "tomorrow">("today");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // KPI state
   const [generationKwh, setGenerationKwh] = useState(18.2);
@@ -114,6 +115,7 @@ export default function SolarPage() {
       portalApi.getTelemetry(user.site_id, { days: 7 }),
     ])
       .then(([forecastRes, summaryRes, telemetryRes]) => {
+        setError("");
         // Map energy summary
         const summary = summaryRes.data;
         if (summary?.generation_kwh != null) setGenerationKwh(Number(summary.generation_kwh));
@@ -219,7 +221,7 @@ export default function SolarPage() {
         }
       })
       .catch(() => {
-        // Silently keep mock data on API failure
+        setError("Live solar forecast data is unavailable right now.");
       })
       .finally(() => setLoading(false));
   }, [user?.site_id]);
@@ -232,6 +234,12 @@ export default function SolarPage() {
         </h1>
         <p className="text-muted-foreground text-sm">Live performance and forecast</p>
       </div>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* KPI row */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${loading ? "opacity-50 animate-pulse" : ""}`}>

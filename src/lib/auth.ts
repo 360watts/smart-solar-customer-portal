@@ -1,49 +1,102 @@
-const ACCESS_KEY = "360w_access";
-const REFRESH_KEY = "360w_refresh";
+import type { CustomerSession, SessionMembership } from "@/lib/session";
 
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_KEY);
+export type AuthStatus =
+  | "loading"
+  | "authenticated"
+  | "unauthenticated"
+  | "session_expired";
+
+export interface AuthUser {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  user_type: string | null;
+  memberships: SessionMembership[];
+  site_id: string | null;
 }
 
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_KEY);
+export interface AuthSessionResponse {
+  status: AuthStatus;
+  session: CustomerSession | null;
+  employeeAppUrl?: string | null;
+  message?: string;
 }
 
-export function setTokens(access: string, refresh: string): void {
-  localStorage.setItem(ACCESS_KEY, access);
-  localStorage.setItem(REFRESH_KEY, refresh);
-}
+export class AuthRequestError extends Error {
+  status: number;
 
-export function clearTokens(): void {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-}
-
-export async function refreshAccessToken(): Promise<string | null> {
-  const refresh = getRefreshToken();
-  if (!refresh) return null;
-
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/token/refresh/`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-      }
-    );
-    if (!res.ok) { clearTokens(); return null; }
-    const data = await res.json();
-    localStorage.setItem(ACCESS_KEY, data.access);
-    return data.access;
-  } catch {
-    clearTokens();
-    return null;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AuthRequestError";
+    this.status = status;
   }
 }
 
-export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+function mapSessionUser(session: CustomerSession): AuthUser {
+  return {
+    ...session.user,
+    site_id: session.activeSiteId,
+  };
+}
+
+async function parseAuthResponse(response: Response): Promise<AuthSessionResponse> {
+  const data = (await response.json().catch(() => ({}))) as Partial<AuthSessionResponse>;
+
+  if (!response.ok) {
+    throw new AuthRequestError(
+      data.message ?? "Authentication request failed.",
+      response.status,
+    );
+  }
+
+  return {
+    status: data.status ?? "unauthenticated",
+    session: data.session ?? null,
+    employeeAppUrl: data.employeeAppUrl ?? null,
+    message: data.message,
+  };
+}
+
+export async function loadSession(): Promise<AuthSessionResponse> {
+  const response = await fetch("/api/auth/session", {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+
+  return parseAuthResponse(response);
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<AuthUser> {
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    message?: string;
+    session?: CustomerSession;
+  };
+
+  if (!response.ok || !data.session) {
+    throw new AuthRequestError(data.message ?? "Login failed.", response.status);
+  }
+
+  return mapSessionUser(data.session);
+}
+
+export async function logoutSession(): Promise<void> {
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+}
+
+export function getUserFromSession(session: CustomerSession | null): AuthUser | null {
+  return session ? mapSessionUser(session) : null;
 }

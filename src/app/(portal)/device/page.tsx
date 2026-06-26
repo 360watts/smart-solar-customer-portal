@@ -242,6 +242,7 @@ export default function DevicePage() {
   const [equipment, setEquipment] = useState<Equipment>(MOCK_EQUIPMENT);
   const [health, setHealth] = useState<HardwareHealth>(MOCK_HEALTH);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!siteId) return;
@@ -252,13 +253,16 @@ export default function DevicePage() {
       portalApi.getHardwareHealth(siteId),
     ])
       .then(([gwRes, telRes, eqRes, hhRes]) => {
+        setError("");
         setGateway(gwRes.data);
         const rows = telRes.data?.results;
         if (rows?.length) setTelemetry(rows[rows.length - 1]);
         setEquipment(eqRes.data);
         setHealth(hhRes.data);
       })
-      .catch(() => {})
+      .catch(() => {
+        setError("Live device data is unavailable right now.");
+      })
       .finally(() => setLoaded(true));
   }, [siteId]);
 
@@ -279,6 +283,12 @@ export default function DevicePage() {
       >
         Device
       </motion.h1>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* 1. Gateway Status Card */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>

@@ -6,7 +6,6 @@ import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
-import api from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,29 +27,6 @@ interface Site {
   site_name: string;
 }
 
-// ---------------------------------------------------------------------------
-// Mock data (used when API is unavailable)
-// ---------------------------------------------------------------------------
-const MOCK_PROFILE: Profile = {
-  first_name: "John",
-  last_name: "Doe",
-  email: "john@example.com",
-  phone: "+91 98765 43210",
-  subscription_plan: "Pro Plan",
-  avatar_url: null,
-};
-
-const MOCK_SITE: Site = {
-  capacity_kw: 6.5,
-  inverter_capacity_kw: 5.0,
-  battery_kwh: 6.1,
-  install_date: "2023-01-15",
-  site_name: "Coimbatore Home",
-};
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("en-IN", {
@@ -76,6 +52,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [site, setSite] = useState<Site | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Edit form
   const [editFirst, setEditFirst] = useState("");
@@ -96,23 +73,45 @@ export default function ProfilePage() {
   useEffect(() => {
     async function load() {
       try {
+        setError("");
         const [profileRes, siteRes] = await Promise.all([
           portalApi.getProfile(),
           user?.site_id ? portalApi.getSite(user.site_id) : Promise.resolve(null),
         ]);
-        const p: Profile = profileRes.data;
+        const rawProfile = profileRes.data as {
+          first_name?: string;
+          last_name?: string;
+          email?: string;
+          mobile_number?: string;
+          plan_type?: string;
+          avatar_url?: string | null;
+        };
+        const p: Profile = {
+          first_name: rawProfile.first_name ?? "",
+          last_name: rawProfile.last_name ?? "",
+          email: rawProfile.email ?? "",
+          phone: rawProfile.mobile_number ?? "",
+          subscription_plan: rawProfile.plan_type ?? "Customer Plan",
+          avatar_url: rawProfile.avatar_url ?? null,
+        };
         setProfile(p);
         setEditFirst(p.first_name);
         setEditLast(p.last_name);
         setEditPhone(p.phone ?? "");
-        if (siteRes) setSite(siteRes.data);
+        if (siteRes) {
+          const rawSite = siteRes.data as Partial<Site>;
+          setSite({
+            capacity_kw: Number(rawSite.capacity_kw) || 0,
+            inverter_capacity_kw: Number(rawSite.inverter_capacity_kw) || 0,
+            battery_kwh: rawSite.battery_kwh != null ? Number(rawSite.battery_kwh) : null,
+            install_date: rawSite.install_date ?? "",
+            site_name: rawSite.site_name ?? "Solar Site",
+          });
+        }
       } catch {
-        // Fallback to mock
-        setProfile(MOCK_PROFILE);
-        setEditFirst(MOCK_PROFILE.first_name);
-        setEditLast(MOCK_PROFILE.last_name);
-        setEditPhone(MOCK_PROFILE.phone);
-        setSite(MOCK_SITE);
+        setError("We could not load your account details right now.");
+        setProfile(null);
+        setSite(null);
       } finally {
         setLoading(false);
       }
@@ -144,7 +143,7 @@ export default function ProfilePage() {
       await portalApi.updateProfile({
         first_name: editFirst,
         last_name: editLast,
-        phone: editPhone,
+        mobile_number: editPhone,
       });
       setProfile((p) => p ? { ...p, first_name: editFirst, last_name: editLast, phone: editPhone } : p);
       setSaveState("saved");
@@ -171,7 +170,7 @@ export default function ProfilePage() {
     }
     setPwState("saving");
     try {
-      await api.post("/api/auth/change-password/", {
+      await portalApi.changePassword({
         current_password: currentPw,
         new_password: newPw,
       });
@@ -209,7 +208,16 @@ export default function ProfilePage() {
     );
   }
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
+        <GlassCard>
+          <p className="text-sm text-red-300">{error || "Profile data is unavailable."}</p>
+        </GlassCard>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -219,6 +227,12 @@ export default function ProfilePage() {
       transition={{ duration: 0.4 }}
     >
       <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* ── 1. Account Card ── */}
       <GlassCard glow="green">
@@ -246,9 +260,9 @@ export default function ProfilePage() {
             <p className="text-sm text-white/50 mt-0.5 truncate">{profile.email}</p>
             <div className="mt-2">
               <StatusPill
-                status={profile.subscription_plan === "Pro Plan" ? "active" : "inactive"}
+                status={profile.subscription_plan === "premium" ? "active" : "inactive"}
                 label={profile.subscription_plan || "Free Plan"}
-                animated={profile.subscription_plan === "Pro Plan"}
+                animated={profile.subscription_plan === "premium"}
               />
             </div>
           </div>

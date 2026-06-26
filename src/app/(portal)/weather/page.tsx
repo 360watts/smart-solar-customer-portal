@@ -191,12 +191,14 @@ export default function WeatherPage() {
   const [ghiData, setGhiData] = useState(mockGhiData);
   const [forecast, setForecast] = useState<DayForecast[] | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.site_id) return;
     portalApi
       .getWeather(user.site_id)
       .then((res) => {
+        setError("");
         const data: WeatherData = res.data;
         setWeather(data);
         setFetchedAt(data.current.fetched_at);
@@ -247,7 +249,7 @@ export default function WeatherPage() {
         }
       })
       .catch(() => {
-        // silent fallback — mock data stays
+        setError("Live weather data is unavailable right now.");
       });
   }, [user?.site_id]);
 
@@ -284,6 +286,12 @@ export default function WeatherPage() {
         </h1>
         <p className="text-muted-foreground text-sm">Coimbatore — solar irradiance &amp; conditions</p>
       </div>
+
+      {error && (
+        <GlassCard>
+          <p className="text-sm text-red-300">{error}</p>
+        </GlassCard>
+      )}
 
       {/* ── Current conditions hero ── */}
       <GlassCard glow="amber">
