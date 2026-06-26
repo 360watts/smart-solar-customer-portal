@@ -72,7 +72,7 @@ const MOCK_LOAD_MONTH = {
   datasets: [
     {
       label: "Consumption kWh",
-      data: Array.from({ length: 30 }, () => 15 + Math.round(Math.random() * 12)),
+      data: [18,22,19,25,17,21,23,16,20,26,18,24,19,22,17,25,20,18,23,21,19,16,22,24,17,20,26,18,21,23],
       backgroundColor: "rgba(96,165,250,0.2)",
       borderColor: "#60a5fa",
       borderWidth: 1,

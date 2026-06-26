@@ -94,10 +94,6 @@ export default function AlertsPage() {
       .finally(() => setLoaded(true));
   }, [user?.site_id]);
 
-  useEffect(() => {
-    setLoaded(true);
-  }, []);
-
   function acknowledgeAlert(alertId: string) {
     setAlerts((prev) =>
       prev.map((a) =>

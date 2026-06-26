@@ -241,28 +241,25 @@ export default function DevicePage() {
   const [telemetry, setTelemetry] = useState<TelemetryReading>(MOCK_TELEMETRY);
   const [equipment, setEquipment] = useState<Equipment>(MOCK_EQUIPMENT);
   const [health, setHealth] = useState<HardwareHealth>(MOCK_HEALTH);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!siteId) return;
-
-    portalApi.getGatewayStatus(siteId)
-      .then((r) => setGateway(r.data))
-      .catch(() => {});
-
-    portalApi.getTelemetry(siteId)
-      .then((r) => {
-        const rows = r.data?.results;
-        if (rows?.length) setTelemetry(rows[0]);
+    Promise.all([
+      portalApi.getGatewayStatus(siteId),
+      portalApi.getTelemetry(siteId),
+      portalApi.getEquipment(siteId),
+      portalApi.getHardwareHealth(siteId),
+    ])
+      .then(([gwRes, telRes, eqRes, hhRes]) => {
+        setGateway(gwRes.data);
+        const rows = telRes.data?.results;
+        if (rows?.length) setTelemetry(rows[rows.length - 1]);
+        setEquipment(eqRes.data);
+        setHealth(hhRes.data);
       })
-      .catch(() => {});
-
-    portalApi.getEquipment(siteId)
-      .then((r) => setEquipment(r.data))
-      .catch(() => {});
-
-    portalApi.getHardwareHealth(siteId)
-      .then((r) => setHealth(r.data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, [siteId]);
 
   const faultCodes = [
