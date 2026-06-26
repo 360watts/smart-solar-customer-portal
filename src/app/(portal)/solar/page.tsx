@@ -64,7 +64,7 @@ export default function SolarPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Solar Generation
         </h1>
         <p className="text-muted-foreground text-sm">Live performance and forecast</p>
@@ -82,7 +82,7 @@ export default function SolarPage() {
       <GlassCard glow="green">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+            <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
               Generation Forecast
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
@@ -130,7 +130,7 @@ export default function SolarPage() {
 
       {/* Weekly bar chart */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-syne)" }}>
+        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-display)" }}>
           7-Day History
         </h2>
         <DataChart type="bar" data={weeklyData} height={180} />

@@ -38,14 +38,14 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
             <Sun size={28} className="text-primary" />
           </div>
-          <span className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+          <span className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             360Watts
           </span>
         </div>
 
         {/* Card */}
         <div className="glass-green rounded-2xl p-8">
-          <h1 className="text-2xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+          <h1 className="text-2xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
             Welcome back
           </h1>
           <p className="text-muted-foreground text-sm mb-8">

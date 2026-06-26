@@ -7,7 +7,7 @@ import { Cpu, Signal } from "lucide-react";
 export default function DevicePage() {
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold text-foreground font-syne mb-6">
+      <h1 className="text-3xl font-bold text-foreground font-display mb-6">
         Device
       </h1>
 

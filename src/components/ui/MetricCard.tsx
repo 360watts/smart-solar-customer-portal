@@ -80,7 +80,7 @@ export default function MetricCard({
         <div>
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-foreground font-syne">
+            <span className="text-3xl font-bold text-foreground font-display">
               {typeof value === "number" ? displayValue : value}
               {suffix}
             </span>

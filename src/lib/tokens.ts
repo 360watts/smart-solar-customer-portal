@@ -11,6 +11,15 @@ export const COLORS = {
   p10: "#6B7A99",
   p50: "#2FBF71",
   p90: "rgba(47, 191, 113, 0.4)",
+  // Forecast band colors (distinct for tooltip context)
+  optimistic: "#34d399",   // brighter green for P90
+  expected: "#2FBF71",     // emerald for P50
+  conservative: "#6B7A99", // muted for P10
+  // Energy type colors
+  solar: "#FDB022",
+  battery: "#2FBF71",
+  grid: "#F87171",
+  load: "#60a5fa",
 };
 
 export const CHART_DEFAULTS = {
@@ -23,11 +32,27 @@ export const CHART_DEFAULTS = {
     font: { family: "DM Sans, system-ui, sans-serif", size: 11 },
   },
   tooltip: {
-    backgroundColor: "#0C1220",
-    borderColor: "rgba(255, 255, 255, 0.07)",
-    borderWidth: 1,
+    // ── Premium dark OLED tooltip ──
+    backgroundColor: "#0a0e18",
+    borderColor: "#2FBF71",
+    borderWidth: 1.5,
+    borderRadius: 12,
     titleColor: "#F0F6FF",
-    bodyColor: "#6B7A99",
-    padding: 12,
+    bodyColor: "#A8B8D8",
+    bodyFont: { family: "DM Sans, system-ui, sans-serif", size: 12, weight: 500 },
+    titleFont: { family: "JetBrains Mono, monospace", size: 13, weight: 700 },
+    padding: 16,
+    displayColors: true,
+    boxPadding: 8,
+    boxRadius: 6,
+    // Shadow effect via CSS-like styling
+    titleSpacing: 8,
+    bodySpacing: 6,
+    mode: "index" as const,
+    intersect: false,
+    usePointStyle: true,
+    animation: {
+      duration: 300,
+    } as any,
   },
 };

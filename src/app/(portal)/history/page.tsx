@@ -62,7 +62,7 @@ export default function HistoryPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+          <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
             History
           </h1>
           <p className="text-muted-foreground text-sm">12-month energy & savings overview</p>
@@ -83,7 +83,7 @@ export default function HistoryPage() {
         ].map((s) => (
           <GlassCard key={s.label}>
             <p className="text-xs text-muted-foreground mb-2">{s.label}</p>
-            <p className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+            <p className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
               {s.value}
             </p>
           </GlassCard>
@@ -93,7 +93,7 @@ export default function HistoryPage() {
       {/* Chart */}
       <GlassCard glow="green">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+          <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             Monthly Trends
           </h2>
           <div className="flex gap-2">
@@ -119,7 +119,7 @@ export default function HistoryPage() {
 
       {/* Table */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-4" style={{ fontFamily: "var(--font-syne)" }}>
+        <h2 className="text-lg font-semibold text-foreground mb-4" style={{ fontFamily: "var(--font-display)" }}>
           Monthly Breakdown
         </h2>
         <div className="overflow-x-auto">

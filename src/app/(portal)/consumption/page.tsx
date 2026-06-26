@@ -49,7 +49,7 @@ export default function ConsumptionPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Consumption
         </h1>
         <p className="text-muted-foreground text-sm">Energy usage breakdown</p>
@@ -65,7 +65,7 @@ export default function ConsumptionPage() {
       {/* Load profile chart */}
       <GlassCard glow="green">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+          <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             Load Profile
           </h2>
           <div className="flex gap-2">
@@ -95,7 +95,7 @@ export default function ConsumptionPage() {
 
       {/* Appliance breakdown */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-syne)" }}>
+        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-display)" }}>
           Appliance Breakdown
         </h2>
         <div className="space-y-4">

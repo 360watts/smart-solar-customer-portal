@@ -6,7 +6,7 @@ import StatusPill from "@/components/ui/StatusPill";
 export default function AlertsPage() {
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold text-foreground font-syne mb-6">
+      <h1 className="text-3xl font-bold text-foreground font-display mb-6">
         Alerts
       </h1>
 

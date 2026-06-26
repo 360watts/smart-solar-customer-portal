@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "@fontsource/syne";
 @import "@fontsource/dm-sans";
 @import "@fontsource/jetbrains-mono";
 
@@ -13,8 +12,8 @@
   --primary-foreground: #0A0E1A;
   --secondary: #E9B949;
   --secondary-foreground: #0A0E1A;
-  --muted: #6B7A99;
-  --muted-foreground: #8B97B8;
+  --muted: #8B97B8;
+  --muted-foreground: #A8B8D8;
   --accent: #E9B949;
   --accent-foreground: #0A0E1A;
   --border: rgba(255, 255, 255, 0.07);
@@ -56,6 +55,7 @@
   --color-ring: var(--ring);
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-display);
 }
 
 @layer base {
@@ -69,21 +69,86 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-syne), system-ui, sans-serif;
+    font-family: var(--font-display), system-ui, sans-serif;
     font-weight: 700;
   }
 }
 
 @layer components {
   .glass {
-    @apply backdrop-blur-xl bg-white/4 border border-white/7 rounded-lg;
+    @apply backdrop-blur-xl bg-white/4 border border-white/7 rounded-xl;
   }
 
   .glass-green {
-    @apply backdrop-blur-xl bg-white/4 border border-white/7 rounded-lg shadow-[0_0_24px_rgba(47,191,113,0.15)];
+    @apply backdrop-blur-xl bg-white/4 border border-emerald-500/20 rounded-xl shadow-[0_0_32px_rgba(47,191,113,0.12),inset_0_1px_0_rgba(47,191,113,0.08)];
   }
 
   .glass-amber {
-    @apply backdrop-blur-xl bg-white/4 border border-white/7 rounded-lg shadow-[0_0_24px_rgba(233,185,73,0.15)];
+    @apply backdrop-blur-xl bg-white/4 border border-amber-400/20 rounded-xl shadow-[0_0_32px_rgba(233,185,73,0.12),inset_0_1px_0_rgba(233,185,73,0.08)];
+  }
+
+  .stat-number {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .glow-text-green {
+    color: #2FBF71;
+    text-shadow: 0 0 40px rgba(47, 191, 113, 0.5);
+  }
+
+  .glow-text-amber {
+    color: #E9B949;
+    text-shadow: 0 0 40px rgba(233, 185, 73, 0.5);
+  }
+}
+
+@layer utilities {
+  .bg-sun-glow {
+    background: radial-gradient(ellipse 60% 40% at 70% 10%, rgba(47, 191, 113, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 30% at 20% 80%, rgba(233, 185, 73, 0.04) 0%, transparent 60%);
+  }
+
+  .noise-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    background-size: 150px 150px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Custom scrollbar styling — emerald-themed to match app aesthetic */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, rgba(47, 191, 113, 0.6), rgba(47, 191, 113, 0.4));
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, rgba(47, 191, 113, 0.9), rgba(47, 191, 113, 0.7));
+    background-clip: padding-box;
+    box-shadow: 0 0 16px rgba(47, 191, 113, 0.5);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-color: rgba(47, 191, 113, 0.5) rgba(255, 255, 255, 0.02);
+    scrollbar-width: thin;
   }
 }

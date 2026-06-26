@@ -36,7 +36,7 @@ export default function WeatherPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Weather
         </h1>
         <p className="text-muted-foreground text-sm">Coimbatore — solar irradiance & conditions</p>
@@ -50,7 +50,7 @@ export default function WeatherPage() {
               <Sun size={48} className="text-amber-400" />
             </div>
             <div>
-              <p className="text-5xl font-bold text-foreground" style={{ fontFamily: "var(--font-syne)" }}>
+              <p className="text-5xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
                 34°C
               </p>
               <p className="text-muted-foreground mt-1">Clear Sky — Coimbatore</p>
@@ -79,7 +79,7 @@ export default function WeatherPage() {
 
       {/* GHI chart */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-syne)" }}>
+        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-display)" }}>
           Today's Irradiance (GHI W/m²)
         </h2>
         <DataChart type="line" data={ghiData} height={200} />
@@ -87,7 +87,7 @@ export default function WeatherPage() {
 
       {/* 5-day forecast */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-4" style={{ fontFamily: "var(--font-syne)" }}>
+        <h2 className="text-lg font-semibold text-foreground mb-4" style={{ fontFamily: "var(--font-display)" }}>
           5-Day Solar Forecast
         </h2>
         <div className="space-y-3">
