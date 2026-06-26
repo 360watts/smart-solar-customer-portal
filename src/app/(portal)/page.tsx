@@ -231,8 +231,8 @@ export default function OverviewPage() {
 
         {/* Hourly generation with interactive tooltips */}
         <GlassCard className="md:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Hourly Generation</p>
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Energy Overview</p>
             <span className="text-xs text-white/55">Today</span>
           </div>
           <HourlyGenerationChart />
