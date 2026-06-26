@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sun, TrendingUp, Zap, CloudSun } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import MetricCard from "@/components/ui/MetricCard";
 import DataChart from "@/components/ui/DataChart";
 import StatusPill from "@/components/ui/StatusPill";
 import { COLORS } from "@/lib/tokens";
+import { portalApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HOURS = ["6am", "7am", "8am", "9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm"];
 
-const forecastData = {
+const MOCK_FORECAST = {
   labels: HOURS,
   datasets: [
     {
@@ -44,7 +46,7 @@ const forecastData = {
   ],
 };
 
-const weeklyData = {
+const MOCK_WEEKLY = {
   labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   datasets: [
     {
@@ -58,8 +60,149 @@ const weeklyData = {
   ],
 };
 
+type RegimeType = "Night" | "Ramp-Up" | "Peak" | "Ramp-Down" | "Overcast" | null;
+
+function RegimeBadge({ regime }: { regime: RegimeType }) {
+  if (!regime) return null;
+  const color =
+    regime === "Peak" || regime === "Ramp-Up"
+      ? COLORS.primary
+      : regime === "Overcast"
+      ? COLORS.amber
+      : COLORS.muted;
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+      style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}
+    >
+      {regime}
+    </span>
+  );
+}
+
 export default function SolarPage() {
+  const { user } = useAuth();
   const [forecastRange, setForecastRange] = useState<"today" | "tomorrow">("today");
+  const [loading, setLoading] = useState(false);
+
+  // KPI state
+  const [generationKwh, setGenerationKwh] = useState(18.2);
+  const [currentOutputKw, setCurrentOutputKw] = useState(4.2);
+  const [peakKw, setPeakKw] = useState(4.8);
+
+  // Chart state
+  const [forecastData, setForecastData] = useState(MOCK_FORECAST);
+  const [weeklyData, setWeeklyData] = useState(MOCK_WEEKLY);
+  const [regime, setRegime] = useState<RegimeType>(null);
+
+  useEffect(() => {
+    if (!user?.site_id) return;
+    setLoading(true);
+    Promise.all([
+      portalApi.getForecast(user.site_id),
+      portalApi.getEnergySummary(user.site_id, { date: "today" }),
+      portalApi.getTelemetry(user.site_id, { days: 7 }),
+    ])
+      .then(([forecastRes, summaryRes, telemetryRes]) => {
+        // Map energy summary
+        const summary = summaryRes.data;
+        if (summary?.generation_kwh != null) setGenerationKwh(Number(summary.generation_kwh));
+
+        // Map telemetry
+        const telResults: Array<{ ts: string; actual_solar_kw: number; pv_today_kwh: number }> =
+          telemetryRes.data?.results ?? [];
+        if (telResults.length > 0) {
+          const latest = telResults[telResults.length - 1];
+          if (latest?.actual_solar_kw != null) setCurrentOutputKw(Number(latest.actual_solar_kw));
+          const peak = Math.max(...telResults.map((r) => Number(r.actual_solar_kw) || 0));
+          if (peak > 0) setPeakKw(peak);
+
+          // Build 7-day weekly chart from telemetry
+          const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const last7 = telResults.slice(-7);
+          if (last7.length > 0) {
+            setWeeklyData({
+              labels: last7.map((r) => {
+                const d = new Date(r.ts);
+                return DAY_LABELS[d.getDay()];
+              }),
+              datasets: [
+                {
+                  label: "Generation kWh",
+                  data: last7.map((r) => Number(r.pv_today_kwh) || 0),
+                  backgroundColor: COLORS.primaryMuted,
+                  borderColor: COLORS.primary,
+                  borderWidth: 1,
+                  borderRadius: 6,
+                },
+              ],
+            });
+          }
+        }
+
+        // Map forecast to P10/P50/P90 chart
+        const fResults: Array<{
+          forecast_for: string;
+          predicted_kw: number;
+          p10_kw: number;
+          p50_kw: number;
+          p90_kw: number;
+          physics_baseline_kw: number;
+          regime: string;
+        }> = forecastRes.data?.results ?? [];
+
+        if (fResults.length > 0) {
+          // Use latest regime
+          const latestRegime = fResults[fResults.length - 1]?.regime as RegimeType;
+          if (latestRegime) setRegime(latestRegime);
+
+          const labels = fResults.map((r) => {
+            const d = new Date(r.forecast_for);
+            const h = d.getHours();
+            const ampm = h >= 12 ? "pm" : "am";
+            return `${h % 12 || 12}${ampm}`;
+          });
+
+          setForecastData({
+            labels,
+            datasets: [
+              {
+                label: "P90 (Optimistic)",
+                data: fResults.map((r) => Number(r.p90_kw) || 0),
+                borderColor: "transparent",
+                backgroundColor: COLORS.p90,
+                fill: "+1",
+                tension: 0.4,
+                pointRadius: 0,
+              },
+              {
+                label: "P50 (Median)",
+                data: fResults.map((r) => Number(r.p50_kw) || 0),
+                borderColor: COLORS.primary,
+                backgroundColor: "transparent",
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0,
+              },
+              {
+                label: "P10 (Conservative)",
+                data: fResults.map((r) => Number(r.p10_kw) || 0),
+                borderColor: COLORS.p10,
+                backgroundColor: "transparent",
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                tension: 0.4,
+                pointRadius: 0,
+              },
+            ],
+          });
+        }
+      })
+      .catch(() => {
+        // Silently keep mock data on API failure
+      })
+      .finally(() => setLoading(false));
+  }, [user?.site_id]);
 
   return (
     <div className="space-y-8">
@@ -71,21 +214,24 @@ export default function SolarPage() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Today's Generation" value={18.2} suffix=" kWh" icon={Zap} trend={{ direction: "up", value: "+12% vs avg" }} delay={0} />
-        <MetricCard title="Current Output" value={4.2} suffix=" kW" icon={Sun} delay={1} />
-        <MetricCard title="Peak Today" value={4.8} suffix=" kW" icon={TrendingUp} trend={{ direction: "neutral", value: "at 12:15 PM" }} delay={2} />
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${loading ? "opacity-50 animate-pulse" : ""}`}>
+        <MetricCard title="Today's Generation" value={generationKwh} suffix=" kWh" icon={Zap} trend={{ direction: "up", value: "+12% vs avg" }} delay={0} />
+        <MetricCard title="Current Output" value={currentOutputKw} suffix=" kW" icon={Sun} delay={1} />
+        <MetricCard title="Peak Today" value={peakKw} suffix=" kW" icon={TrendingUp} trend={{ direction: "neutral", value: "at 12:15 PM" }} delay={2} />
         <MetricCard title="Performance Ratio" value={87} suffix="%" icon={CloudSun} trend={{ direction: "up", value: "Good" }} delay={3} />
       </div>
 
       {/* P10/P50/P90 Forecast */}
       <GlassCard glow="green">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
-              Generation Forecast
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+                Generation Forecast
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
+            </div>
+            <RegimeBadge regime={regime} />
           </div>
           <div className="flex items-center gap-2">
             {(["today", "tomorrow"] as const).map((r) => (
