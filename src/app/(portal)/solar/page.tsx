@@ -43,6 +43,16 @@ const MOCK_FORECAST = {
       tension: 0.4,
       pointRadius: 0,
     },
+    {
+      label: "Physics Baseline",
+      data: [0.0, 0.5, 1.1, 2.2, 3.2, 3.8, 4.0, 3.8, 3.1, 2.3, 1.3, 0.6, 0.0],
+      borderColor: "rgba(47, 191, 113, 0.2)",
+      backgroundColor: "transparent",
+      borderDash: [4, 4],
+      borderWidth: 1.5,
+      tension: 0.4,
+      pointRadius: 0,
+    },
   ],
 };
 
@@ -194,6 +204,16 @@ export default function SolarPage() {
                 tension: 0.4,
                 pointRadius: 0,
               },
+              {
+                label: "Physics Baseline",
+                data: fResults.map((r) => Number(r.physics_baseline_kw) || 0),
+                borderColor: "rgba(47, 191, 113, 0.2)",
+                backgroundColor: "transparent",
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                tension: 0.4,
+                pointRadius: 0,
+              },
             ],
           });
         }
@@ -257,6 +277,7 @@ export default function SolarPage() {
             { label: "P50 Median", color: COLORS.primary, dash: false },
             { label: "P90 Optimistic", color: COLORS.p90, dash: false },
             { label: "P10 Conservative", color: COLORS.p10, dash: true },
+            { label: "Physics Baseline", color: "rgba(47, 191, 113, 0.4)", dash: true },
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-2">
               <div
