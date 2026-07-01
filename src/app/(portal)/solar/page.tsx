@@ -1,153 +1,353 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sun, TrendingUp, Zap, CloudSun } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Sun, TrendingUp, Zap, CloudSun, Activity } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
-import MetricCard from "@/components/ui/MetricCard";
 import DataChart from "@/components/ui/DataChart";
-import StatusPill from "@/components/ui/StatusPill";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 
-const MOCK_FORECAST = {
-  labels: ["6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm","6pm"],
-  datasets: [
-    { label: "P90 (Optimistic)", data: [0.2,0.8,1.6,2.8,3.9,4.6,4.8,4.5,3.8,2.9,1.8,0.9,0.1], borderColor: "transparent", backgroundColor: COLORS.p90, fill: "+1", tension: 0.4, pointRadius: 0 },
-    { label: "P50 (Median)", data: [0.1,0.6,1.3,2.4,3.4,4.1,4.3,4.0,3.3,2.5,1.5,0.7,0.0], borderColor: COLORS.primary, backgroundColor: "transparent", borderWidth: 2, tension: 0.4, pointRadius: 0 },
-    { label: "P10 (Conservative)", data: [0.0,0.3,0.9,1.8,2.7,3.3,3.6,3.3,2.7,1.9,1.1,0.4,0.0], borderColor: COLORS.p10, backgroundColor: "transparent", borderDash: [4,4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
-    { label: "Physics Baseline", data: [0.0,0.5,1.1,2.2,3.2,3.8,4.0,3.8,3.1,2.3,1.3,0.6,0.0], borderColor: "rgba(47,191,113,0.2)", backgroundColor: "transparent", borderDash: [4,4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
-  ],
-};
-
-const MOCK_WEEKLY = {
-  labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-  datasets: [{ label: "Generation kWh", data: [21.3,18.7,23.1,15.4,19.8,22.6,17.2], backgroundColor: COLORS.primaryMuted, borderColor: COLORS.primary, borderWidth: 1, borderRadius: 6 }],
-};
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 type RegimeType = "Night" | "Ramp-Up" | "Peak" | "Ramp-Down" | "Overcast" | null;
 
-interface SolarData {
-  generationKwh: number;
-  currentOutputKw: number;
-  peakKw: number;
-  regime: RegimeType;
-  forecastData: typeof MOCK_FORECAST;
-  weeklyData: typeof MOCK_WEEKLY;
+interface ForecastRow {
+  forecast_for: string;
+  p10_kw: number;
+  p50_kw: number;
+  p90_kw: number;
+  physics_baseline_kw: number;
+  regime: string;
 }
 
+interface DailyRow {
+  period_start: string;
+  pv_gen_kwh: number;
+  load_kwh: number;
+  grid_export_kwh: number;
+}
+
+interface TelRow {
+  timestamp: string;
+  pv1_power_w?: number;
+  pv2_power_w?: number;
+  pv_today_kwh?: number;
+}
+
+interface SolarData {
+  todayGenKwh: number | null;
+  currentOutputKw: number | null;
+  peakKw: number | null;
+  performanceRatio: number | null;
+  regime: RegimeType;
+  forecastRows: ForecastRow[];
+  dailyRows: DailyRow[];
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function pvKw(row: TelRow): number {
+  return ((Number(row.pv1_power_w) || 0) + (Number(row.pv2_power_w) || 0)) / 1000;
+}
+
+function fmtHour(iso: string): string {
+  const h = new Date(iso).getHours();
+  return `${h % 12 || 12}${h >= 12 ? "pm" : "am"}`;
+}
+
+function fmtDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+}
+
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+}
+
+function isTomorrow(iso: string): boolean {
+  const d = new Date(iso);
+  const tom = new Date();
+  tom.setDate(tom.getDate() + 1);
+  return d.getFullYear() === tom.getFullYear() &&
+    d.getMonth() === tom.getMonth() &&
+    d.getDate() === tom.getDate();
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
 function RegimeBadge({ regime }: { regime: RegimeType }) {
-  if (!regime) return null;
-  const color = regime === "Peak" || regime === "Ramp-Up" ? COLORS.primary : regime === "Overcast" ? COLORS.amber : COLORS.muted;
+  if (!regime || regime === "Night") return null;
+  const styles: Record<string, { bg: string; color: string }> = {
+    Peak:        { bg: "rgba(47,191,113,0.15)", color: "#2FBF71" },
+    "Ramp-Up":   { bg: "rgba(251,191,36,0.12)", color: "#FBB824" },
+    "Ramp-Down": { bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
+    Overcast:    { bg: "rgba(100,116,139,0.15)", color: "#9CA3AF" },
+  };
+  const s = styles[regime] ?? { bg: "rgba(255,255,255,0.08)", color: "#94A3B8" };
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}>
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+      style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30` }}>
       {regime}
     </span>
   );
 }
 
+function SkeletonPulse({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className}`} />;
+}
+
+function KpiCard({
+  label, value, unit, icon: Icon, sub, delay = 0,
+}: {
+  label: string; value: number | null; unit: string;
+  icon: React.ElementType; sub?: string; delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26, delay: delay * 0.07 }}
+      className="glass border border-white/[0.07] rounded-2xl p-5"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+          <Icon size={17} className="text-emerald-400" />
+        </div>
+        {sub && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5 text-white/45">
+            {sub}
+          </span>
+        )}
+      </div>
+      <div className="stat-number text-3xl text-white mb-0.5">
+        {value != null ? (
+          <>
+            {value % 1 === 0 ? value : value.toFixed(1)}
+            <span className="text-base font-normal text-white/50 ml-1">{unit}</span>
+          </>
+        ) : (
+          <span className="text-2xl text-white/25">—</span>
+        )}
+      </div>
+      <p className="text-xs text-white/50 mt-1 font-medium uppercase tracking-wider">{label}</p>
+    </motion.div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function SolarPage() {
   const { user } = useAuth();
   const [forecastRange, setForecastRange] = useState<"today" | "tomorrow">("today");
 
+  const todayISO    = new Date().toISOString().slice(0, 10);
+  const weekAgoISO  = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+
   const { data, loading, error } = useSiteQuery<SolarData>(
     user?.site_id,
-    async (siteId) => {
-      const [forecastRes, summaryRes, telemetryRes] = await Promise.all([
-        portalApi.getForecast(siteId),
-        portalApi.getEnergySummary(siteId, { granularity: "daily", summary: "true" }),
-        portalApi.getTelemetry(siteId, { days: 7 }),
+    async (siteId, signal) => {
+      const [forecastRes, dailyRes, telRes] = await Promise.all([
+        portalApi.getForecast(siteId, {}, signal),
+        // Daily array without summary=true gives per-day rows with period_start + pv_gen_kwh
+        portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
+        // 1-day window → raw/5-min rows; telemetry returns a plain array
+        portalApi.getTelemetry(siteId, { days: 1 }, signal),
       ]);
 
-      const summary = summaryRes.data?.totals ?? summaryRes.data;
-      const telResults: Array<{ ts: string; actual_solar_kw: number; pv_today_kwh: number }> =
-        telemetryRes.data?.results ?? [];
-      const fResults: Array<{ forecast_for: string; p10_kw: number; p50_kw: number; p90_kw: number; physics_baseline_kw: number; regime: string }> =
-        forecastRes.data?.results ?? [];
+      const forecastRows: ForecastRow[] = Array.isArray(forecastRes.data)
+        ? forecastRes.data
+        : (forecastRes.data?.results ?? []);
 
-      const latest = telResults[telResults.length - 1];
-      const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      // energy-summary daily: may be { rows: [] } or plain array depending on version
+      const rawDaily = dailyRes.data?.rows ?? dailyRes.data?.results ?? dailyRes.data;
+      const dailyRows: DailyRow[] = Array.isArray(rawDaily) ? rawDaily : [];
 
-      const weeklyData = telResults.length > 0 ? {
-        labels: telResults.slice(-7).map((r) => DAY_LABELS[new Date(r.ts).getDay()]),
-        datasets: [{ label: "Generation kWh", data: telResults.slice(-7).map((r) => Number(r.pv_today_kwh) || 0), backgroundColor: COLORS.primaryMuted, borderColor: COLORS.primary, borderWidth: 1, borderRadius: 6 }],
-      } : MOCK_WEEKLY;
+      // telemetry: plain array
+      const telRows: TelRow[] = Array.isArray(telRes.data) ? telRes.data : [];
 
-      const forecastData = fResults.length > 0 ? {
-        labels: fResults.map((r) => { const h = new Date(r.forecast_for).getHours(); return `${h % 12 || 12}${h >= 12 ? "pm" : "am"}`; }),
-        datasets: [
-          { label: "P90 (Optimistic)", data: fResults.map((r) => Number(r.p90_kw) || 0), borderColor: "transparent", backgroundColor: COLORS.p90, fill: "+1", tension: 0.4, pointRadius: 0 },
-          { label: "P50 (Median)", data: fResults.map((r) => Number(r.p50_kw) || 0), borderColor: COLORS.primary, backgroundColor: "transparent", borderWidth: 2, tension: 0.4, pointRadius: 0 },
-          { label: "P10 (Conservative)", data: fResults.map((r) => Number(r.p10_kw) || 0), borderColor: COLORS.p10, backgroundColor: "transparent", borderDash: [4,4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
-          { label: "Physics Baseline", data: fResults.map((r) => Number(r.physics_baseline_kw) || 0), borderColor: "rgba(47,191,113,0.2)", backgroundColor: "transparent", borderDash: [4,4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
-        ],
-      } : MOCK_FORECAST;
+      // Current output: last telemetry row
+      const lastRow = telRows[telRows.length - 1];
+      const currentOutputKw = lastRow ? parseFloat(pvKw(lastRow).toFixed(2)) : null;
 
-      return {
-        generationKwh: summary?.generation_kwh != null ? Number(summary.generation_kwh) : 18.2,
-        currentOutputKw: latest?.actual_solar_kw != null ? Number(latest.actual_solar_kw) : 4.2,
-        peakKw: telResults.length > 0 ? Math.max(...telResults.map((r) => Number(r.actual_solar_kw) || 0)) || 4.8 : 4.8,
-        regime: (fResults[fResults.length - 1]?.regime as RegimeType) ?? null,
-        forecastData,
-        weeklyData,
-      };
+      // Today's generation: inverter daily accumulator from last row
+      const todayGenKwh = lastRow?.pv_today_kwh != null
+        ? parseFloat(Number(lastRow.pv_today_kwh).toFixed(1))
+        : null;
+
+      // Peak: max solar kW seen today
+      const peakKw = telRows.length > 0
+        ? parseFloat(Math.max(...telRows.map(pvKw)).toFixed(2)) || null
+        : null;
+
+      // Performance ratio: today gen / (capacity × peak sun hours)
+      // Use 5 peak sun hours as approximate for Coimbatore
+      const capacityKwp = 5.0; // fallback; ideally from site metadata
+      const performanceRatio = todayGenKwh != null && todayGenKwh > 0
+        ? Math.min(100, Math.round((todayGenKwh / (capacityKwp * 5)) * 100))
+        : null;
+
+      // Current regime from most-recent non-Night forecast row
+      const activeRegime = [...forecastRows].reverse().find((r) => r.regime && r.regime !== "Night");
+      const regime = (activeRegime?.regime as RegimeType) ?? null;
+
+      return { todayGenKwh, currentOutputKw, peakKw, performanceRatio, regime, forecastRows, dailyRows };
     },
-    { cacheKey: `solar:${user?.site_id}`, ttl: TTL.realtime, autoRefreshSec: 30 },
+    { cacheKey: `solar:${user?.site_id}`, ttl: TTL.realtime, autoRefreshSec: 60 },
   );
 
+  // ── Derived chart data ───────────────────────────────────────────────────────
+
+  const forecastChartData = useMemo(() => {
+    const rows = (data?.forecastRows ?? []).filter((r) =>
+      forecastRange === "today" ? isToday(r.forecast_for) : isTomorrow(r.forecast_for),
+    );
+    if (rows.length === 0) return null;
+    return {
+      labels: rows.map((r) => fmtHour(r.forecast_for)),
+      datasets: [
+        { label: "P90 (Optimistic)",    data: rows.map((r) => Number(r.p90_kw) || 0),              borderColor: "transparent",             backgroundColor: COLORS.p90,               fill: "+1",  tension: 0.4, pointRadius: 0 },
+        { label: "P50 (Median)",        data: rows.map((r) => Number(r.p50_kw) || 0),              borderColor: COLORS.primary,            backgroundColor: "transparent",            borderWidth: 2,   tension: 0.4, pointRadius: 0 },
+        { label: "P10 (Conservative)",  data: rows.map((r) => Number(r.p10_kw) || 0),              borderColor: COLORS.p10,               backgroundColor: "transparent",            borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+        { label: "Physics Baseline",    data: rows.map((r) => Number(r.physics_baseline_kw) || 0), borderColor: "rgba(47,191,113,0.25)",   backgroundColor: "transparent",            borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+      ],
+    };
+  }, [data?.forecastRows, forecastRange]);
+
+  const weeklyChartData = useMemo(() => {
+    const rows = data?.dailyRows ?? [];
+    if (rows.length === 0) return null;
+    return {
+      labels: rows.map((r) => fmtDay(r.period_start)),
+      datasets: [{
+        label: "Generation kWh",
+        data: rows.map((r) => parseFloat(Number(r.pv_gen_kwh).toFixed(1))),
+        backgroundColor: COLORS.primaryMuted,
+        borderColor: COLORS.primary,
+        borderWidth: 1,
+        borderRadius: 6,
+      }],
+    };
+  }, [data?.dailyRows]);
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>Solar Generation</h1>
-        <p className="text-muted-foreground text-sm">Live performance and forecast</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-end justify-between"
+      >
+        <div>
+          <p className="text-xs text-white/50 uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
+          <h1 className="text-3xl font-extrabold text-white leading-none tracking-tight"
+            style={{ fontFamily: "var(--font-display)" }}>
+            Today&apos;s Performance
+          </h1>
+        </div>
+        {data?.regime && <RegimeBadge regime={data.regime} />}
+      </motion.div>
+
+      {error && (
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
+      {/* KPI grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <SkeletonPulse key={i} className="h-32 rounded-2xl" />)
+        ) : (
+          <>
+            <KpiCard label="Today's Generation" value={data?.todayGenKwh ?? null} unit="kWh" icon={Zap}       delay={0} />
+            <KpiCard label="Current Output"      value={data?.currentOutputKw ?? null} unit="kW"  icon={Sun}       delay={1} />
+            <KpiCard label="Peak Today"          value={data?.peakKw ?? null}          unit="kW"  icon={TrendingUp} sub="highest" delay={2} />
+            <KpiCard label="Performance Ratio"   value={data?.performanceRatio ?? null} unit="%"  icon={CloudSun}  delay={3} />
+          </>
+        )}
       </div>
 
-      {error && <GlassCard><p className="text-sm text-red-300">{error}</p></GlassCard>}
-
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity duration-300 ${loading ? "opacity-50 animate-pulse" : ""}`}>
-        <MetricCard title="Today's Generation" value={data?.generationKwh ?? 18.2} suffix=" kWh" icon={Zap} trend={{ direction: "up", value: "+12% vs avg" }} delay={0} />
-        <MetricCard title="Current Output" value={data?.currentOutputKw ?? 4.2} suffix=" kW" icon={Sun} delay={1} />
-        <MetricCard title="Peak Today" value={data?.peakKw ?? 4.8} suffix=" kW" icon={TrendingUp} trend={{ direction: "neutral", value: "at 12:15 PM" }} delay={2} />
-        <MetricCard title="Performance Ratio" value={87} suffix="%" icon={CloudSun} trend={{ direction: "up", value: "Good" }} delay={3} />
-      </div>
-
+      {/* Forecast chart */}
       <GlassCard glow="green">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
+            <Activity size={16} className="text-emerald-400" />
             <div>
-              <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>Generation Forecast</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
+              <h2 className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+                Generation Forecast
+              </h2>
+              <p className="text-xs text-white/45 mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
             </div>
-            <RegimeBadge regime={data?.regime ?? null} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-xl p-1">
             {(["today", "tomorrow"] as const).map((r) => (
-              <button key={r} onClick={() => setForecastRange(r)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors capitalize ${forecastRange === r ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-white/5"}`}>{r}</button>
+              <button key={r} onClick={() => setForecastRange(r)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all capitalize ${
+                  forecastRange === r
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "text-white/40 hover:text-white/60"
+                }`}>
+                {r}
+              </button>
             ))}
-            <StatusPill status="active" label="Live" animated />
           </div>
         </div>
-        <div className="flex items-center gap-6 mb-4">
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-4">
           {[
-            { label: "P50 Median", color: COLORS.primary, dash: false },
-            { label: "P90 Optimistic", color: COLORS.p90, dash: false },
-            { label: "P10 Conservative", color: COLORS.p10, dash: true },
-            { label: "Physics Baseline", color: "rgba(47,191,113,0.4)", dash: true },
+            { label: "P50 Median",       color: COLORS.primary,             dash: false },
+            { label: "P90 Optimistic",   color: COLORS.p90,                 dash: false },
+            { label: "P10 Conservative", color: COLORS.p10,                 dash: true  },
+            { label: "Physics Baseline", color: "rgba(47,191,113,0.35)",   dash: true  },
           ].map((l) => (
-            <div key={l.label} className="flex items-center gap-2">
-              <div className="w-6 h-0.5" style={{ background: l.color, borderTop: l.dash ? `1.5px dashed ${l.color}` : undefined }} />
-              <span className="text-xs text-muted-foreground">{l.label}</span>
+            <div key={l.label} className="flex items-center gap-1.5">
+              <div className="w-5 h-px" style={{
+                background: l.dash ? "transparent" : l.color,
+                borderTop: l.dash ? `1.5px dashed ${l.color}` : undefined,
+              }} />
+              <span className="text-[11px] text-white/45">{l.label}</span>
             </div>
           ))}
         </div>
-        <DataChart type="line" data={data?.forecastData ?? MOCK_FORECAST} height={220} />
+
+        {loading ? (
+          <SkeletonPulse className="h-52 w-full rounded-xl" />
+        ) : forecastChartData ? (
+          <DataChart type="line" data={forecastChartData} height={220} />
+        ) : (
+          <div className="h-52 flex items-center justify-center text-white/30 text-sm">
+            No forecast data for {forecastRange}
+          </div>
+        )}
       </GlassCard>
 
+      {/* Weekly history */}
       <GlassCard>
-        <h2 className="text-lg font-semibold text-foreground mb-6" style={{ fontFamily: "var(--font-display)" }}>7-Day History</h2>
-        <DataChart type="bar" data={data?.weeklyData ?? MOCK_WEEKLY} height={180} />
+        <div className="flex items-center gap-3 mb-5">
+          <TrendingUp size={16} className="text-emerald-400" />
+          <h2 className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+            7-Day Generation History
+          </h2>
+        </div>
+        {loading ? (
+          <SkeletonPulse className="h-44 w-full rounded-xl" />
+        ) : weeklyChartData ? (
+          <DataChart type="bar" data={weeklyChartData} height={180} />
+        ) : (
+          <div className="h-44 flex items-center justify-center text-white/30 text-sm">
+            No generation data available
+          </div>
+        )}
       </GlassCard>
     </div>
   );
