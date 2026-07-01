@@ -129,9 +129,8 @@ function SelfUseArc({ pct }: { pct: number }) {
         transform="rotate(-90 65 65)"
         style={{ filter: "drop-shadow(0 0 6px rgba(47,191,113,0.6))" }}
       />
-      <text x="65" y="60" textAnchor="middle" fill="#F0F6FF" fontSize="22" fontWeight="800"
+      <text x="65" y="70" textAnchor="middle" fill="#F0F6FF" fontSize="22" fontWeight="800"
         fontFamily="var(--font-display),system-ui">{pct}%</text>
-      <text x="65" y="76" textAnchor="middle" fill="#A8B8D8" fontSize="9" fontFamily="DM Sans,system-ui">self-use</text>
     </svg>
   );
 }
@@ -169,26 +168,52 @@ export default function OverviewPage() {
 
       const payload = summary.data.data;
 
-      // Telemetry rows — plain array, fields in Watts: pv1_power_w, pv2_power_w, load_power_w, grid_power_w
+      // Telemetry rows — plain array, most-recent 96 rows ordered ascending
+      // Fields in Watts: pv1_power_w, pv2_power_w, load_power_w, grid_power_w
       const rawRows: Array<{
         timestamp: string;
-        pv1_power_w: number;
-        pv2_power_w: number;
-        load_power_w: number;
-        grid_power_w: number;  // positive = import, negative = export
-        battery_soc_percent: number;
+        pv1_power_w?: number;
+        pv2_power_w?: number;
+        load_power_w?: number;
+        grid_power_w?: number;  // positive = import, negative = export
+        battery_soc_percent?: number;
+        actual_solar_kw?: number;
+        actual_load_kw?: number;
+        grid_power_kw?: number;
       }> = Array.isArray(payload.telemetry) ? payload.telemetry as never[] : [];
 
       // Normalise to kW for UI consumption
       const rows = rawRows.map((r) => ({
-        ts:             r.timestamp,
-        solarKw:        ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000,
-        loadKw:         (Number(r.load_power_w) || 0) / 1000,
-        gridKw:         (Number(r.grid_power_w) || 0) / 1000,
-        batterySoc:     r.battery_soc_percent ?? null,
+        ts:         r.timestamp,
+        solarKw:    r.actual_solar_kw != null
+          ? Number(r.actual_solar_kw)
+          : ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000,
+        loadKw:     r.actual_load_kw != null
+          ? Number(r.actual_load_kw)
+          : (Number(r.load_power_w) || 0) / 1000,
+        gridKw:     r.grid_power_kw != null
+          ? Number(r.grid_power_kw)
+          : (Number(r.grid_power_w) || 0) / 1000,
+        batterySoc: r.battery_soc_percent ?? null,
       }));
 
-      const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+      // Use realtime latest_telemetry for live output — it's the absolute newest reading,
+      // independent of the chart window. Fall back to chart's last row.
+      const rt = (payload.realtime ?? {}) as Record<string, unknown>;
+      const ltRaw = (rt.latest_telemetry ?? null) as Record<string, number> | null;
+      const liveRow = ltRaw ? {
+        solarKw:    ltRaw.actual_solar_kw != null
+          ? Number(ltRaw.actual_solar_kw)
+          : ((Number(ltRaw.pv1_power_w) || 0) + (Number(ltRaw.pv2_power_w) || 0)) / 1000,
+        loadKw:     ltRaw.actual_load_kw != null
+          ? Number(ltRaw.actual_load_kw)
+          : (Number(ltRaw.load_power_w) || 0) / 1000,
+        gridKw:     ltRaw.grid_power_kw != null
+          ? Number(ltRaw.grid_power_kw)
+          : (Number(ltRaw.grid_power_w) || 0) / 1000,
+        batterySoc: ltRaw.battery_soc_percent ?? null,
+      } : (rows.length > 0 ? rows[rows.length - 1] : null);
+
       const peakTodayKw = rows.length
         ? Math.max(...rows.map((r) => r.solarKw))
         : 0;
@@ -213,18 +238,26 @@ export default function OverviewPage() {
           grid:  parseFloat(avg(v.grid).toFixed(3)),
         }));
 
-      // Prefer energy-summary totals for accuracy; fall back to telemetry integration
+      // Priority for today's totals:
+      //  1. Inverter's own daily accumulators (pv_today_kwh etc.) — reset at midnight,
+      //     always current, no lag. Available in latest_telemetry after backend restart.
+      //  2. site_daily_energy (energy_today) — accurate but lags ~1 day.
+      //  3. Raw integration of chart rows — last resort; rows are 5-min cadence so
+      //     divide by 12 (not 4) to convert W → kWh per interval.
       const todayTotals = (payload.energy_today ?? {}) as Record<string, unknown>;
-      const todayGenKwh  = Number(todayTotals.pv_gen_kwh)      || rows.reduce((s, r) => s + r.solarKw * 0.25, 0);
-      const todayConKwh  = Number(todayTotals.load_kwh)         || rows.reduce((s, r) => s + r.loadKw  * 0.25, 0);
-      const gridExportKwh = Number(todayTotals.grid_export_kwh) || 0;
+      const invToday = ltRaw ?? {} as Record<string, number>;
+      const todayGenKwh  = Number(invToday.pv_today_kwh)       || Number(todayTotals.pv_gen_kwh)     || parseFloat(rows.reduce((s, r) => s + r.solarKw / 12, 0).toFixed(2));
+      const todayConKwh  = Number(invToday.load_today_kwh)     || Number(todayTotals.load_kwh)        || parseFloat(rows.reduce((s, r) => s + r.loadKw  / 12, 0).toFixed(2));
+      const gridExportKwh = Number(invToday.grid_sell_today_kwh) || Number(todayTotals.grid_export_kwh) || 0;
       const selfUsePct   = todayGenKwh > 0
         ? Math.round(Math.min(100, ((todayGenKwh - gridExportKwh) / todayGenKwh) * 100))
         : 0;
       const performanceRatio: number | null = null;
 
       const monthTotals = (payload.energy_month ?? {}) as Record<string, unknown>;
-      const monthGenKwh = Number(monthTotals.pv_gen_kwh) || 0;
+      // site_daily_energy lags ~1 day; fall back to today's yield when month total
+      // is missing (e.g. first day of a new month before the view refreshes).
+      const monthGenKwh = Number(monthTotals.pv_gen_kwh) || parseFloat(todayGenKwh.toFixed(2));
 
       // CO₂ avoided: Indian grid factor 0.82 kg CO₂/kWh
       const co2AvoidedKg = Math.round(todayGenKwh * 0.82);
@@ -237,20 +270,19 @@ export default function OverviewPage() {
         (a) => a.status !== "resolved" && !a.resolved,
       ).length;
 
-      // Gateway
-      const gw = (payload.realtime ?? {}) as Record<string, unknown>;
+      // Gateway (rt already defined above)
       const site = (payload.site ?? {}) as Record<string, unknown>;
-      const isOnline = Boolean(gw.is_online);
-      const siteName = String(gw.site_name || site.display_name || "Your Site");
-      const capacityKwp = Number(gw.solar_kwp || site.capacity_kw) || 0;
+      const isOnline = Boolean(rt.is_online);
+      const siteName = String(rt.site_name || site.display_name || "Your Site");
+      const capacityKwp = Number(rt.solar_kwp || site.capacity_kw) || 0;
 
       const nowIndex = hourly.length > 0 ? hourly.length - 1 : 0;
 
       return {
-        currentSolarKw: latest?.solarKw ?? 0,
-        currentLoadKw:  latest?.loadKw  ?? 0,
-        currentGridKw:  latest ? parseFloat(latest.gridKw.toFixed(2)) : 0,
-        batterySoc:     latest?.batterySoc ?? null,
+        currentSolarKw: liveRow?.solarKw ?? 0,
+        currentLoadKw:  liveRow?.loadKw  ?? 0,
+        currentGridKw:  liveRow ? parseFloat(liveRow.gridKw.toFixed(2)) : 0,
+        batterySoc:     liveRow?.batterySoc ?? null,
         todayGenKwh,
         todayConKwh,
         monthGenKwh,

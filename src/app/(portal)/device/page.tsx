@@ -24,7 +24,7 @@ interface GatewayStatus {
 interface TelemetryReading {
   timestamp: string;
   inverter_temp_c: number;
-  run_state: string;
+  run_state: number | string | null;
   battery_soc_percent: number;
   pv1_power_w: number;
   pv2_power_w: number;
@@ -119,6 +119,17 @@ const EMPTY_HEALTH: HardwareHealth = {
   solar_efficiency_pct: null,
 };
 
+// Deye inverter run_state integer codes → human label
+const DEYE_RUN_STATE: Record<number, string> = {
+  0: "Standby", 1: "Self-check", 2: "Normal", 3: "Alarm", 4: "Fault", 5: "Flash",
+  6: "Check Discharge", 7: "EPS", 8: "Anti-backflow",
+};
+function runStateLabel(v: number | string | null): string {
+  if (v == null) return "No data";
+  if (typeof v === "string") return v || "No data";
+  return DEYE_RUN_STATE[v] ?? `State ${v}`;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
@@ -149,9 +160,9 @@ function warrantyColor(expiryDate: string): string {
 }
 
 function warrantyYear(expiryDate: string): string {
-  if (!expiryDate) return "unknown";
+  if (!expiryDate) return "—";
   const year = new Date(expiryDate).getFullYear();
-  return Number.isFinite(year) ? String(year) : "unknown";
+  return Number.isFinite(year) ? String(year) : "—";
 }
 
 function efficiencyColor(pct: number): string {
@@ -375,7 +386,7 @@ export default function DevicePage() {
             {/* Run State */}
             <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
               <p className="text-xs text-muted-foreground mb-1">Run State</p>
-              <p className="text-sm font-semibold text-foreground">{telemetry.run_state}</p>
+              <p className="text-sm font-semibold text-foreground">{runStateLabel(telemetry.run_state)}</p>
             </div>
             {/* Solar Output */}
             <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
@@ -397,7 +408,10 @@ export default function DevicePage() {
             {/* Battery SOC */}
             <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
               <p className="text-xs text-muted-foreground mb-1">Battery SOC</p>
-              <SocArc pct={telemetry.battery_soc_percent} />
+              {telemetry.battery_soc_percent != null
+                ? <SocArc pct={telemetry.battery_soc_percent} />
+                : <p className="text-sm font-semibold text-muted-foreground mt-1">—</p>
+              }
             </div>
           </div>
 
@@ -489,11 +503,12 @@ export default function DevicePage() {
 
           <div className="space-y-4">
             {[
-              { label: "Solar", icon: <Sun size={15} />, pct: health.solar_efficiency_pct ?? 0 },
-              { label: "Inverter", icon: <Zap size={15} />, pct: health.inverter_efficiency_pct ?? 0 },
-              { label: "Battery", icon: <Battery size={15} />, pct: health.battery_efficiency_pct ?? 0 },
+              { label: "Solar", icon: <Sun size={15} />, pct: health.solar_efficiency_pct },
+              { label: "Inverter", icon: <Zap size={15} />, pct: health.inverter_efficiency_pct },
+              { label: "Battery", icon: <Battery size={15} />, pct: health.battery_efficiency_pct },
             ].map(({ label, icon, pct }) => {
-              const color = efficiencyColor(pct);
+              const hasData = pct != null;
+              const color = hasData ? efficiencyColor(pct!) : "#6B7A99";
               return (
                 <div key={label} className="flex items-center gap-3">
                   <div className="flex items-center gap-2 w-24 text-muted-foreground text-sm">
@@ -509,15 +524,17 @@ export default function DevicePage() {
                       overflow: "hidden",
                     }}
                   >
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                      style={{ height: "100%", borderRadius: 4, background: color }}
-                    />
+                    {hasData && (
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        style={{ height: "100%", borderRadius: 4, background: color }}
+                      />
+                    )}
                   </div>
                   <span style={{ color, fontSize: 13, fontWeight: 600, width: 38, textAlign: "right" }}>
-                    {pct}%
+                    {hasData ? `${pct}%` : "—"}
                   </span>
                 </div>
               );

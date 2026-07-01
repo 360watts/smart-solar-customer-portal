@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, User, ChevronLeft,
-  LogOut,
+  LogOut, PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/solar", icon: Sun, label: "Solar" },
   { href: "/consumption", icon: Zap, label: "Consumption" },
   { href: "/history", icon: TrendingUp, label: "History" },
+  { href: "/savings", icon: PiggyBank, label: "Savings" },
   { href: "/weather", icon: Cloud, label: "Weather" },
   { href: "/alerts", icon: AlertCircle, label: "Alerts", badge: 2 },
   { href: "/device", icon: Cpu, label: "Device" },

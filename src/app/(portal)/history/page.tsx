@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Zap, TrendingUp, Leaf, ArrowUpRight, Download } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import MetricCard from "@/components/ui/MetricCard";
@@ -8,6 +8,8 @@ import DataChart from "@/components/ui/DataChart";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
+import { TTL } from "@/lib/portalCache";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -83,66 +85,45 @@ function SelfUsePill({ pct }: { pct: number }) {
 export default function HistoryPage() {
   const { user } = useAuth();
   const [chartView, setChartView] = useState<"energy" | "savings">("energy");
-  const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<MonthRow[]>([]);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!user?.site_id) return;
-    setLoading(true);
-    portalApi
-      .getEnergySummary(user.site_id, { granularity: "monthly" })
-      .then((res) => {
-        setError("");
-        const results: Array<{
-          period_start?: string;
-          pv_gen_kwh?: number;
-          load_kwh?: number;
-          grid_import_kwh?: number;
-          grid_export_kwh?: number;
-        }> = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-        {
-          const mapped: MonthRow[] = results.map((r) => {
-            const gen = Number(r.pv_gen_kwh) || 0;
-            const con = Number(r.load_kwh) || 0;
-            const buy = Number(r.grid_import_kwh) || 0;
-            const sell = Number(r.grid_export_kwh) || 0;
-            const selfUse = gen > 0 ? Math.round(((gen - sell) / gen) * 100) : 0;
-            const label = r.period_start
-              ? new Date(r.period_start).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
-              : "";
-            return {
-              month: label,
-              gen,
-              con,
-              buy,
-              sell,
-              selfUse,
-              savings: calcSavings(gen),
-            };
-          });
-          setRows(mapped);
-        }
-      })
-      .catch(() => {
-        setError("Live history data is unavailable right now.");
-      })
-      .finally(() => setLoading(false));
-  }, [user?.site_id]);
+  const { data: rowsData, loading, error } = useSiteQuery<MonthRow[]>(
+    user?.site_id,
+    async (siteId) => {
+      const res = await portalApi.getEnergySummary(siteId, { granularity: "monthly" });
+      const results: Array<{ period_start?: string; pv_gen_kwh?: number; load_kwh?: number; grid_import_kwh?: number; grid_export_kwh?: number }> =
+        Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      return results.map((r) => {
+        const gen = Number(r.pv_gen_kwh) || 0;
+        const sell = Number(r.grid_export_kwh) || 0;
+        return {
+          month: r.period_start ? new Date(r.period_start).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "",
+          gen,
+          con: Number(r.load_kwh) || 0,
+          buy: Number(r.grid_import_kwh) || 0,
+          sell,
+          selfUse: gen > 0 ? Math.round(((gen - sell) / gen) * 100) : 0,
+          savings: calcSavings(gen),
+        };
+      });
+    },
+    { cacheKey: `history:${user?.site_id}`, ttl: TTL.history },
+  );
+
+  const safeRows: MonthRow[] = rowsData ?? [];
 
   // Aggregate KPIs
-  const totalGen = rows.reduce((s, r) => s + r.gen, 0);
-  const totalSavings = rows.reduce((s, r) => s + r.savings, 0);
+  const totalGen = safeRows.reduce((s, r) => s + r.gen, 0);
+  const totalSavings = safeRows.reduce((s, r) => s + r.savings, 0);
   const totalCo2 = calcCo2(totalGen);
-  const totalExport = rows.reduce((s, r) => s + r.sell, 0);
+  const totalExport = safeRows.reduce((s, r) => s + r.sell, 0);
 
   // Chart data derived from rows
   const energyChartData = {
-    labels: rows.map((r) => r.month.slice(0, 3)),
+    labels: safeRows.map((r) => r.month.slice(0, 3)),
     datasets: [
       {
         label: "Generation kWh",
-        data: rows.map((r) => r.gen),
+        data: safeRows.map((r) => r.gen),
         backgroundColor: COLORS.primaryMuted,
         borderColor: COLORS.primary,
         borderWidth: 1,
@@ -150,7 +131,7 @@ export default function HistoryPage() {
       },
       {
         label: "Consumption kWh",
-        data: rows.map((r) => r.con),
+        data: safeRows.map((r) => r.con),
         backgroundColor: COLORS.amberMuted,
         borderColor: COLORS.amber,
         borderWidth: 1,
@@ -160,11 +141,11 @@ export default function HistoryPage() {
   };
 
   const savingsChartData = {
-    labels: rows.map((r) => r.month.slice(0, 3)),
+    labels: safeRows.map((r) => r.month.slice(0, 3)),
     datasets: [
       {
         label: "Savings ₹",
-        data: rows.map((r) => r.savings),
+        data: safeRows.map((r) => r.savings),
         backgroundColor: COLORS.primaryMuted,
         borderColor: COLORS.primary,
         borderWidth: 1,
@@ -187,7 +168,7 @@ export default function HistoryPage() {
           <p className="text-muted-foreground text-sm">12-month energy &amp; savings overview</p>
         </div>
         <button
-          onClick={() => exportCSV(rows)}
+          onClick={() => exportCSV(safeRows)}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/10"
         >
           <Download size={16} />
@@ -303,7 +284,7 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
+              {safeRows.map((row, i) => (
                 <tr
                   key={i}
                   className={`border-b border-border/50 hover:bg-white/[0.03] transition-colors ${

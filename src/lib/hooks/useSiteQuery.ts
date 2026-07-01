@@ -109,8 +109,15 @@ export function useSiteQuery<T>(
       } catch (err) {
         if (controller.signal.aborted) return;
         // axios throws CanceledError (not the browser's AbortError) when a
-        // request is cancelled via AbortSignal. Both should be silent.
-        if (err instanceof Error && (err.name === "AbortError" || err.name === "CanceledError")) return;
+        // request is cancelled via AbortSignal.
+        if (err instanceof Error && (err.name === "AbortError" || err.name === "CanceledError")) {
+          // Our signal is still live but we received a cancellation error — this
+          // means cacheDedup returned a shared promise that was aborted by a
+          // concurrent caller (React Strict Mode double-effect). Retry with a
+          // fresh request now that inFlight has been cleared.
+          void fetchData(background);
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load data.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);

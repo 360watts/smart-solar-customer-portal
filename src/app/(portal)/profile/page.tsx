@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
+import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
+import { TTL } from "@/lib/portalCache";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,20 +44,51 @@ const inputClass =
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
+interface ProfileData { profile: Profile; site: Site | null }
+
 export default function ProfilePage() {
   const { user } = useAuth();
 
-  // Data
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [site, setSite] = useState<Site | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { data, loading, error } = useSiteQuery<ProfileData>(
+    user?.site_id,
+    async (siteId) => {
+      const [profileRes, siteRes] = await Promise.all([
+        portalApi.getProfile(),
+        portalApi.getGatewayStatus(siteId),
+      ]);
+      const raw = profileRes.data as { first_name?: string; last_name?: string; email?: string; mobile_number?: string; plan_type?: string; avatar_url?: string | null };
+      const profile: Profile = {
+        first_name: raw.first_name ?? "",
+        last_name: raw.last_name ?? "",
+        email: raw.email ?? "",
+        phone: raw.mobile_number ?? "",
+        subscription_plan: raw.plan_type ?? "Customer Plan",
+        avatar_url: raw.avatar_url ?? null,
+      };
+      const rawSite = siteRes?.data as Record<string, unknown> | null;
+      const site: Site | null = rawSite ? { capacity_kw: Number(rawSite.solar_kwp) || 0, site_name: String(rawSite.site_name || "Solar Site") } : null;
+      return { profile, site };
+    },
+    { cacheKey: `profile:${user?.site_id}`, ttl: TTL.static },
+  );
 
-  // Edit form
+  const profile = data?.profile ?? null;
+  const site = data?.site ?? null;
+
+  // Edit form — seeded from loaded profile
   const [editFirst, setEditFirst] = useState("");
   const [editLast, setEditLast] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Seed edit fields when profile loads for the first time
+  useEffect(() => {
+    if (profile && !editFirst && !editLast) {
+      setEditFirst(profile.first_name);
+      setEditLast(profile.last_name);
+      setEditPhone(profile.phone ?? "");
+    }
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Password form
   const [currentPw, setCurrentPw] = useState("");
@@ -63,55 +96,6 @@ export default function ProfilePage() {
   const [confirmPw, setConfirmPw] = useState("");
   const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [pwError, setPwError] = useState("");
-
-  // ---------------------------------------------------------------------------
-  // Load data
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    async function load() {
-      try {
-        setError("");
-        const [profileRes, siteRes] = await Promise.all([
-          portalApi.getProfile(),
-          user?.site_id ? portalApi.getGatewayStatus(user.site_id) : Promise.resolve(null),
-        ]);
-        const rawProfile = profileRes.data as {
-          first_name?: string;
-          last_name?: string;
-          email?: string;
-          mobile_number?: string;
-          plan_type?: string;
-          avatar_url?: string | null;
-        };
-        const p: Profile = {
-          first_name: rawProfile.first_name ?? "",
-          last_name: rawProfile.last_name ?? "",
-          email: rawProfile.email ?? "",
-          phone: rawProfile.mobile_number ?? "",
-          subscription_plan: rawProfile.plan_type ?? "Customer Plan",
-          avatar_url: rawProfile.avatar_url ?? null,
-        };
-        setProfile(p);
-        setEditFirst(p.first_name);
-        setEditLast(p.last_name);
-        setEditPhone(p.phone ?? "");
-        if (siteRes) {
-          const rawSite = siteRes.data as Record<string, unknown>;
-          setSite({
-            capacity_kw: Number(rawSite.solar_kwp) || 0,
-            site_name: String(rawSite.site_name || "Solar Site"),
-          });
-        }
-      } catch {
-        setError("We could not load your account details right now.");
-        setProfile(null);
-        setSite(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [user?.site_id]);
 
   // ---------------------------------------------------------------------------
   // Derived
@@ -139,7 +123,10 @@ export default function ProfilePage() {
         last_name: editLast,
         mobile_number: editPhone,
       });
-      setProfile((p) => p ? { ...p, first_name: editFirst, last_name: editLast, phone: editPhone } : p);
+      // Seed local edit fields with updated values so the form reflects the save
+      setEditFirst(editFirst);
+      setEditLast(editLast);
+      setEditPhone(editPhone);
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
     } catch {

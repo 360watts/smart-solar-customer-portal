@@ -144,11 +144,15 @@ export default function ConsumptionPage() {
       // Load forecast: plain array
       const fRows = forecastS.status === "fulfilled" && Array.isArray(forecastS.value.data) ? forecastS.value.data : [];
 
-      const generationKwh = Number(todayTotals.pv_gen_kwh) || 0;
+      // site_daily_energy lags by ~1 day; fall back to integrating 5-min telemetry
+      // when the summary entry for today is missing (each row ≈ 5 min = 1/12 h).
+      const telGenKwh  = telRows.reduce((s, r) => s + ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000 / 12, 0);
+      const telLoadKwh = telRows.reduce((s, r) => s + (Number(r.load_power_w) || 0) / 1000 / 12, 0);
+      const generationKwh = Number(todayTotals.pv_gen_kwh) || parseFloat(telGenKwh.toFixed(2));
       const gridExportKwh = Number(todayTotals.grid_export_kwh) || 0;
 
       return {
-        consumptionKwh:     Number(todayTotals.load_kwh)       || 0,
+        consumptionKwh:     Number(todayTotals.load_kwh) || parseFloat(telLoadKwh.toFixed(2)),
         generationKwh,
         selfConsumptionPct: generationKwh > 0
           ? Math.round(Math.min(100, ((generationKwh - gridExportKwh) / generationKwh) * 100))

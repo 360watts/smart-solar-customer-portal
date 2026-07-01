@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Info, CheckCircle } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
+import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
+import { TTL } from "@/lib/portalCache";
 
 interface Alert {
   id: string;
@@ -77,37 +79,33 @@ type SeverityFilter = "all" | "critical" | "warning" | "info";
 
 export default function AlertsPage() {
   const { user } = useAuth();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState("");
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Alert["status"]>>({});
 
-  useEffect(() => {
-    if (!user?.site_id) return;
-    portalApi
-      .getSiteAlerts(user.site_id)
-      .then((res) => {
-        setError("");
-        const data = res.data?.results ?? res.data;
-        if (Array.isArray(data)) setAlerts(data);
-      })
-      .catch(() => {
-        setError("Live alerts could not be loaded.");
-      })
-      .finally(() => setLoaded(true));
-  }, [user?.site_id]);
+  const { data: alertsData, loading, error } = useSiteQuery<Alert[]>(
+    user?.site_id,
+    async (siteId) => {
+      const res = await portalApi.getSiteAlerts(siteId);
+      const raw = res.data?.results ?? res.data;
+      return Array.isArray(raw) ? raw : [];
+    },
+    { cacheKey: `alerts:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 30 },
+  );
+
+  const alerts: Alert[] = alertsData ?? [];
+  const loaded = !loading;
 
   function acknowledgeAlert(alertId: string) {
-    setAlerts((prev) =>
-      prev.map((a) =>
-        a.id === alertId ? { ...a, status: "acknowledged" as const } : a
-      )
-    );
+    setLocalOverrides((prev) => ({ ...prev, [alertId]: "acknowledged" }));
     portalApi.acknowledgeAlert(alertId).catch(() => {});
   }
 
-  const filtered = alerts.filter((a) => {
+  const displayAlerts = alerts.map((a) =>
+    localOverrides[a.id] ? { ...a, status: localOverrides[a.id]! } : a
+  );
+
+  const filtered = displayAlerts.filter((a) => {
     const matchStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && (a.status === "active" || a.status === "acknowledged")) ||
@@ -117,9 +115,9 @@ export default function AlertsPage() {
     return matchStatus && matchSeverity;
   });
 
-  const criticalCount = alerts.filter((a) => a.severity === "critical").length;
-  const warningCount = alerts.filter((a) => a.severity === "warning").length;
-  const infoCount = alerts.filter((a) => a.severity === "info").length;
+  const criticalCount = displayAlerts.filter((a) => a.severity === "critical").length;
+  const warningCount = displayAlerts.filter((a) => a.severity === "warning").length;
+  const infoCount = displayAlerts.filter((a) => a.severity === "info").length;
 
   const pillBtn = (active: boolean) =>
     `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${

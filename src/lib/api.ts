@@ -9,6 +9,36 @@ const api = axios.create({
 
 export default api;
 
+export interface SavingsData {
+  id: number;
+  electricityBill: {
+    amount: number;
+    period: string;
+    billingMonths: number;
+    status: "due" | "paid" | "overdue";
+  };
+  consumption: {
+    totalUnitsWithoutSolar: number;
+    solarUnits: number;
+    ebImportUnits: number;
+    ebExportUnits: number;
+    evUnits: number;
+  };
+  savings: {
+    billWithoutSolar: number;
+    savingsAmount: number;
+    savingsPercentage: number;
+  };
+  investment: {
+    upfrontAmount: number;
+    savedAmount: number;
+    paybackPercentage: number;
+    remainingInvestment: number;
+    monthsToBreakEven: number;
+    breakEvenDate: string;
+  };
+}
+
 export interface PortalSummaryMeta<TData> {
   version: 1;
   site_id: string;
@@ -70,6 +100,9 @@ export const portalApi = {
 
   getHardwareHealth: (siteId: string, days?: number, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/hardware-health/`, { params: { days }, ...sig(signal) }),
+
+  getSavings: (siteId: string, signal?: AbortSignal) =>
+    api.get<PortalSummaryMeta<{ savings: SavingsData | null }>>(`/api/backend/sites/${siteId}/portal-savings/`, sig(signal)),
 
   getProfile: () =>
     api.get(`/api/backend/profile/`),
