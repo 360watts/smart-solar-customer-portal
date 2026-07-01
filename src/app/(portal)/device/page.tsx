@@ -473,22 +473,35 @@ export default function DevicePage() {
             ))}
           </GlassCard>
 
-          {/* Panels */}
+          {/* Panels — group identical make/model to avoid repeating 8× the same row */}
           <GlassCard>
             <div className="flex items-center gap-2 mb-3">
               <Sun size={16} style={{ color: "#2FBF71" }} />
               <h4 className="text-sm font-semibold text-foreground">Solar Panels</h4>
             </div>
-            {equipment.panels.map((panel, i) => (
-              <div key={i} className="space-y-1.5 text-sm">
-                <p className="font-bold text-foreground">{panel.brand} {panel.model}</p>
-                <p className="text-muted-foreground">{panel.capacity_wp}W · {panel.technology}</p>
-                <p className="text-muted-foreground">Installed {panel.installed_date}</p>
-                <p style={{ color: warrantyColor(panel.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {warrantyYear(panel.warranty_expiry)}
-                </p>
-              </div>
-            ))}
+            {(() => {
+              // Group by brand+model key, sum count
+              const groups = new Map<string, { panel: typeof equipment.panels[0]; count: number }>();
+              for (const p of equipment.panels) {
+                const key = `${p.brand}|${p.model}|${p.capacity_wp}`;
+                const existing = groups.get(key);
+                if (existing) existing.count++;
+                else groups.set(key, { panel: p, count: 1 });
+              }
+              return Array.from(groups.values()).map(({ panel, count }, i) => (
+                <div key={i} className="space-y-1.5 text-sm">
+                  <p className="font-bold text-foreground">
+                    {count > 1 && <span className="text-emerald-400 mr-1">{count}×</span>}
+                    {panel.brand} {panel.model}
+                  </p>
+                  <p className="text-muted-foreground">{panel.capacity_wp}W · {panel.technology}</p>
+                  <p className="text-muted-foreground">Installed {panel.installed_date}</p>
+                  <p style={{ color: warrantyColor(panel.warranty_expiry), fontSize: 12 }}>
+                    Warranty expires {warrantyYear(panel.warranty_expiry)}
+                  </p>
+                </div>
+              ));
+            })()}
           </GlassCard>
         </div>
       </motion.div>

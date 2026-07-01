@@ -115,23 +115,125 @@ function KpiTile({
 
 // ─── Self-consumption arc ─────────────────────────────────────────────────────
 function SelfUseArc({ pct }: { pct: number }) {
-  const r = 52;
+  const r = 46;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
+  const exportPct = 100 - pct;
+  const exportDash = (exportPct / 100) * circ;
   return (
-    <svg viewBox="0 0 130 130" className="w-full h-full">
-      <circle cx="65" cy="65" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
+    <svg viewBox="0 0 116 116" className="w-full h-full">
+      {/* track */}
+      <circle cx="58" cy="58" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="11" />
+      {/* export arc (cyan, behind) */}
       <motion.circle
-        cx="65" cy="65" r={r} fill="none" stroke="#2FBF71" strokeWidth="10" strokeLinecap="round"
+        cx="58" cy="58" r={r} fill="none" stroke="#22d3ee" strokeWidth="11" strokeLinecap="butt"
+        strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
+        animate={{ strokeDashoffset: circ - exportDash }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        transform="rotate(-90 58 58)"
+        style={{ opacity: 0.45 }}
+      />
+      {/* self-use arc (green, foreground) */}
+      <motion.circle
+        cx="58" cy="58" r={r} fill="none" stroke="#2FBF71" strokeWidth="11" strokeLinecap="round"
         strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
         animate={{ strokeDashoffset: circ - dash }}
         transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-        transform="rotate(-90 65 65)"
-        style={{ filter: "drop-shadow(0 0 6px rgba(47,191,113,0.6))" }}
+        transform="rotate(-90 58 58)"
+        style={{ filter: "drop-shadow(0 0 7px rgba(47,191,113,0.55))" }}
       />
-      <text x="65" y="70" textAnchor="middle" fill="#F0F6FF" fontSize="22" fontWeight="800"
+      <text x="58" y="53" textAnchor="middle" fill="#F0F6FF" fontSize="20" fontWeight="800"
         fontFamily="var(--font-display),system-ui">{pct}%</text>
+      <text x="58" y="70" textAnchor="middle" fill="rgba(240,246,255,0.4)" fontSize="9"
+        fontFamily="var(--font-display),system-ui" letterSpacing="1">SELF-USE</text>
     </svg>
+  );
+}
+
+// ─── Self-consumption card body ────────────────────────────────────────────────
+function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; loading: boolean }) {
+  const pct         = Math.round(data?.selfUsePct ?? 0);
+  const genKwh      = data?.todayGenKwh ?? 0;
+  const selfUsedKwh = parseFloat((genKwh * pct / 100).toFixed(1));
+  const exportedKwh = parseFloat((genKwh - selfUsedKwh).toFixed(1));
+  const exportPct   = 100 - pct;
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Self-Consumption</p>
+        {!loading && data && (
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(47,191,113,0.12)", color: "#2FBF71" }}>
+            Today
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          <SkeletonPulse className="w-28 h-28 mx-auto rounded-full" />
+          <SkeletonPulse className="h-3 w-full rounded-full" />
+          <SkeletonPulse className="h-8 w-full rounded-xl" />
+          <SkeletonPulse className="h-8 w-full rounded-xl" />
+        </div>
+      ) : (
+        <>
+          {/* Ring */}
+          <div className="w-28 h-28 mx-auto mb-4">
+            <SelfUseArc pct={pct} />
+          </div>
+
+          {/* Segmented bar */}
+          <div className="mb-4">
+            <div className="flex rounded-full overflow-hidden h-1.5 bg-white/5">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "#2FBF71", boxShadow: "0 0 6px rgba(47,191,113,0.5)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+              />
+              <motion.div
+                className="h-full"
+                style={{ background: "rgba(34,211,238,0.45)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${exportPct}%` }}
+                transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="text-[10px] text-emerald-400/70 font-medium">Self-used {pct}%</span>
+              <span className="text-[10px] text-cyan-400/60 font-medium">Exported {exportPct}%</span>
+            </div>
+          </div>
+
+          {/* Stat rows */}
+          <div className="space-y-1.5">
+            {[
+              { label: "Generated",  value: genKwh.toFixed(1),      unit: "kWh", dot: "#2FBF71",          glow: "rgba(47,191,113,0.5)"  },
+              { label: "Self-used",  value: selfUsedKwh.toFixed(1), unit: "kWh", dot: "#34d399",          glow: "rgba(52,211,153,0.4)"  },
+              { label: "Exported",   value: exportedKwh.toFixed(1), unit: "kWh", dot: "rgba(34,211,238,0.7)", glow: "rgba(34,211,238,0.3)" },
+            ].map((row) => (
+              <div key={row.label}
+                className="flex items-center justify-between px-3 py-2 rounded-xl"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.055)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: row.dot, boxShadow: `0 0 5px ${row.glow}` }} />
+                  <span className="text-xs text-white/55">{row.label}</span>
+                </div>
+                <span className="text-xs font-bold tabular-nums"
+                  style={{ fontFamily: "var(--font-jetbrains-mono),monospace", color: row.dot }}>
+                  {row.value} <span className="font-normal opacity-60">{row.unit}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -472,21 +574,9 @@ export default function OverviewPage() {
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Self-use ring */}
+        {/* Self-consumption card */}
         <GlassCard>
-          <p className="text-xs text-white/60 uppercase tracking-widest font-medium mb-4">Self-Consumption</p>
-          {loading ? (
-            <SkeletonPulse className="w-32 h-32 mx-auto rounded-full" />
-          ) : (
-            <>
-              <div className="w-32 h-32 mx-auto">
-                <SelfUseArc pct={Math.round(d?.selfUsePct ?? 0)} />
-              </div>
-              <p className="text-center text-xs text-white/55 mt-3">
-                {Math.round(d?.selfUsePct ?? 0)}% powered by solar today
-              </p>
-            </>
-          )}
+          <SelfConsumptionCard data={d ?? null} loading={loading} />
         </GlassCard>
 
         {/* Hourly chart */}
