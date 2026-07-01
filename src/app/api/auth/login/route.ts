@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  applySessionCache,
   applySessionCookies,
   clearSessionCookies,
   getEmployeeAppUrl,
@@ -42,17 +43,17 @@ export async function POST(request: Request) {
       return clearSessionCookies(response);
     }
 
-    const response = NextResponse.json({
-      session: result.session,
-    });
-
-    return applySessionCookies(response, result.tokens ?? {});
+    let response = NextResponse.json({ session: result.session });
+    response = applySessionCookies(response, result.tokens ?? {});
+    return applySessionCache(response, result.session);
   } catch (error) {
+    // Distinguish network/infrastructure failures from credential errors.
+    const isNetworkError =
+      error instanceof Error && (error as Error & { isNetworkError?: boolean }).isNetworkError;
+
     return NextResponse.json(
-      {
-        message: error instanceof Error ? error.message : "Login failed.",
-      },
-      { status: 401 },
+      { message: error instanceof Error ? error.message : "Login failed." },
+      { status: isNetworkError ? 503 : 401 },
     );
   }
 }

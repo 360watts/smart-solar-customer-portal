@@ -84,33 +84,35 @@ export default function HistoryPage() {
   const { user } = useAuth();
   const [chartView, setChartView] = useState<"energy" | "savings">("energy");
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<MonthRow[]>(buildMockRows);
+  const [rows, setRows] = useState<MonthRow[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.site_id) return;
     setLoading(true);
     portalApi
-      .getEnergySummary(user.site_id, { aggregate: "monthly" })
+      .getEnergySummary(user.site_id, { granularity: "monthly" })
       .then((res) => {
         setError("");
         const results: Array<{
-          month?: string;
-          generation_kwh?: number;
-          consumption_kwh?: number;
+          period_start?: string;
+          pv_gen_kwh?: number;
+          load_kwh?: number;
           grid_import_kwh?: number;
           grid_export_kwh?: number;
-          self_consumption_pct?: number;
-        }> = res.data?.results ?? [];
-        if (results.length > 0) {
+        }> = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+        {
           const mapped: MonthRow[] = results.map((r) => {
-            const gen = Number(r.generation_kwh) || 0;
-            const con = Number(r.consumption_kwh) || 0;
+            const gen = Number(r.pv_gen_kwh) || 0;
+            const con = Number(r.load_kwh) || 0;
             const buy = Number(r.grid_import_kwh) || 0;
             const sell = Number(r.grid_export_kwh) || 0;
-            const selfUse = r.self_consumption_pct != null ? Math.round(Number(r.self_consumption_pct)) : gen > 0 ? Math.round(((gen - sell) / gen) * 100) : 0;
+            const selfUse = gen > 0 ? Math.round(((gen - sell) / gen) * 100) : 0;
+            const label = r.period_start
+              ? new Date(r.period_start).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+              : "";
             return {
-              month: r.month ?? "",
+              month: label,
               gen,
               con,
               buy,

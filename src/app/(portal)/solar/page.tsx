@@ -1,5 +1,7 @@
 "use client";
 
+import { formatHourLabel } from "@/lib/utils";
+
 import React, { useState, useEffect } from "react";
 import { Sun, TrendingUp, Zap, CloudSun } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,37 +21,28 @@ const NAV = [
   { href: "/device", icon: Cpu, label: "Device" },
 ];
 
-export default function PortalSidebar() {
+// Memoized so AuthContext updates (e.g. loading flag) don't force a full
+// sidebar re-render while the Framer Motion tree is expensive to reconcile.
+const PortalSidebar = React.memo(function PortalSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  // Pause the infinite pulse animation when the tab is hidden to avoid wasting
+  // CPU/GPU on an animation the user cannot see.
+  const [tabVisible, setTabVisible] = useState(true);
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase() || "C";
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Customer";
 
+  useEffect(() => {
+    const onVisibility = () => setTabVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   return (
+    // Scrollbar styles are in globals.css (sidebar-nav class) so they aren't
+    // re-injected as a <style> tag on every render.
     <>
-      <style>{`
-        nav::-webkit-scrollbar {
-          width: 7px;
-        }
-        nav::-webkit-scrollbar-track {
-          background: rgba(7, 11, 18, 0.5);
-          border-radius: 10px;
-        }
-        nav::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, rgba(47,191,113,0.4) 0%, rgba(47,191,113,0.3) 100%);
-          border-radius: 10px;
-          border: 2px solid rgba(7, 11, 18, 0.5);
-          box-shadow: inset 0 0 6px rgba(47,191,113,0.2);
-        }
-        nav::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, rgba(47,191,113,0.6) 0%, rgba(47,191,113,0.5) 100%);
-          box-shadow: inset 0 0 8px rgba(47,191,113,0.4), 0 0 12px rgba(47,191,113,0.3);
-        }
-        nav::-webkit-scrollbar-thumb:active {
-          background: linear-gradient(180deg, rgba(47,191,113,0.8) 0%, rgba(47,191,113,0.7) 100%);
-        }
-      `}</style>
       <motion.aside
         animate={{ width: collapsed ? 72 : 220 }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
@@ -66,8 +57,8 @@ export default function PortalSidebar() {
         <div className="relative w-8 h-8 shrink-0">
           <motion.div
             className="absolute inset-0 rounded-full bg-emerald-500/20"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            animate={tabVisible ? { scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] } : { scale: 1, opacity: 0.5 }}
+            transition={tabVisible ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0 }}
           />
           <div className="relative w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
             <Sun size={16} className="text-emerald-400" />
@@ -90,11 +81,8 @@ export default function PortalSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto"
-        style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: "rgba(47,191,113,0.45) rgba(7,11,18,0.5)",
-        }}>
+      <nav className="sidebar-nav flex-1 py-4 px-2 space-y-0.5 overflow-y-auto"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(47,191,113,0.45) rgba(7,11,18,0.5)" }}>
         {NAV.map((item) => {
           const active = pathname === item.href;
           return (
@@ -214,4 +202,6 @@ export default function PortalSidebar() {
     </motion.aside>
     </>
   );
-}
+});
+
+export default PortalSidebar;

@@ -9,39 +9,67 @@ const api = axios.create({
 
 export default api;
 
+export interface PortalSummaryMeta<TData> {
+  version: 1;
+  site_id: string;
+  generated_at: string;
+  data: TData;
+  partial_errors: Array<{
+    key: string;
+    message: string;
+  }>;
+  cache?: {
+    hit: boolean;
+    fragments?: Record<string, boolean>;
+  };
+}
+
+// Helper: merge signal into axios config. Forwarding AbortController signals
+// allows in-flight HTTP connections to be cancelled when a component unmounts
+// or siteId changes — freeing backend resources and preventing stale updates.
+function sig(signal?: AbortSignal) {
+  return signal ? { signal } : {};
+}
+
 export const portalApi = {
-  getTelemetry: (siteId: string, params?: { days?: number; aggregate?: string }) =>
-    api.get(`/api/backend/sites/${siteId}/telemetry/`, { params }),
+  getPortalOverview: (siteId: string, params?: { date?: string }, signal?: AbortSignal) =>
+    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/backend/sites/${siteId}/portal-overview/`, { params, ...sig(signal) }),
 
-  getEnergySummary: (siteId: string, params?: { date?: string; aggregate?: string }) =>
-    api.get(`/api/backend/sites/${siteId}/energy-summary/`, { params }),
+  getPortalDevice: (siteId: string, signal?: AbortSignal) =>
+    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/backend/sites/${siteId}/portal-device/`, sig(signal)),
 
-  getHistory: (siteId: string, params?: { aggregate?: string }) =>
-    api.get(`/api/backend/sites/${siteId}/history/`, { params }),
+  getTelemetry: (siteId: string, params?: { days?: number; aggregate?: string }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/telemetry/`, { params, ...sig(signal) }),
 
-  getForecast: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/forecast/`),
+  getEnergySummary: (siteId: string, params?: { granularity?: string; start?: string; end?: string; date?: string; summary?: string; combined?: string }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/energy-summary/`, { params, ...sig(signal) }),
 
-  getLoadForecast: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/load-forecast/`),
+  getHistory: (siteId: string, params?: { aggregate?: string }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/history/`, { params, ...sig(signal) }),
 
-  getWeather: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/weather/`),
+  getForecast: (siteId: string, params?: { date?: string }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/forecast/`, { params, ...sig(signal) }),
 
-  getSiteAlerts: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/alerts/`),
+  getLoadForecast: (siteId: string, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/load-forecast/`, sig(signal)),
+
+  getWeather: (siteId: string, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
+
+  getSiteAlerts: (siteId: string, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/alerts/`, sig(signal)),
 
   acknowledgeAlert: (alertId: string) =>
     api.post(`/api/backend/alerts/${alertId}/acknowledge/`),
 
-  getGatewayStatus: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/gateway-status/`),
+  getGatewayStatus: (siteId: string, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/gateway-status/`, sig(signal)),
 
-  getEquipment: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/equipment/`),
+  getEquipment: (siteId: string, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/equipment/`, sig(signal)),
 
-  getHardwareHealth: (siteId: string, days?: number) =>
-    api.get(`/api/backend/sites/${siteId}/hardware-health/`, { params: { days } }),
+  getHardwareHealth: (siteId: string, days?: number, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/hardware-health/`, { params: { days }, ...sig(signal) }),
 
   getProfile: () =>
     api.get(`/api/backend/profile/`),

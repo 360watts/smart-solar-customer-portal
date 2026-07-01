@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,6 +17,7 @@ import {
 import { Line, Bar } from "react-chartjs-2";
 import { CHART_DEFAULTS } from "@/lib/tokens";
 
+// Register the core chart.js components synchronously — safe on server.
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -25,15 +26,39 @@ ChartJS.register(
   BarElement,
   Filler,
   Tooltip,
-  Legend
+  Legend,
 );
+
+// chartjs-plugin-zoom imports hammerjs which touches `document` at module init,
+// making it unsafe to import at the top level in a Next.js environment.
+// Register it once, lazily, after the browser environment is confirmed.
+let zoomRegistered = false;
+function ensureZoomPlugin() {
+  if (zoomRegistered || typeof window === "undefined") return;
+  zoomRegistered = true;
+  import("chartjs-plugin-zoom").then((m) => {
+    ChartJS.register(m.default);
+  });
+}
 
 interface DataChartProps {
   type: "line" | "bar";
   data: ChartData<"line"> | ChartData<"bar">;
   height?: number;
   options?: ChartOptions<"line"> | ChartOptions<"bar">;
+  /** Disable zoom/pan for charts where it doesn't make sense */
+  disableZoom?: boolean;
 }
+
+const zoomOptions = {
+  pan:  { enabled: true, mode: "x" as const },
+  zoom: {
+    wheel: { enabled: true, speed: 0.08 },
+    pinch: { enabled: true },
+    mode:  "x" as const,
+  },
+  limits: { x: { minRange: 2 } },
+};
 
 const baseOptions: ChartOptions<"line"> = {
   responsive: true,
@@ -42,19 +67,12 @@ const baseOptions: ChartOptions<"line"> = {
     legend: { display: false },
     tooltip: {
       ...CHART_DEFAULTS.tooltip,
-      external: undefined, // Use default rendering for better performance
-      // Custom callback for premium formatting
       callbacks: {
         title: (context: any) => {
           if (!context[0]) return "";
           const label = String(context[0].label);
-          // Format different label types
-          if (/^\d{1,2}[ap]m$/i.test(label)) {
-            return `⏱ ${label}`;
-          }
-          if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i.test(label)) {
-            return `📅 ${label}`;
-          }
+          if (/^\d{1,2}[ap]m$/i.test(label)) return `⏱ ${label}`;
+          if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i.test(label)) return `📅 ${label}`;
           return label;
         },
         label: (context: any) => {
@@ -62,35 +80,18 @@ const baseOptions: ChartOptions<"line"> = {
             ? context.parsed.y.toFixed(2)
             : String(context.parsed.y);
           const dataset = context.dataset.label || "Value";
-          // Infer unit from dataset label
           const unit = dataset.toLowerCase().includes("kwh") ? " kWh"
             : dataset.toLowerCase().includes("kw") || dataset.toLowerCase().includes("consumption") ? " kW"
             : "";
           return `${dataset}: ${value}${unit}`;
         },
         afterLabel: (context: any) => {
-          // Add confidence band info for forecasts
           const label = context.dataset.label || "";
-          if (label.includes("P90")) {
-            return "🟢 Optimistic";
-          }
-          if (label.includes("P10")) {
-            return "🔵 Conservative";
-          }
-          if (label.includes("P50")) {
-            return "💚 Expected";
-          }
+          if (label.includes("P90")) return "🟢 Optimistic";
+          if (label.includes("P10")) return "🔵 Conservative";
+          if (label.includes("P50")) return "💚 Expected";
           return "";
         },
-      },
-      // Dynamic border color based on dataset
-      borderColor: (context: any) => {
-        if (!context.tooltip?.dataPoints?.[0]) return "#2FBF71";
-        const label = context.tooltip.dataPoints[0].dataset.label || "";
-        if (label.includes("P90")) return "#34d399";
-        if (label.includes("P10")) return "#6B7A99";
-        if (label.includes("P50")) return "#2FBF71";
-        return "#2FBF71";
       },
     } as any,
   },
@@ -108,21 +109,50 @@ const baseOptions: ChartOptions<"line"> = {
   },
 };
 
-export default function DataChart({ type, data, height = 200, options }: DataChartProps) {
+export default function DataChart({ type, data, height = 200, options, disableZoom = false }: DataChartProps) {
+  const chartRef = useRef<ChartJS>(null);
+  // Track when zoom plugin has been registered so the chart re-renders with zoom options.
+  const [zoomReady, setZoomReady] = useState(false);
+
+  useEffect(() => {
+    if (disableZoom) return;
+    if (zoomRegistered) { setZoomReady(true); return; }
+    import("chartjs-plugin-zoom").then((m) => {
+      ChartJS.register(m.default);
+      zoomRegistered = true;
+      setZoomReady(true);
+    });
+  }, [disableZoom]);
+
   const merged = {
     ...baseOptions,
     ...options,
-    plugins: { ...baseOptions.plugins, ...(options?.plugins ?? {}) },
+    plugins: {
+      ...baseOptions.plugins,
+      ...(options?.plugins ?? {}),
+      ...(!disableZoom && zoomReady ? { zoom: zoomOptions } : {}),
+    },
     scales: { ...baseOptions.scales, ...(options?.scales ?? {}) },
   };
 
+  const handleDoubleClick = () => {
+    if (chartRef.current) (chartRef.current as any).resetZoom?.();
+  };
+
   return (
-    <div style={{ height }}>
-      {type === "line" ? (
-        <Line data={data as ChartData<"line">} options={merged as ChartOptions<"line">} />
-      ) : (
-        <Bar data={data as ChartData<"bar">} options={merged as ChartOptions<"bar">} />
+    <div style={{ position: "relative" }}>
+      {!disableZoom && zoomReady && (
+        <div className="absolute top-0 right-0 z-10 text-[9px] text-white/20 font-mono select-none pointer-events-none">
+          scroll to zoom · drag to pan · dbl-click to reset
+        </div>
       )}
+      <div style={{ height }} onDoubleClick={handleDoubleClick}>
+        {type === "line" ? (
+          <Line ref={chartRef as any} data={data as ChartData<"line">} options={merged as ChartOptions<"line">} />
+        ) : (
+          <Bar ref={chartRef as any} data={data as ChartData<"bar">} options={merged as ChartOptions<"bar">} />
+        )}
+      </div>
     </div>
   );
 }

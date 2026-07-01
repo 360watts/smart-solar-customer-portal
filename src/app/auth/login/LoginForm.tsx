@@ -2,23 +2,29 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Sun, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import { Sun, Mail, Lock, ArrowRight, AlertCircle, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthRequestError } from "@/lib/auth";
 
 export default function LoginForm() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [employeeAppUrl, setEmployeeAppUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setEmployeeAppUrl(null);
     setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
+      if (err instanceof AuthRequestError && err.employeeAppUrl) {
+        setEmployeeAppUrl(err.employeeAppUrl);
+      }
       setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
@@ -86,9 +92,20 @@ export default function LoginForm() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
-                <AlertCircle size={16} />
-                {error}
+              <div className="text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                <div className="flex items-center gap-2 text-red-400">
+                  <AlertCircle size={16} className="shrink-0" />
+                  {error}
+                </div>
+                {employeeAppUrl && (
+                  <a
+                    href={employeeAppUrl}
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                  >
+                    Go to the staff app
+                    <ExternalLink size={11} />
+                  </a>
+                )}
               </div>
             )}
 

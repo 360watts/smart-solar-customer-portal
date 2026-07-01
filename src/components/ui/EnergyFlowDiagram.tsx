@@ -42,7 +42,9 @@ const DEFAULT: FlowData = {
   solarKw: 4.2, homeKw: 3.8, batteryKw: 0.8, batterySoc: 62, gridKw: -0.4, loads: [],
 };
 
-export default function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData }) {
+// Memoized: the SVG rebuilds expensive bezier paths and arc strings on every render.
+// Only re-render when actual power values change, not on every parent state update.
+const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData }) {
   const { solarKw, homeKw, batteryKw, batterySoc, gridKw } = data;
 
   const W = 520, H = 300, VT = -10;
@@ -55,6 +57,10 @@ export default function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData 
   const exporting  = gridKw < 0;
   const charging   = batteryKw > 0;
   const battActive = Math.abs(batteryKw) > 0.05;
+
+  // Normalize beam speed: all beams use the same formula so they feel cohesive.
+  // Range: 0.35 (very low power) → 1.6 (high power). Reference scale = 6 kW.
+  const beamSpeed = (kw: number) => Math.max(0.35, Math.min(1.6, kw / 6));
 
   const sCol  = "#2FBF71";
   const bCol  = charging  ? "#2FBF71" : "#E9B949";
@@ -158,16 +164,16 @@ export default function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData 
         <rect x="0" y={VT} width={W} height={H - VT} fill="url(#ef-dots)" />
 
         {/* ══ BEAMS ══ */}
-        <Beam d={beamS.path} col={sCol} dir="fwd" speed={solarKw / 3} active={solarKw > 0} />
-        <Beam d={beamB.path} col={bCol} dir={charging ? "rev" : "fwd"} speed={Math.abs(batteryKw) + 0.5} active={battActive} />
-        <Beam d={beamG.path} col={gCol} dir={exporting ? "fwd" : "rev"} speed={Math.abs(gridKw) + 0.4} active={true} />
-        <Beam d={beamH.path} col={hCol} dir="fwd" speed={homeKw / 3} active={homeKw > 0} />
+        <Beam d={beamS.path} col={sCol} dir="fwd"  speed={beamSpeed(solarKw)}              active={solarKw > 0} />
+        <Beam d={beamB.path} col={bCol} dir={charging ? "rev" : "fwd"} speed={beamSpeed(Math.abs(batteryKw))} active={battActive} />
+        <Beam d={beamG.path} col={gCol} dir={exporting ? "rev" : "fwd"} speed={beamSpeed(Math.abs(gridKw))}  active={true} />
+        <Beam d={beamH.path} col={hCol} dir="rev"  speed={beamSpeed(homeKw)}              active={homeKw > 0} />
 
         {/* ── kW labels — exactly at bezier midpoint ── */}
-        {solarKw > 0 && <BeamLabel x={beamS.mid.x} y={beamS.mid.y} value={`${solarKw} kW`} sub="Generating" col={sCol} />}
-        {battActive   && <BeamLabel x={beamB.mid.x} y={beamB.mid.y} value={`${Math.abs(batteryKw)} kW`} sub={charging ? "Charging" : "Discharging"} col={bCol} />}
-        <BeamLabel x={beamG.mid.x} y={beamG.mid.y} value={`${Math.abs(gridKw)} kW`} sub={exporting ? "Exporting" : "Importing"} col={gCol} />
-        <BeamLabel x={beamH.mid.x} y={beamH.mid.y} value={`${homeKw} kW`} sub="Consuming" col={hCol} />
+        {solarKw > 0 && <BeamLabel x={beamS.mid.x} y={beamS.mid.y} value={`${solarKw.toFixed(2)} kW`} sub="Generating" col={sCol} />}
+        {battActive   && <BeamLabel x={beamB.mid.x} y={beamB.mid.y} value={`${Math.abs(batteryKw).toFixed(2)} kW`} sub={charging ? "Charging" : "Discharging"} col={bCol} />}
+        <BeamLabel x={beamG.mid.x} y={beamG.mid.y} value={`${Math.abs(gridKw).toFixed(2)} kW`} sub={exporting ? "Exporting" : "Importing"} col={gCol} />
+        <BeamLabel x={beamH.mid.x} y={beamH.mid.y} value={`${homeKw.toFixed(2)} kW`} sub="Consuming" col={hCol} />
 
         {/* ══ SOLAR NODE ══ */}
         <g>
@@ -265,4 +271,6 @@ export default function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData 
       </svg>
     </div>
   );
-}
+});
+
+export default EnergyFlowDiagram;

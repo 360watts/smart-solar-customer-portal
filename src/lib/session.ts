@@ -32,6 +32,9 @@ export type PortalAccessDecision =
   | { kind: "allow" }
   | { kind: "redirect-employee" };
 
+// User types that belong in the staff/employee app, not the customer portal.
+const EMPLOYEE_USER_TYPES = new Set(["employee", "technician", "admin", "staff", "manager"]);
+
 export function buildCustomerSession(profile: BackendProfile): CustomerSession {
   const memberships = profile.memberships ?? [];
   const activeSiteId = profile.site_id ?? memberships[0]?.site_id ?? null;
@@ -49,10 +52,26 @@ export function buildCustomerSession(profile: BackendProfile): CustomerSession {
   };
 }
 
-export function getPortalAccessDecision(profile: Pick<BackendProfile, "is_staff" | "is_superuser">): PortalAccessDecision {
+export function validateProfile(data: unknown): BackendProfile {
+  if (!data || typeof data !== "object") {
+    throw new Error("Profile response is not an object.");
+  }
+  const p = data as Record<string, unknown>;
+  if (typeof p.id !== "number") throw new Error("Profile missing field: id");
+  if (typeof p.email !== "string") throw new Error("Profile missing field: email");
+  if (typeof p.first_name !== "string") throw new Error("Profile missing field: first_name");
+  if (typeof p.last_name !== "string") throw new Error("Profile missing field: last_name");
+  return p as unknown as BackendProfile;
+}
+
+export function getPortalAccessDecision(
+  profile: Pick<BackendProfile, "is_staff" | "is_superuser" | "user_type">,
+): PortalAccessDecision {
   if (profile.is_staff || profile.is_superuser) {
     return { kind: "redirect-employee" };
   }
-
+  if (profile.user_type && EMPLOYEE_USER_TYPES.has(profile.user_type.toLowerCase())) {
+    return { kind: "redirect-employee" };
+  }
   return { kind: "allow" };
 }

@@ -21,9 +21,6 @@ interface Profile {
 
 interface Site {
   capacity_kw: number;
-  inverter_capacity_kw: number;
-  battery_kwh: number | null;
-  install_date: string;
   site_name: string;
 }
 
@@ -76,7 +73,7 @@ export default function ProfilePage() {
         setError("");
         const [profileRes, siteRes] = await Promise.all([
           portalApi.getProfile(),
-          user?.site_id ? portalApi.getSite(user.site_id) : Promise.resolve(null),
+          user?.site_id ? portalApi.getGatewayStatus(user.site_id) : Promise.resolve(null),
         ]);
         const rawProfile = profileRes.data as {
           first_name?: string;
@@ -99,13 +96,10 @@ export default function ProfilePage() {
         setEditLast(p.last_name);
         setEditPhone(p.phone ?? "");
         if (siteRes) {
-          const rawSite = siteRes.data as Partial<Site>;
+          const rawSite = siteRes.data as Record<string, unknown>;
           setSite({
-            capacity_kw: Number(rawSite.capacity_kw) || 0,
-            inverter_capacity_kw: Number(rawSite.inverter_capacity_kw) || 0,
-            battery_kwh: rawSite.battery_kwh != null ? Number(rawSite.battery_kwh) : null,
-            install_date: rawSite.install_date ?? "",
-            site_name: rawSite.site_name ?? "Solar Site",
+            capacity_kw: Number(rawSite.solar_kwp) || 0,
+            site_name: String(rawSite.site_name || "Solar Site"),
           });
         }
       } catch {
@@ -274,20 +268,9 @@ export default function ProfilePage() {
         <h3 className="font-semibold text-white mb-4">Your System</h3>
         <div className="space-y-3">
           {[
+            { label: "Site", value: site?.site_name ?? "—" },
             { label: "Solar Capacity", value: site ? `${site.capacity_kw} kWp` : "—" },
-            { label: "Inverter", value: site ? `${site.inverter_capacity_kw} kW` : "—" },
-            {
-              label: "Battery",
-              value: site
-                ? site.battery_kwh && site.battery_kwh > 0
-                  ? `${site.battery_kwh} kWh`
-                  : "N/A"
-                : "—",
-            },
-            {
-              label: "Installed",
-              value: site ? formatDate(site.install_date) : "—",
-            },
+            { label: "Account", value: user?.site_id ?? "—" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
               <span className="text-xs text-white/40 uppercase tracking-wide">{label}</span>

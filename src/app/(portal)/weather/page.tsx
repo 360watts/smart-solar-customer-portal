@@ -191,10 +191,12 @@ export default function WeatherPage() {
   const [ghiData, setGhiData] = useState(mockGhiData);
   const [forecast, setForecast] = useState<DayForecast[] | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user?.site_id) return;
+    setLoading(true);
     portalApi
       .getWeather(user.site_id)
       .then((res) => {
@@ -250,30 +252,23 @@ export default function WeatherPage() {
       })
       .catch(() => {
         setError("Live weather data is unavailable right now.");
-      });
+      })
+      .finally(() => setLoading(false));
   }, [user?.site_id]);
 
   // Derive display values
   const cur = weather?.current;
-  const temp = cur ? Math.round(cur.temperature_c) : 34;
-  const ghi = cur ? Math.round(cur.ghi_wm2) : 820;
-  const humidity = cur ? Math.round(cur.humidity_pct) : 62;
-  const wind = cur ? cur.wind_speed_ms.toFixed(1) : "3.3";
-  const cloudPct = cur ? Math.round(cur.cloud_cover_pct) : 5;
-  const feelsLike = cur ? Math.round(cur.temperature_c - cur.wind_speed_ms / 3) : 33;
-  const solarScore = Math.min(100, Math.round(ghi / 10));
+  const temp = cur ? Math.round(cur.temperature_c) : null;
+  const ghi = cur ? Math.round(cur.ghi_wm2) : null;
+  const humidity = cur ? Math.round(cur.humidity_pct) : null;
+  const wind = cur ? cur.wind_speed_ms.toFixed(1) : null;
+  const cloudPct = cur ? Math.round(cur.cloud_cover_pct) : null;
+  const feelsLike = cur ? Math.round(cur.temperature_c - cur.wind_speed_ms / 3) : null;
+  const solarScore = ghi != null ? Math.min(100, Math.round(ghi / 10)) : 0;
 
-  const { label: conditionLabel, Icon: ConditionIcon } = conditionFromCloud(cloudPct);
+  const { label: conditionLabel, Icon: ConditionIcon } = conditionFromCloud(cloudPct ?? 0);
 
-  const displayForecast = forecast ?? MOCK_FORECAST.map((f) => ({
-    day: f.day,
-    Icon: f.icon,
-    high: f.high,
-    low: f.low,
-    avgGhi: f.ghi,
-    solarScore: f.solarScore,
-    condition: f.condition,
-  }));
+  const displayForecast = forecast ?? [];
 
   return (
     <div className="space-y-8">
@@ -306,20 +301,20 @@ export default function WeatherPage() {
                 className="text-5xl font-bold text-foreground"
                 style={{ fontFamily: "var(--font-display)" }}
               >
-                {temp}°C
+                {loading ? "—" : temp != null ? `${temp}°C` : "—"}
               </p>
-              <p className="text-muted-foreground mt-1">{conditionLabel} — Coimbatore</p>
+              <p className="text-muted-foreground mt-1">{loading ? "Loading…" : `${conditionLabel} — Coimbatore`}</p>
             </div>
           </div>
 
           {/* Middle: metric chips */}
           <div className="grid grid-cols-3 gap-3 flex-1">
             {[
-              { icon: Sun, label: "GHI", value: `${ghi} W/m²` },
-              { icon: Droplets, label: "Humidity", value: `${humidity}%` },
-              { icon: Wind, label: "Wind", value: `${wind} m/s` },
-              { icon: Thermometer, label: "Feels Like", value: `${feelsLike}°C` },
-              { icon: Cloud, label: "Cloud Cover", value: `${cloudPct}%` },
+              { icon: Sun, label: "GHI", value: ghi != null ? `${ghi} W/m²` : "—" },
+              { icon: Droplets, label: "Humidity", value: humidity != null ? `${humidity}%` : "—" },
+              { icon: Wind, label: "Wind", value: wind != null ? `${wind} m/s` : "—" },
+              { icon: Thermometer, label: "Feels Like", value: feelsLike != null ? `${feelsLike}°C` : "—" },
+              { icon: Cloud, label: "Cloud Cover", value: cloudPct != null ? `${cloudPct}%` : "—" },
             ].map((s) => (
               <div
                 key={s.label}

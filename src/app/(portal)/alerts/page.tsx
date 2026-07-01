@@ -77,7 +77,7 @@ type SeverityFilter = "all" | "critical" | "warning" | "info";
 
 export default function AlertsPage() {
   const { user } = useAuth();
-  const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [loaded, setLoaded] = useState(false);
@@ -90,7 +90,7 @@ export default function AlertsPage() {
       .then((res) => {
         setError("");
         const data = res.data?.results ?? res.data;
-        if (Array.isArray(data) && data.length > 0) setAlerts(data);
+        if (Array.isArray(data)) setAlerts(data);
       })
       .catch(() => {
         setError("Live alerts could not be loaded.");

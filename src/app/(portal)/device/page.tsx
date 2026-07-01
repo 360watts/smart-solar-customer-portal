@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Cpu, Zap, Battery, Sun, Wifi, AlertTriangle } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
+import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
+import { TTL } from "@/lib/portalCache";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -15,18 +16,19 @@ interface GatewayStatus {
   last_heartbeat: string;
   age_seconds: number;
   serial: string;
+  data_source: string | null;
+  rs485_last_seen: string | null;
+  rs485_stale: boolean;
 }
 
 interface TelemetryReading {
-  ts: string;
+  timestamp: string;
   inverter_temp_c: number;
-  dc_temp_c: number;
   run_state: string;
-  work_mode: string;
-  battery_status: string;
   battery_soc_percent: number;
-  actual_solar_kw: number;
-  actual_load_kw: number;
+  pv1_power_w: number;
+  pv2_power_w: number;
+  load_power_w: number;
   fault_code_1: string | null;
   fault_code_2: string | null;
   fault_code_3: string | null;
@@ -62,32 +64,40 @@ interface Equipment {
 }
 
 interface HardwareHealth {
-  signal_strength_dbm: number;
-  device_temp_c: number;
-  inverter_efficiency_pct: number;
-  battery_efficiency_pct: number;
-  solar_efficiency_pct: number;
+  signal_strength_dbm: number | null;
+  device_temp_c: number | null;
+  inverter_efficiency_pct: number | null;
+  battery_efficiency_pct: number | null;
+  solar_efficiency_pct: number | null;
 }
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+interface DeviceSummary {
+  gateway: GatewayStatus;
+  telemetry: TelemetryReading | null;
+  equipment: Equipment;
+  health: HardwareHealth;
+}
 
-const MOCK_GATEWAY: GatewayStatus = {
-  is_online: true,
-  last_heartbeat: new Date(Date.now() - 120000).toISOString(),
-  age_seconds: 120,
-  serial: "EC19BE506BCE",
+// ── Empty placeholders used only before real summary data has loaded ───────────
+
+const EMPTY_GATEWAY: GatewayStatus = {
+  is_online: false,
+  last_heartbeat: "",
+  age_seconds: 0,
+  serial: "",
+  data_source: null,
+  rs485_last_seen: null,
+  rs485_stale: false,
 };
 
-const MOCK_TELEMETRY: TelemetryReading = {
-  ts: new Date().toISOString(),
-  inverter_temp_c: 58,
-  dc_temp_c: 52,
-  run_state: "Normal",
-  work_mode: "Sell First",
-  battery_status: "Charging",
-  battery_soc_percent: 62,
-  actual_solar_kw: 4.2,
-  actual_load_kw: 3.8,
+const EMPTY_TELEMETRY: TelemetryReading = {
+  timestamp: "",
+  inverter_temp_c: 0,
+  run_state: "No data",
+  battery_soc_percent: 0,
+  pv1_power_w: 0,
+  pv2_power_w: 0,
+  load_power_w: 0,
   fault_code_1: null,
   fault_code_2: null,
   fault_code_3: null,
@@ -95,50 +105,24 @@ const MOCK_TELEMETRY: TelemetryReading = {
   fault_code_5: null,
 };
 
-const MOCK_EQUIPMENT: Equipment = {
-  inverters: [
-    {
-      brand: "Deye",
-      model: "SUN-12K-SG04LP3",
-      capacity_kva: 12,
-      firmware_version: "v1.0.15",
-      installed_date: "2023-01-15",
-      warranty_expiry: "2028-01-15",
-      is_active: true,
-    },
-  ],
-  batteries: [
-    {
-      brand: "Deye",
-      model: "RW-M6.1-1",
-      capacity_kwh: 6.1,
-      installed_date: "2023-01-15",
-      warranty_expiry: "2033-01-15",
-    },
-  ],
-  panels: [
-    {
-      brand: "Jinko",
-      model: "Tiger Pro 530W",
-      capacity_wp: 530,
-      technology: "Mono PERC",
-      installed_date: "2023-01-15",
-      warranty_expiry: "2048-01-15",
-    },
-  ],
+const EMPTY_EQUIPMENT: Equipment = {
+  inverters: [],
+  batteries: [],
+  panels: [],
 };
 
-const MOCK_HEALTH: HardwareHealth = {
-  signal_strength_dbm: -65,
-  device_temp_c: 42,
-  inverter_efficiency_pct: 94,
-  battery_efficiency_pct: 87,
-  solar_efficiency_pct: 91,
+const EMPTY_HEALTH: HardwareHealth = {
+  signal_strength_dbm: null,
+  device_temp_c: null,
+  inverter_efficiency_pct: null,
+  battery_efficiency_pct: null,
+  solar_efficiency_pct: null,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
+  if (!iso) return "never";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -157,10 +141,17 @@ function signalBars(dbm: number): { count: number; color: string; label: string 
 }
 
 function warrantyColor(expiryDate: string): string {
+  if (!expiryDate) return "#6B7A99";
   const msLeft = new Date(expiryDate).getTime() - Date.now();
   if (msLeft < 0) return "#F87171";
   if (msLeft < 365 * 24 * 3600000) return "#E9B949";
   return "#6B7A99";
+}
+
+function warrantyYear(expiryDate: string): string {
+  if (!expiryDate) return "unknown";
+  const year = new Date(expiryDate).getFullYear();
+  return Number.isFinite(year) ? String(year) : "unknown";
 }
 
 function efficiencyColor(pct: number): string {
@@ -177,7 +168,10 @@ function tempColor(c: number, warn = 65, critical = 75): string {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function SignalBarVisual({ dbm, showLabel }: { dbm: number; showLabel?: boolean }) {
+function SignalBarVisual({ dbm, showLabel }: { dbm: number | null; showLabel?: boolean }) {
+  if (dbm == null) {
+    return <span style={{ color: "#6B7A99", fontSize: 12 }}>No signal data</span>;
+  }
   const { count, color, label } = signalBars(dbm);
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -234,37 +228,33 @@ function SocArc({ pct }: { pct: number }) {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function DevicePage() {
-  const { user } = useAuth();
-  const siteId = user?.site_id ?? "";
+  const { user, status } = useAuth();
 
-  const [gateway, setGateway] = useState<GatewayStatus>(MOCK_GATEWAY);
-  const [telemetry, setTelemetry] = useState<TelemetryReading>(MOCK_TELEMETRY);
-  const [equipment, setEquipment] = useState<Equipment>(MOCK_EQUIPMENT);
-  const [health, setHealth] = useState<HardwareHealth>(MOCK_HEALTH);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState("");
+  const { data, loading, error, noSite, refresh } = useSiteQuery<DeviceSummary>(
+    user?.site_id,
+    async (siteId, signal) => {
+      const summary = await portalApi.getPortalDevice(siteId, signal);
+      signal.throwIfAborted();
+      const payload = summary.data.data;
+      return {
+        gateway: (payload.gateway ?? EMPTY_GATEWAY) as GatewayStatus,
+        telemetry: (payload.telemetry ?? null) as TelemetryReading | null,
+        equipment: (payload.equipment ?? EMPTY_EQUIPMENT) as Equipment,
+        health: (payload.hardware_health ?? EMPTY_HEALTH) as HardwareHealth,
+      };
+    },
+    {
+      cacheKey: `device:${user?.site_id}`,
+      ttl: TTL.static,
+      autoRefreshSec: 60,
+      isAuthResolved: status !== "loading",
+    },
+  );
 
-  useEffect(() => {
-    if (!siteId) return;
-    Promise.all([
-      portalApi.getGatewayStatus(siteId),
-      portalApi.getTelemetry(siteId),
-      portalApi.getEquipment(siteId),
-      portalApi.getHardwareHealth(siteId),
-    ])
-      .then(([gwRes, telRes, eqRes, hhRes]) => {
-        setError("");
-        setGateway(gwRes.data);
-        const rows = telRes.data?.results;
-        if (rows?.length) setTelemetry(rows[rows.length - 1]);
-        setEquipment(eqRes.data);
-        setHealth(hhRes.data);
-      })
-      .catch(() => {
-        setError("Live device data is unavailable right now.");
-      })
-      .finally(() => setLoaded(true));
-  }, [siteId]);
+  const gateway = data?.gateway ?? EMPTY_GATEWAY;
+  const telemetry = data?.telemetry ?? EMPTY_TELEMETRY;
+  const equipment = data?.equipment ?? EMPTY_EQUIPMENT;
+  const health = data?.health ?? EMPTY_HEALTH;
 
   const faultCodes = [
     telemetry.fault_code_1,
@@ -284,9 +274,26 @@ export default function DevicePage() {
         Device
       </motion.h1>
 
+      {noSite && (
+        <GlassCard>
+          <p className="text-sm text-amber-300">No site linked to your account.</p>
+        </GlassCard>
+      )}
+
       {error && (
         <GlassCard>
-          <p className="text-sm text-red-300">{error}</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-red-300">{error}</p>
+            <button onClick={refresh} className="text-xs text-muted-foreground underline underline-offset-2">
+              Retry
+            </button>
+          </div>
+        </GlassCard>
+      )}
+
+      {loading && (
+        <GlassCard>
+          <p className="text-sm text-muted-foreground">Loading device summary…</p>
         </GlassCard>
       )}
 
@@ -324,7 +331,35 @@ export default function DevicePage() {
                 <span className="font-mono text-xs">{equipment.inverters[0].firmware_version}</span>
               </span>
             )}
+            {/* Data source indicator */}
+            {gateway.data_source && (
+              <span className="flex items-center gap-1.5">
+                <span className="text-white/40 mr-1">Data via:</span>
+                <span
+                  className="text-xs font-mono px-2 py-0.5 rounded-full"
+                  style={
+                    gateway.data_source === "rs485"
+                      ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
+                      : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
+                  }
+                >
+                  {gateway.data_source === "rs485" ? "RS-485" : "Deye Cloud"}
+                </span>
+              </span>
+            )}
           </div>
+
+          {/* RS-485 stale warning */}
+          {gateway.rs485_stale && (
+            <div className="mt-3 flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+              style={{ background: "rgba(233,185,73,0.08)", border: "1px solid rgba(233,185,73,0.2)", color: "#E9B949" }}>
+              <span>⚠</span>
+              <span>
+                RS-485 link inactive since {gateway.rs485_last_seen ? timeAgo(gateway.rs485_last_seen) : "unknown"}.
+                Showing values from Deye Cloud logger (WiFi stick). Gateway is online.
+              </span>
+            </div>
+          )}
         </GlassCard>
       </motion.div>
 
@@ -333,7 +368,7 @@ export default function DevicePage() {
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">Live Status</h3>
-            <span className="text-xs text-muted-foreground">Updated {timeAgo(telemetry.ts)}</span>
+            <span className="text-xs text-muted-foreground">Updated {timeAgo(telemetry.timestamp)}</span>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -342,10 +377,12 @@ export default function DevicePage() {
               <p className="text-xs text-muted-foreground mb-1">Run State</p>
               <p className="text-sm font-semibold text-foreground">{telemetry.run_state}</p>
             </div>
-            {/* Work Mode */}
+            {/* Solar Output */}
             <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Work Mode</p>
-              <p className="text-sm font-semibold text-foreground">{telemetry.work_mode}</p>
+              <p className="text-xs text-muted-foreground mb-1">Solar Output</p>
+              <p className="text-sm font-semibold text-foreground">
+                {(((telemetry.pv1_power_w || 0) + (telemetry.pv2_power_w || 0)) / 1000).toFixed(2)} kW
+              </p>
             </div>
             {/* Inverter Temp */}
             <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
@@ -398,7 +435,7 @@ export default function DevicePage() {
                 <p className="text-muted-foreground">{inv.capacity_kva} kVA</p>
                 <p className="text-muted-foreground">Installed {inv.installed_date}</p>
                 <p style={{ color: warrantyColor(inv.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {new Date(inv.warranty_expiry).getFullYear()}
+                  Warranty expires {warrantyYear(inv.warranty_expiry)}
                 </p>
               </div>
             ))}
@@ -416,7 +453,7 @@ export default function DevicePage() {
                 <p className="text-muted-foreground">{bat.capacity_kwh} kWh</p>
                 <p className="text-muted-foreground">Installed {bat.installed_date}</p>
                 <p style={{ color: warrantyColor(bat.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {new Date(bat.warranty_expiry).getFullYear()}
+                  Warranty expires {warrantyYear(bat.warranty_expiry)}
                 </p>
               </div>
             ))}
@@ -434,7 +471,7 @@ export default function DevicePage() {
                 <p className="text-muted-foreground">{panel.capacity_wp}W · {panel.technology}</p>
                 <p className="text-muted-foreground">Installed {panel.installed_date}</p>
                 <p style={{ color: warrantyColor(panel.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {new Date(panel.warranty_expiry).getFullYear()}
+                  Warranty expires {warrantyYear(panel.warranty_expiry)}
                 </p>
               </div>
             ))}
@@ -452,9 +489,9 @@ export default function DevicePage() {
 
           <div className="space-y-4">
             {[
-              { label: "Solar", icon: <Sun size={15} />, pct: health.solar_efficiency_pct },
-              { label: "Inverter", icon: <Zap size={15} />, pct: health.inverter_efficiency_pct },
-              { label: "Battery", icon: <Battery size={15} />, pct: health.battery_efficiency_pct },
+              { label: "Solar", icon: <Sun size={15} />, pct: health.solar_efficiency_pct ?? 0 },
+              { label: "Inverter", icon: <Zap size={15} />, pct: health.inverter_efficiency_pct ?? 0 },
+              { label: "Battery", icon: <Battery size={15} />, pct: health.battery_efficiency_pct ?? 0 },
             ].map(({ label, icon, pct }) => {
               const color = efficiencyColor(pct);
               return (

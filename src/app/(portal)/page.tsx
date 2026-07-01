@@ -1,12 +1,41 @@
 "use client";
 
+import { formatHourLabel } from "@/lib/utils";
+
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity } from "lucide-react";
+import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, RefreshCw } from "lucide-react";
 import StatusPill from "@/components/ui/StatusPill";
 import GlassCard from "@/components/ui/GlassCard";
 import EnergyFlowDiagram from "@/components/ui/EnergyFlowDiagram";
-import HourlyGenerationChart from "@/components/ui/HourlyGenerationChart";
+import HourlyGenerationChart, { type HourlyPoint } from "@/components/ui/HourlyGenerationChart";
+import { useAuth } from "@/contexts/AuthContext";
+import { portalApi } from "@/lib/api";
+import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
+import { TTL } from "@/lib/portalCache";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface DashboardData {
+  currentSolarKw: number;
+  currentLoadKw: number;
+  currentGridKw: number;   // positive = import, negative = export
+  batterySoc: number | null;
+  todayGenKwh: number;
+  todayConKwh: number;
+  monthGenKwh: number;
+  selfUsePct: number;
+  activeAlerts: number;
+  isOnline: boolean;
+  capacityKwp: number;
+  siteName: string;
+  peakTodayKw: number;
+  co2AvoidedKg: number;
+  performanceRatio: number | null;
+  hourly: HourlyPoint[];
+  nowIndex: number;
+}
 
 // ─── Animated counter ─────────────────────────────────────────────────────────
 function AnimatedNumber({ value, decimals = 1, suffix = "" }: { value: number; decimals?: number; suffix?: string }) {
@@ -25,26 +54,24 @@ function AnimatedNumber({ value, decimals = 1, suffix = "" }: { value: number; d
   return <>{display.toFixed(decimals)}{suffix}</>;
 }
 
-// ─── Greeting (client-only) ─────────────────────────────────────────────────
-function Greeting() {
-  const [greeting, setGreeting] = useState<string>("Good morning");
+// ─── Greeting ────────────────────────────────────────────────────────────────
+function Greeting({ name }: { name: string }) {
+  const [greeting, setGreeting] = useState("Good morning");
   useEffect(() => {
-    const hour = new Date().getHours();
-    const text = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-    setGreeting(text);
+    const h = new Date().getHours();
+    setGreeting(h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
   }, []);
-  return <>{greeting}</>;
+  return <>{greeting}, <span className="glow-text-green">{name}.</span></>;
 }
 
-// ─── Live Clock (client-only) ────────────────────────────────────────────────
+// ─── Live Clock ───────────────────────────────────────────────────────────────
 function LiveClock() {
-  const [time, setTime] = useState<string>("");
+  const [time, setTime] = useState("");
   useEffect(() => {
-    setTime(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
-    const interval = setInterval(() => {
-      setTime(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
-    }, 10000);
-    return () => clearInterval(interval);
+    const fmt = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    setTime(fmt());
+    const id = setInterval(() => setTime(fmt()), 10_000);
+    return () => clearInterval(id);
   }, []);
   return <span className="text-xs text-white/55 font-mono">{time || "••:••"}</span>;
 }
@@ -58,15 +85,13 @@ function KpiTile({
 }) {
   const cm = {
     green: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-    amber: { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-400/20" },
-    blue: { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-400/20" },
-    red: { text: "text-red-400", bg: "bg-red-500/10", border: "border-red-400/20" },
+    amber: { text: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-400/20"  },
+    blue:  { text: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-400/20"   },
+    red:   { text: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-400/20"    },
   }[color];
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 28, delay: delay * 0.08 }}
       whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
       className={`glass border ${cm.border} rounded-2xl p-5 cursor-default`}
@@ -76,9 +101,7 @@ function KpiTile({
           <Icon size={18} className={cm.text} />
         </div>
         {trend && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>
-            {trend}
-          </span>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>{trend}</span>
         )}
       </div>
       <div className="stat-number text-3xl text-white mb-0.5">
@@ -90,7 +113,7 @@ function KpiTile({
   );
 }
 
-// ─── Radial self-consumption arc ──────────────────────────────────────────────
+// ─── Self-consumption arc ─────────────────────────────────────────────────────
 function SelfUseArc({ pct }: { pct: number }) {
   const r = 52;
   const circ = 2 * Math.PI * r;
@@ -106,116 +129,313 @@ function SelfUseArc({ pct }: { pct: number }) {
         transform="rotate(-90 65 65)"
         style={{ filter: "drop-shadow(0 0 6px rgba(47,191,113,0.6))" }}
       />
-      <text x="65" y="60" textAnchor="middle" fill="#F0F6FF" fontSize="22" fontWeight="800" fontFamily="var(--font-display),system-ui">{pct}%</text>
+      <text x="65" y="60" textAnchor="middle" fill="#F0F6FF" fontSize="22" fontWeight="800"
+        fontFamily="var(--font-display),system-ui">{pct}%</text>
       <text x="65" y="76" textAnchor="middle" fill="#A8B8D8" fontSize="9" fontFamily="DM Sans,system-ui">self-use</text>
     </svg>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-const FLOW_DATA = {
-  solarKw: 4.2,
-  homeKw: 3.8,
-  batteryKw: 0.8,
-  batterySoc: 62,
-  gridKw: -0.4,
-  loads: [
-    { label: "Air Con", kw: 1.8, color: "#60a5fa" },
-    { label: "EV", kw: 1.1, color: "#a78bfa" },
-    { label: "Lights", kw: 0.5, color: "#fbbf24" },
-    { label: "Other", kw: 0.4, color: "#6B7A99" },
-  ],
-};
+// ─── No-site banner ───────────────────────────────────────────────────────────
+function NoSiteBanner() {
+  return (
+    <GlassCard className="border-amber-500/20">
+      <p className="text-sm text-amber-300 font-medium">No site linked to your account.</p>
+      <p className="text-xs text-white/55 mt-1">
+        Contact your 360Watts installer to link your solar site.
+      </p>
+    </GlassCard>
+  );
+}
 
+// ─── Skeleton row ─────────────────────────────────────────────────────────────
+function SkeletonPulse({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className}`} />;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function OverviewPage() {
+  const { user, status } = useAuth();
+
+  const { data, loading, isStale, error, noSite, refresh } = useSiteQuery<DashboardData>(
+    user?.site_id,
+    async (siteId, signal) => {
+      const summary = await portalApi.getPortalOverview(
+        siteId,
+        { date: new Date().toISOString().slice(0, 10) },
+        signal,
+      );
+      signal.throwIfAborted();
+
+      const payload = summary.data.data;
+
+      // Telemetry rows — plain array, fields in Watts: pv1_power_w, pv2_power_w, load_power_w, grid_power_w
+      const rawRows: Array<{
+        timestamp: string;
+        pv1_power_w: number;
+        pv2_power_w: number;
+        load_power_w: number;
+        grid_power_w: number;  // positive = import, negative = export
+        battery_soc_percent: number;
+      }> = Array.isArray(payload.telemetry) ? payload.telemetry as never[] : [];
+
+      // Normalise to kW for UI consumption
+      const rows = rawRows.map((r) => ({
+        ts:             r.timestamp,
+        solarKw:        ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000,
+        loadKw:         (Number(r.load_power_w) || 0) / 1000,
+        gridKw:         (Number(r.grid_power_w) || 0) / 1000,
+        batterySoc:     r.battery_soc_percent ?? null,
+      }));
+
+      const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+      const peakTodayKw = rows.length
+        ? Math.max(...rows.map((r) => r.solarKw))
+        : 0;
+
+      // Aggregate 15-min rows to hourly averages for the bar chart
+      const hourBuckets = new Map<number, { solar: number[]; load: number[]; grid: number[] }>();
+      for (const r of rows) {
+        const h = new Date(r.ts).getHours();
+        if (!hourBuckets.has(h)) hourBuckets.set(h, { solar: [], load: [], grid: [] });
+        const b = hourBuckets.get(h)!;
+        b.solar.push(r.solarKw);
+        b.load.push(r.loadKw);
+        b.grid.push(r.gridKw);
+      }
+      const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      const hourly: HourlyPoint[] = Array.from(hourBuckets.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([h, v]) => ({
+          hour: formatHourLabel(new Date(new Date().setHours(h, 0, 0, 0)).toISOString()),
+          solar: parseFloat(avg(v.solar).toFixed(3)),
+          load:  parseFloat(avg(v.load).toFixed(3)),
+          grid:  parseFloat(avg(v.grid).toFixed(3)),
+        }));
+
+      // Prefer energy-summary totals for accuracy; fall back to telemetry integration
+      const todayTotals = (payload.energy_today ?? {}) as Record<string, unknown>;
+      const todayGenKwh  = Number(todayTotals.pv_gen_kwh)      || rows.reduce((s, r) => s + r.solarKw * 0.25, 0);
+      const todayConKwh  = Number(todayTotals.load_kwh)         || rows.reduce((s, r) => s + r.loadKw  * 0.25, 0);
+      const gridExportKwh = Number(todayTotals.grid_export_kwh) || 0;
+      const selfUsePct   = todayGenKwh > 0
+        ? Math.round(Math.min(100, ((todayGenKwh - gridExportKwh) / todayGenKwh) * 100))
+        : 0;
+      const performanceRatio: number | null = null;
+
+      const monthTotals = (payload.energy_month ?? {}) as Record<string, unknown>;
+      const monthGenKwh = Number(monthTotals.pv_gen_kwh) || 0;
+
+      // CO₂ avoided: Indian grid factor 0.82 kg CO₂/kWh
+      const co2AvoidedKg = Math.round(todayGenKwh * 0.82);
+
+      // Alerts
+      const alertsList: Array<{ status?: string; resolved?: boolean }> = Array.isArray(payload.alerts)
+        ? payload.alerts as never[]
+        : [];
+      const activeAlerts = alertsList.filter(
+        (a) => a.status !== "resolved" && !a.resolved,
+      ).length;
+
+      // Gateway
+      const gw = (payload.realtime ?? {}) as Record<string, unknown>;
+      const site = (payload.site ?? {}) as Record<string, unknown>;
+      const isOnline = Boolean(gw.is_online);
+      const siteName = String(gw.site_name || site.display_name || "Your Site");
+      const capacityKwp = Number(gw.solar_kwp || site.capacity_kw) || 0;
+
+      const nowIndex = hourly.length > 0 ? hourly.length - 1 : 0;
+
+      return {
+        currentSolarKw: latest?.solarKw ?? 0,
+        currentLoadKw:  latest?.loadKw  ?? 0,
+        currentGridKw:  latest ? parseFloat(latest.gridKw.toFixed(2)) : 0,
+        batterySoc:     latest?.batterySoc ?? null,
+        todayGenKwh,
+        todayConKwh,
+        monthGenKwh,
+        selfUsePct,
+        activeAlerts,
+        isOnline,
+        capacityKwp,
+        siteName,
+        peakTodayKw,
+        co2AvoidedKg,
+        performanceRatio,
+        hourly,
+        nowIndex,
+      };
+    },
+    {
+      cacheKey: `dashboard:${user?.site_id}`,
+      ttl: TTL.summary,
+      autoRefreshSec: 60,
+      isAuthResolved: status !== "loading",
+    },
+  );
+
+  if (noSite) return <NoSiteBanner />;
+
+  const firstName = user?.first_name || "there";
+  const d = data;
+
+  const flowData = d
+    ? {
+        solarKw:    d.currentSolarKw,
+        homeKw:     d.currentLoadKw,
+        batteryKw:  0,
+        batterySoc: d.batterySoc ?? 0,
+        gridKw:     d.currentGridKw,
+        loads:      [],
+      }
+    : null;
+
   return (
     <div className="relative space-y-6 bg-sun-glow">
       {/* Hero */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
       >
         <div>
           <p className="text-xs text-white/55 uppercase tracking-[0.2em] font-medium mb-2">
-            Solar Dashboard · Coimbatore
+            Solar Dashboard · {d?.siteName ?? "Loading…"}
           </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-none tracking-tight">
-            <Greeting />,<br />
-            <span className="glow-text-green">John.</span>
+            <Greeting name={firstName} />
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <StatusPill status="active" label="System online" animated />
+          {d ? (
+            <StatusPill
+              status={d.isOnline ? "active" : "inactive"}
+              label={d.isOnline ? "System online" : "System offline"}
+              animated={d.isOnline}
+            />
+          ) : (
+            <SkeletonPulse className="w-28 h-6" />
+          )}
           <LiveClock />
+          {isStale && (
+            <button onClick={refresh} title="Refresh data"
+              className="text-white/30 hover:text-white/60 transition-colors">
+              <RefreshCw size={13} />
+            </button>
+          )}
         </div>
       </motion.div>
 
-      {/* Hero stat + energy flow — open layout, no card boxing */}
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+          bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          <span>{error}</span>
+          <button onClick={refresh}
+            className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Hero stat + energy flow */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}
         className="flex flex-col sm:flex-row gap-8 items-start"
       >
-        {/* Left — live output stats (30%) */}
+        {/* Left — live output stats */}
         <div className="min-w-0" style={{ flex: "3" }}>
           <div className="flex items-center gap-2 mb-5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs uppercase tracking-[0.18em] font-medium" style={{ color: "#2FBF71" }}>Live Output</span>
-          </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="stat-number text-6xl glow-text-green">
-              <AnimatedNumber value={4.2} decimals={1} />
+            <span className="text-xs uppercase tracking-[0.18em] font-medium" style={{ color: "#2FBF71" }}>
+              Live Output
             </span>
-            <span className="text-xl text-white/45 font-light">kW</span>
           </div>
-          <p className="text-white/55 text-sm mb-8">
-            Peak today: <span className="text-white/55">4.8 kW</span> at 12:15 PM
-          </p>
-          <div className="flex flex-col gap-2">
-            {[
-              { label: "Today's yield", value: "18.2 kWh", accent: "rgba(47,191,113,0.7)" },
-              { label: "This month",    value: "310 kWh",  accent: "rgba(255,255,255,0.18)" },
-              { label: "CO₂ avoided",  value: "248 kg",   accent: "rgba(255,255,255,0.18)" },
-            ].map((s) => (
-              <div key={s.label}
-                className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-2.5"
-                style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-1 h-5 rounded-full shrink-0" style={{ background: s.accent }} />
-                  <span className="text-xs text-white/60 whitespace-nowrap">{s.label}</span>
-                </div>
-                <span className="text-sm font-bold whitespace-nowrap tabular-nums"
-                  style={{ color: s.accent === "rgba(47,191,113,0.7)" ? "#2FBF71" : "rgba(255,255,255,0.6)",
-                           fontFamily: "var(--font-jetbrains-mono), monospace" }}>
-                  {s.value}
-                </span>
+
+          {loading ? (
+            <div className="space-y-3">
+              <SkeletonPulse className="h-16 w-40" />
+              <SkeletonPulse className="h-4 w-48" />
+              <div className="space-y-2 mt-6">
+                {[1, 2, 3].map((i) => <SkeletonPulse key={i} className="h-10 w-full rounded-xl" />)}
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="stat-number text-6xl glow-text-green">
+                  <AnimatedNumber value={d?.currentSolarKw ?? 0} decimals={1} />
+                </span>
+                <span className="text-xl text-white/45 font-light">kW</span>
+              </div>
+              <p className="text-white/55 text-sm mb-8">
+                Peak today:{" "}
+                <span className="text-white/55">
+                  {d?.peakTodayKw.toFixed(1) ?? "—"} kW
+                </span>
+              </p>
+              <div className="flex flex-col gap-2">
+                {[
+                  { label: "Today's yield",  value: `${d?.todayGenKwh.toFixed(1) ?? "—"} kWh`, accent: "rgba(47,191,113,0.7)" },
+                  { label: "This month",     value: `${d?.monthGenKwh.toFixed(0) ?? "—"} kWh`, accent: "rgba(255,255,255,0.18)" },
+                  { label: "CO₂ avoided",   value: `${d?.co2AvoidedKg ?? "—"} kg`,            accent: "rgba(255,255,255,0.18)" },
+                ].map((s) => (
+                  <div key={s.label}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] border border-white/[0.06] px-4 py-2.5"
+                    style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-1 h-5 rounded-full shrink-0" style={{ background: s.accent }} />
+                      <span className="text-xs text-white/60 whitespace-nowrap">{s.label}</span>
+                    </div>
+                    <span className="text-sm font-bold whitespace-nowrap tabular-nums"
+                      style={{
+                        color: s.accent === "rgba(47,191,113,0.7)" ? "#2FBF71" : "rgba(255,255,255,0.6)",
+                        fontFamily: "var(--font-jetbrains-mono), monospace",
+                      }}>
+                      {s.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Divider */}
         <div className="hidden sm:block w-px bg-white/6 self-stretch" />
 
-        {/* Right — energy flow diagram (70%) */}
+        {/* Right — energy flow */}
         <div className="min-w-0" style={{ flex: "7" }}>
           <p className="text-xs uppercase tracking-[0.18em] font-medium mb-3" style={{ color: "#2FBF71" }}>
             Live Energy Flow
           </p>
-          <EnergyFlowDiagram data={FLOW_DATA} />
+          {flowData ? (
+            <EnergyFlowDiagram data={flowData} />
+          ) : (
+            <SkeletonPulse className="h-48 w-full rounded-2xl" />
+          )}
         </div>
       </motion.div>
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiTile label="System Capacity" value={6.5} unit="kWp" icon={Sun} color="green" delay={0} />
-        <KpiTile label="Today's Generation" value={18.2} unit="kWh" icon={Zap} color="amber" trend="+12%" delay={1} />
-        <KpiTile label="Active Alerts" value={2} unit="" icon={AlertTriangle} color="red" delay={2} />
-        <KpiTile label="Performance Ratio" value={87} unit="%" icon={Activity} color="blue" trend="Good" delay={3} />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonPulse key={i} className="h-32 rounded-2xl" />
+          ))
+        ) : (
+          <>
+            <KpiTile label="System Capacity"   value={d?.capacityKwp ?? 0}     unit="kWp" icon={Sun}           color="green" delay={0} />
+            <KpiTile label="Today's Generation" value={d?.todayGenKwh ?? 0}     unit="kWh" icon={Zap}           color="amber" delay={1} />
+            <KpiTile label="Active Alerts"      value={d?.activeAlerts ?? 0}    unit=""    icon={AlertTriangle} color="red"   delay={2} />
+            <KpiTile
+              label="Performance Ratio"
+              value={d?.performanceRatio ?? Math.round((d?.todayGenKwh ?? 0) / Math.max(d?.capacityKwp ?? 1, 1) / 5 * 100)}
+              unit="%" icon={Activity} color="blue" delay={3}
+            />
+          </>
+        )}
       </div>
 
       {/* Bottom row */}
@@ -223,36 +443,48 @@ export default function OverviewPage() {
         {/* Self-use ring */}
         <GlassCard>
           <p className="text-xs text-white/60 uppercase tracking-widest font-medium mb-4">Self-Consumption</p>
-          <div className="w-32 h-32 mx-auto">
-            <SelfUseArc pct={77} />
-          </div>
-          <p className="text-center text-xs text-white/55 mt-3">77% powered by solar today</p>
+          {loading ? (
+            <SkeletonPulse className="w-32 h-32 mx-auto rounded-full" />
+          ) : (
+            <>
+              <div className="w-32 h-32 mx-auto">
+                <SelfUseArc pct={Math.round(d?.selfUsePct ?? 0)} />
+              </div>
+              <p className="text-center text-xs text-white/55 mt-3">
+                {Math.round(d?.selfUsePct ?? 0)}% powered by solar today
+              </p>
+            </>
+          )}
         </GlassCard>
 
-        {/* Hourly generation with interactive tooltips */}
+        {/* Hourly chart */}
         <GlassCard className="md:col-span-2">
           <div className="flex items-center justify-between mb-5">
             <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Energy Overview</p>
             <span className="text-xs text-white/55">Today</span>
           </div>
-          <HourlyGenerationChart />
+          <HourlyGenerationChart points={d?.hourly ?? []} nowIndex={d?.nowIndex} />
         </GlassCard>
       </div>
 
       {/* Quick nav */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Solar Forecast", href: "/solar", icon: Sun },
-          { label: "Consumption", href: "/consumption", icon: Home },
-          { label: "Bill History", href: "/history", icon: TrendingUp },
-          { label: "Weather", href: "/weather", icon: Activity },
+          { label: "Solar Forecast", href: "/solar",       icon: Sun       },
+          { label: "Consumption",    href: "/consumption", icon: Home      },
+          { label: "Bill History",   href: "/history",     icon: TrendingUp },
+          { label: "Weather",        href: "/weather",     icon: Activity  },
         ].map((nav) => (
-          <motion.a key={nav.href} href={nav.href} whileHover={{ y: -2 }}
-            className="glass rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:border-white/15 transition-colors"
-          >
-            <span className="text-sm font-medium text-white/50 group-hover:text-white/80 transition-colors">{nav.label}</span>
-            <ArrowRight size={14} className="text-white/45 group-hover:text-white/50 transition-colors" />
-          </motion.a>
+          <Link key={nav.href} href={nav.href} legacyBehavior={false}>
+            <motion.div whileHover={{ y: -2 }}
+              className="glass rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:border-white/15 transition-colors"
+            >
+              <span className="text-sm font-medium text-white/50 group-hover:text-white/80 transition-colors">
+                {nav.label}
+              </span>
+              <ArrowRight size={14} className="text-white/45 group-hover:text-white/50 transition-colors" />
+            </motion.div>
+          </Link>
         ))}
       </div>
     </div>
