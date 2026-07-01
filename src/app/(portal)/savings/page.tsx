@@ -180,7 +180,9 @@ export default function SavingsPage() {
     user?.site_id,
     async (siteId, signal) => {
       const res = await portalApi.getSavings(siteId, signal);
-      return res.data.data.savings;
+      const s = res.data.data.savings;
+      if (!s) throw new Error("No savings data");
+      return s;
     },
     { cacheKey: `savings:${user?.site_id}`, ttl: TTL.summary },
   );
