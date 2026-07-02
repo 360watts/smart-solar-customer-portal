@@ -70,7 +70,7 @@ function PaybackRing({ pct }: { pct: number }) {
         <span className="text-3xl font-bold text-emerald-400" style={{ fontFamily: "JetBrains Mono, monospace" }}>
           <AnimatedNumber value={capped} decimals={2} suffix="%" />
         </span>
-        <span className="text-xs text-white/40 mt-1 tracking-wider uppercase">recovered</span>
+        <span className="text-sm text-white/40 mt-1 tracking-wider uppercase">recovered</span>
       </div>
     </div>
   );
@@ -83,7 +83,7 @@ function ConsumptionBar({ label, value, total, color, icon: Icon }: {
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between text-base">
         <div className="flex items-center gap-2 text-white/60">
           <Icon size={14} style={{ color }} />
           <span>{label}</span>
@@ -113,16 +113,16 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
     <div className="flex items-stretch gap-4">
       {/* Without solar */}
       <div className="flex-1 rounded-xl p-4" style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)" }}>
-        <p className="text-xs text-white/40 mb-2 uppercase tracking-wider">Without Solar</p>
+        <p className="text-sm text-white/40 mb-2 uppercase tracking-wider">Without Solar</p>
         <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#F87171" }}>
           ₹<AnimatedNumber value={withoutSolar} decimals={0} />
         </p>
-        <p className="text-xs text-white/30 mt-1">Projected EB bill</p>
+        <p className="text-sm text-white/30 mt-1">Projected EB bill</p>
       </div>
 
       {/* Arrow */}
       <div className="flex flex-col items-center justify-center shrink-0">
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold"
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold"
           style={{ background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.2)" }}>
           <TrendingUp size={12} />
           {savingsPct.toFixed(0)}% saved
@@ -133,11 +133,11 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
 
       {/* Actual EB bill */}
       <div className="flex-1 rounded-xl p-4" style={{ background: "rgba(47,191,113,0.06)", border: "1px solid rgba(47,191,113,0.15)" }}>
-        <p className="text-xs text-white/40 mb-2 uppercase tracking-wider">Actual EB Bill</p>
+        <p className="text-sm text-white/40 mb-2 uppercase tracking-wider">Actual EB Bill</p>
         <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#2FBF71" }}>
           ₹<AnimatedNumber value={ebBill} decimals={0} />
         </p>
-        <p className="text-xs text-white/30 mt-1">This billing cycle</p>
+        <p className="text-sm text-white/30 mt-1">This billing cycle</p>
       </div>
     </div>
   );
@@ -151,7 +151,7 @@ function StatusPill({ status }: { status: "due" | "paid" | "overdue" }) {
     overdue: { bg: "rgba(248,113,113,0.12)", color: "#F87171", border: "rgba(248,113,113,0.25)", label: "Overdue" },
   }[status];
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold"
       style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
       {cfg.label}
     </span>
@@ -194,7 +194,7 @@ export default function SavingsPage() {
   if (error || !savings) {
     return (
       <GlassCard>
-        <p className="text-sm text-red-400">{error ?? "Failed to load savings data."}</p>
+        <p className="text-base text-red-400">{error ?? "Failed to load savings data."}</p>
       </GlassCard>
     );
   }
@@ -217,7 +217,7 @@ export default function SavingsPage() {
           >
             Savings & ROI
           </h1>
-          <p className="text-sm text-white/40">
+          <p className="text-base text-white/40">
             {electricityBill.period} · {electricityBill.billingMonths}-month cycle
           </p>
         </div>
@@ -241,8 +241,8 @@ export default function SavingsPage() {
         >
           <PaybackRing pct={investment.paybackPercentage} />
           <div className="text-center">
-            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">Investment Recovered</p>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-white/40 uppercase tracking-widest mb-1">Investment Recovered</p>
+            <p className="text-base text-white/60">
               <span className="text-emerald-400 font-semibold" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                 ₹{investment.savedAmount.toLocaleString("en-IN")}
               </span>
@@ -270,15 +270,15 @@ export default function SavingsPage() {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(47,191,113,0.12)", border: "1px solid rgba(47,191,113,0.2)" }}>
                 <IndianRupee size={18} className="text-emerald-400" />
               </div>
-              <p className="text-sm text-white/50">This Billing Cycle</p>
+              <p className="text-base text-white/50">This Billing Cycle</p>
             </div>
             <p className="text-5xl font-bold text-emerald-400 mb-2" style={{ fontFamily: "JetBrains Mono, monospace" }}>
               ₹<AnimatedNumber value={sav.savingsAmount} decimals={0} />
             </p>
-            <p className="text-sm text-white/40">saved on electricity</p>
+            <p className="text-base text-white/40">saved on electricity</p>
           </div>
           <div className="mt-6 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-base">
               <span className="text-white/40">Savings rate</span>
               <span className="font-semibold text-emerald-400" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                 {sav.savingsPercentage.toFixed(1)}%
@@ -312,21 +312,21 @@ export default function SavingsPage() {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(233,185,73,0.10)", border: "1px solid rgba(233,185,73,0.18)" }}>
                 <Calendar size={18} style={{ color: COLORS.amber }} />
               </div>
-              <p className="text-sm text-white/50">Break-Even Projection</p>
+              <p className="text-base text-white/50">Break-Even Projection</p>
             </div>
             <p className="text-2xl font-bold text-white/90 mb-1" style={{ fontFamily: "var(--font-display)" }}>
               {investment.breakEvenDate}
             </p>
-            <p className="text-xs text-white/30">estimated recovery date</p>
+            <p className="text-sm text-white/30">estimated recovery date</p>
           </div>
           <div className="mt-6 space-y-3 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-base">
               <span className="text-white/40">Months remaining</span>
               <span style={{ fontFamily: "JetBrains Mono, monospace", color: COLORS.amber }}>
                 {investment.monthsToBreakEven.toLocaleString("en-IN")}
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-base">
               <span className="text-white/40">Still to recover</span>
               <span style={{ fontFamily: "JetBrains Mono, monospace", color: "rgba(255,255,255,0.6)" }}>
                 ₹{investment.remainingInvestment.toLocaleString("en-IN")}
@@ -348,7 +348,7 @@ export default function SavingsPage() {
             <h2 className="text-base font-semibold text-white/80" style={{ fontFamily: "var(--font-display)" }}>
               Bill Comparison
             </h2>
-            <span className="text-xs text-white/30 ml-auto">{electricityBill.period}</span>
+            <span className="text-sm text-white/30 ml-auto">{electricityBill.period}</span>
           </div>
           <BillComparison
             withoutSolar={sav.billWithoutSolar}
@@ -370,7 +370,7 @@ export default function SavingsPage() {
             <h2 className="text-base font-semibold text-white/80" style={{ fontFamily: "var(--font-display)" }}>
               Energy Breakdown
             </h2>
-            <span className="text-xs text-white/30 ml-auto">
+            <span className="text-sm text-white/30 ml-auto">
               {totalUnits.toFixed(1)} kWh equivalent load
             </span>
           </div>
@@ -416,10 +416,10 @@ export default function SavingsPage() {
               { label: "Grid Export", value: consumption.ebExportUnits, color: "#60a5fa" },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex-1 min-w-[100px]">
-                <p className="text-xs text-white/30 mb-1">{label}</p>
+                <p className="text-sm text-white/30 mb-1">{label}</p>
                 <p className="text-lg font-semibold" style={{ fontFamily: "JetBrains Mono, monospace", color }}>
                   {value.toFixed(1)}
-                  <span className="text-xs text-white/30 ml-1">kWh</span>
+                  <span className="text-sm text-white/30 ml-1">kWh</span>
                 </p>
               </div>
             ))}

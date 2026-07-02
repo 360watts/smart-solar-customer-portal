@@ -92,7 +92,7 @@ function RegimeBadge({ regime }: { regime: RegimeType }) {
   };
   const s = styles[regime] ?? { bg: "rgba(255,255,255,0.08)", color: "#94A3B8" };
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold"
       style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30` }}>
       {regime}
     </span>
@@ -121,7 +121,7 @@ function KpiCard({
           <Icon size={17} className="text-emerald-400" />
         </div>
         {sub && (
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5 text-white/45">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 text-white/45">
             {sub}
           </span>
         )}
@@ -136,7 +136,7 @@ function KpiCard({
           <span className="text-2xl text-white/25">—</span>
         )}
       </div>
-      <p className="text-xs text-white/50 mt-1 font-medium uppercase tracking-wider">{label}</p>
+      <p className="text-sm text-white/50 mt-1 font-medium uppercase tracking-wider">{label}</p>
     </motion.div>
   );
 }
@@ -247,7 +247,7 @@ export default function SolarPage() {
         className="flex items-end justify-between"
       >
         <div>
-          <p className="text-xs text-white/50 uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
+          <p className="text-sm text-white/50 uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
           <h1 className="text-3xl font-extrabold text-white leading-none tracking-tight"
             style={{ fontFamily: "var(--font-display)" }}>
             Today&apos;s Performance
@@ -257,7 +257,7 @@ export default function SolarPage() {
       </motion.div>
 
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-base text-red-300">
           {error}
         </div>
       )}
@@ -282,16 +282,16 @@ export default function SolarPage() {
           <div className="flex items-center gap-3">
             <Activity size={16} className="text-emerald-400" />
             <div>
-              <h2 className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+              <h2 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
                 Generation Forecast
               </h2>
-              <p className="text-xs text-white/45 mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
+              <p className="text-sm text-white/45 mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-xl p-1">
             {(["today", "tomorrow"] as const).map((r) => (
               <button key={r} onClick={() => setForecastRange(r)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all capitalize ${
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize ${
                   forecastRange === r
                     ? "bg-emerald-500/20 text-emerald-400"
                     : "text-white/40 hover:text-white/60"
@@ -315,7 +315,7 @@ export default function SolarPage() {
                 background: l.dash ? "transparent" : l.color,
                 borderTop: l.dash ? `1.5px dashed ${l.color}` : undefined,
               }} />
-              <span className="text-[11px] text-white/45">{l.label}</span>
+              <span className="text-xs text-white/45">{l.label}</span>
             </div>
           ))}
         </div>
@@ -325,7 +325,7 @@ export default function SolarPage() {
         ) : forecastChartData ? (
           <DataChart type="line" data={forecastChartData} height={220} />
         ) : (
-          <div className="h-52 flex items-center justify-center text-white/30 text-sm">
+          <div className="h-52 flex items-center justify-center text-white/30 text-base">
             No forecast data for {forecastRange}
           </div>
         )}
@@ -335,7 +335,7 @@ export default function SolarPage() {
       <GlassCard>
         <div className="flex items-center gap-3 mb-5">
           <TrendingUp size={16} className="text-emerald-400" />
-          <h2 className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
             7-Day Generation History
           </h2>
         </div>
@@ -344,7 +344,7 @@ export default function SolarPage() {
         ) : weeklyChartData ? (
           <DataChart type="bar" data={weeklyChartData} height={180} />
         ) : (
-          <div className="h-44 flex items-center justify-center text-white/30 text-sm">
+          <div className="h-44 flex items-center justify-center text-white/30 text-base">
             No generation data available
           </div>
         )}

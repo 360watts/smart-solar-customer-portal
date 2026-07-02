@@ -100,9 +100,9 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
       </motion.div>
 
       <div className="flex-1 min-w-0 text-left">
-        <p className={`text-sm font-semibold ${getStatusColor()}`}>{getStatusLabel()}</p>
+        <p className={`text-base font-semibold ${getStatusColor()}`}>{getStatusLabel()}</p>
         {hasData && (
-          <p className="text-xs text-white/50 mt-0.5">
+          <p className="text-sm text-white/50 mt-0.5">
             {devices.length} device{devices.length !== 1 ? "s" : ""} monitored
           </p>
         )}
@@ -191,14 +191,14 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ background: isOnline ? "#10b981" : "#ef4444" }}
                     />
-                    <p className={`text-xs font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
+                    <p className={`text-sm font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
                   </div>
                   {device.label && (
-                    <p className={`text-xs mt-1 font-mono ${isOnline ? "text-emerald-200/50" : "text-red-200/50"}`}>
+                    <p className={`text-sm mt-1 font-mono ${isOnline ? "text-emerald-200/50" : "text-red-200/50"}`}>
                       {device.serial}
                     </p>
                   )}
-                  <p className={`text-xs mt-1 ${isOnline ? "text-emerald-200/60" : "text-red-200/60"}`}>
+                  <p className={`text-sm mt-1 ${isOnline ? "text-emerald-200/60" : "text-red-200/60"}`}>
                     {isOnline ? "Connected" : "Disconnected"}
                   </p>
                 </div>
@@ -207,7 +207,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                 {device.alert_count > 0 && (
                   <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/20">
                     <AlertTriangle size={12} className="text-amber-400" />
-                    <span className="text-xs font-semibold text-white/80">{device.alert_count}</span>
+                    <span className="text-sm font-semibold text-white/80">{device.alert_count}</span>
                   </div>
                 )}
               </motion.div>

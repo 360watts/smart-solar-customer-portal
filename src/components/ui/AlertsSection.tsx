@@ -91,7 +91,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
             <motion.div
               animate={prefersReducedMotion ? {} : { opacity: [1, 0.7, 1] }}
               transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-500/90 text-white
+              className="px-3 py-1.5 rounded-full text-sm font-bold bg-red-500/90 text-white
                 shadow-lg shadow-red-500/30"
             >
               {counts.critical} Critical
@@ -103,7 +103,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
           <div className={`stat-number text-3xl mb-0.5 ${hasCritical ? "text-red-300" : "text-white"}`}>
             {loading ? "..." : total}
           </div>
-          <p className={`text-xs mt-1 font-medium uppercase tracking-wider ${hasCritical ? "text-red-200" : "text-white/60"}`}>
+          <p className={`text-sm mt-1 font-medium uppercase tracking-wider ${hasCritical ? "text-red-200" : "text-white/60"}`}>
             {total === 0 ? "No Active Alerts" : `Active Alert${total !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -121,8 +121,8 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
                 />
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-[10px] text-white/45">Alert severity</span>
-                <span className={`text-[10px] font-semibold ${hasCritical ? "text-red-300" : counts.warning > 0 ? "text-amber-300" : "text-emerald-300"}`}>{severityLabel}</span>
+                <span className="text-xs text-white/45">Alert severity</span>
+                <span className={`text-xs font-semibold ${hasCritical ? "text-red-300" : counts.warning > 0 ? "text-amber-300" : "text-emerald-300"}`}>{severityLabel}</span>
               </div>
             </div>
 
@@ -130,17 +130,17 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
               <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/15">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_5px_rgba(248,113,113,0.55)] shrink-0" />
-                  <span className="text-[10px] text-red-200/70 truncate">Critical</span>
+                  <span className="text-xs text-red-200/70 truncate">Critical</span>
                 </div>
-                <span className="text-xs font-bold text-red-300 tabular-nums">{counts.critical}</span>
+                <span className="text-sm font-bold text-red-300 tabular-nums">{counts.critical}</span>
               </div>
 
               <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)] shrink-0" />
-                  <span className="text-[10px] text-white/50 truncate">Warn / Info</span>
+                  <span className="text-xs text-white/50 truncate">Warn / Info</span>
                 </div>
-                <span className="text-xs font-bold text-white/85 tabular-nums">{counts.warning} / {counts.info}</span>
+                <span className="text-sm font-bold text-white/85 tabular-nums">{counts.warning} / {counts.info}</span>
               </div>
             </div>
           </>
@@ -148,7 +148,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
 
         {/* CTA Footer */}
         <div className={`mt-auto flex min-h-[48px] items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-white/[0.06] bg-white/[0.035]"}`}>
-          <span className={`text-[11px] font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-white/62"}`}>
+          <span className={`text-xs font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-white/62"}`}>
             {footerText}
           </span>
           <motion.div

@@ -14,12 +14,12 @@ export default function Error({
           <span className="text-red-400 text-xl">!</span>
         </div>
         <h2 className="text-lg font-semibold text-white mb-2">Something went wrong</h2>
-        <p className="text-sm text-white/50 mb-6">
+        <p className="text-base text-white/50 mb-6">
           {error.message || "An unexpected error occurred loading this page."}
         </p>
         <button
           onClick={reset}
-          className="px-6 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-sm font-medium transition-colors"
+          className="px-6 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-base font-medium transition-colors"
         >
           Try again
         </button>

@@ -9,9 +9,10 @@ import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, Refres
 import GlassCard from "@/components/ui/GlassCard";
 import AlertsSection from "@/components/ui/AlertsSection";
 import CriticalAlertsBanner from "@/components/ui/CriticalAlertsBanner";
-import DeviceStatusSection from "@/components/ui/DeviceStatusSection";
 import EnergyFlowDiagram from "@/components/ui/EnergyFlowDiagram";
 import HourlyGenerationChart, { type HourlyPoint } from "@/components/ui/HourlyGenerationChart";
+import AnimatedNumber from "@/components/ui/AnimatedNumber";
+import SkeletonPulse from "@/components/ui/SkeletonPulse";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
@@ -54,23 +55,6 @@ function deviceTypeLabel(deviceType?: string): string {
   return "Inverter IoT Gateway";
 }
 
-// ─── Animated counter ─────────────────────────────────────────────────────────
-function AnimatedNumber({ value, decimals = 1, suffix = "" }: { value: number; decimals?: number; suffix?: string }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const start = performance.now();
-    const duration = 1400;
-    function tick(now: number) {
-      const p = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - p, 4);
-      setDisplay(value * ease);
-      if (p < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }, [value]);
-  return <>{display.toFixed(decimals)}{suffix}</>;
-}
-
 // ─── Greeting ────────────────────────────────────────────────────────────────
 function Greeting({ name }: { name: string }) {
   const [greeting, setGreeting] = useState("Good morning");
@@ -90,7 +74,7 @@ function LiveClock() {
     const id = setInterval(() => setTime(fmt()), 10_000);
     return () => clearInterval(id);
   }, []);
-  return <span className="text-xs text-white/55 font-mono">{time || "••:••"}</span>;
+  return <span className="text-sm text-white/55 font-mono">{time || "••:••"}</span>;
 }
 
 // ─── Detailed KPI Card ─────────────────────────────────────────────────────────
@@ -146,7 +130,7 @@ function DetailedKpiCard({
           <Icon size={18} className={cm.text} />
         </div>
         {badge && !loading && (
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={badgeStyle}>
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={badgeStyle}>
             {badge}
           </span>
         )}
@@ -165,7 +149,7 @@ function DetailedKpiCard({
             <AnimatedNumber value={bigValue} decimals={bigDecimals} />
             <span className="text-base font-normal text-white/60 ml-1">{bigUnit}</span>
           </div>
-          <p className="text-xs text-white/60 mt-1 mb-3 font-medium uppercase tracking-wider">{label}</p>
+          <p className="text-sm text-white/60 mt-1 mb-3 font-medium uppercase tracking-wider">{label}</p>
 
           {/* Progress bar */}
           <div className="mb-3">
@@ -179,8 +163,8 @@ function DetailedKpiCard({
               />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-white/45">{progressLabel}</span>
-              <span className="text-[10px] font-semibold" style={{ color: cm.hex }}>{progressValueLabel ?? `${Math.round(clampedPct)}%`}</span>
+              <span className="text-xs text-white/45">{progressLabel}</span>
+              <span className="text-xs font-semibold" style={{ color: cm.hex }}>{progressValueLabel ?? `${Math.round(clampedPct)}%`}</span>
             </div>
           </div>
 
@@ -190,9 +174,9 @@ function DetailedKpiCard({
               <div key={row.label} className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.dot, boxShadow: `0 0 5px ${row.glow}` }} />
-                  <span className="text-[10px] text-white/50 truncate">{row.label}</span>
+                  <span className="text-xs text-white/50 truncate">{row.label}</span>
                 </div>
-                <span className="text-xs font-bold text-white/85 tabular-nums" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                <span className="text-sm font-bold text-white/85 tabular-nums" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
                   {row.value}
                 </span>
               </div>
@@ -200,7 +184,7 @@ function DetailedKpiCard({
           </div>
 
           {/* Footer */}
-          <p className="mt-auto min-h-[48px] rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-2 text-[11px] text-white/62 leading-snug">{footer}</p>
+          <p className="mt-auto min-h-[48px] rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-2 text-xs text-white/62 leading-snug">{footer}</p>
         </>
       )}
     </motion.div>
@@ -255,9 +239,9 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
   return (
     <>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Self-Consumption</p>
+        <p className="text-sm text-white/60 uppercase tracking-widest font-medium">Self-Consumption</p>
         {!loading && data && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ background: "rgba(47,191,113,0.12)", color: "#2FBF71" }}>
             Today
           </span>
@@ -297,8 +281,8 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
               />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-emerald-400/70 font-medium">Self-used {pct}%</span>
-              <span className="text-[10px] text-cyan-400/60 font-medium">Exported {exportPct}%</span>
+              <span className="text-xs text-emerald-400/70 font-medium">Self-used {pct}%</span>
+              <span className="text-xs text-cyan-400/60 font-medium">Exported {exportPct}%</span>
             </div>
           </div>
 
@@ -316,9 +300,9 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ background: row.dot, boxShadow: `0 0 5px ${row.glow}` }} />
-                  <span className="text-xs text-white/55">{row.label}</span>
+                  <span className="text-sm text-white/55">{row.label}</span>
                 </div>
-                <span className="text-xs font-bold tabular-nums"
+                <span className="text-sm font-bold tabular-nums"
                   style={{ fontFamily: "var(--font-jetbrains-mono),monospace", color: row.dot }}>
                   {row.value} <span className="font-normal opacity-60">{row.unit}</span>
                 </span>
@@ -335,17 +319,12 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
 function NoSiteBanner() {
   return (
     <GlassCard className="border-amber-500/20">
-      <p className="text-sm text-amber-300 font-medium">No site linked to your account.</p>
-      <p className="text-xs text-white/55 mt-1">
+      <p className="text-base text-amber-300 font-medium">No site linked to your account.</p>
+      <p className="text-sm text-white/55 mt-1">
         Contact your 360Watts installer to link your solar site.
       </p>
     </GlassCard>
   );
-}
-
-// ─── Skeleton row ─────────────────────────────────────────────────────────────
-function SkeletonPulse({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className}`} />;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -597,7 +576,7 @@ export default function OverviewPage() {
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4"
       >
         <div>
-          <p className="text-xs text-white/55 uppercase tracking-[0.2em] font-medium mb-2">
+          <p className="text-sm text-white/55 uppercase tracking-[0.2em] font-medium mb-2">
             Solar Dashboard · {d?.siteName ?? "Loading…"}
           </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-none tracking-tight">
@@ -605,11 +584,6 @@ export default function OverviewPage() {
           </h1>
         </div>
         <div className="flex flex-col items-end gap-3 w-full sm:w-auto">
-          {d ? (
-            <DeviceStatusSection devices={d.devices} />
-          ) : (
-            <SkeletonPulse className="w-full sm:w-80 h-12" />
-          )}
           <div className="flex items-center gap-3">
             <LiveClock />
             {isStale && (
@@ -625,10 +599,10 @@ export default function OverviewPage() {
       {/* Error banner */}
       {error && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-          bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          bg-red-500/10 border border-red-500/20 text-base text-red-300">
           <span>{error}</span>
           <button onClick={refresh}
-            className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100">
+            className="text-sm underline underline-offset-2 opacity-70 hover:opacity-100">
             Retry
           </button>
         </div>
@@ -645,7 +619,7 @@ export default function OverviewPage() {
           <div className="flex items-center gap-2 mb-5">
             <div className={`w-1.5 h-1.5 rounded-full ${allDevicesOffline ? "bg-red-500" : "bg-emerald-400 animate-pulse"}`} />
             <span
-              className="text-xs uppercase tracking-[0.18em] font-medium"
+              className="text-sm uppercase tracking-[0.18em] font-medium"
               style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
             >
               {allDevicesOffline ? "Offline — Last Known" : "Live Output"}
@@ -668,7 +642,7 @@ export default function OverviewPage() {
                 </span>
                 <span className="text-xl text-white/45 font-light">kW</span>
               </div>
-              <p className="text-white/55 text-sm mb-8">
+              <p className="text-white/55 text-base mb-8">
                 {allDevicesOffline ? (
                   <span className="text-red-300/80 font-medium">Frozen at last reading before disconnect</span>
                 ) : (
@@ -690,9 +664,9 @@ export default function OverviewPage() {
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-1 h-5 rounded-full shrink-0" style={{ background: s.accent }} />
-                      <span className="text-xs text-white/60 whitespace-nowrap">{s.label}</span>
+                      <span className="text-sm text-white/60 whitespace-nowrap">{s.label}</span>
                     </div>
-                    <span className="text-sm font-bold whitespace-nowrap tabular-nums"
+                    <span className="text-base font-bold whitespace-nowrap tabular-nums"
                       style={{
                         color: s.accent === "rgba(47,191,113,0.7)" ? "#2FBF71" : "rgba(255,255,255,0.6)",
                         fontFamily: "var(--font-jetbrains-mono), monospace",
@@ -711,7 +685,7 @@ export default function OverviewPage() {
         {/* Right — energy flow */}
         <div className="min-w-0" style={{ flex: "7" }}>
           <p
-            className="text-xs uppercase tracking-[0.18em] font-medium mb-3"
+            className="text-sm uppercase tracking-[0.18em] font-medium mb-3"
             style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
           >
             {allDevicesOffline ? "Energy Flow Unavailable" : "Live Energy Flow"}
@@ -721,10 +695,10 @@ export default function OverviewPage() {
           ) : allDevicesOffline ? (
             <div className="h-48 w-full rounded-2xl border border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center gap-2 text-center px-6">
               <AlertTriangle size={22} className="text-red-400/70" />
-              <p className="text-sm text-red-200/80 font-medium">
+              <p className="text-base text-red-200/80 font-medium">
                 Both devices are offline — live flow can&apos;t be shown
               </p>
-              <p className="text-xs text-white/40">
+              <p className="text-sm text-white/40">
                 Figures on the left are the last reading before disconnect
               </p>
             </div>
@@ -866,8 +840,8 @@ export default function OverviewPage() {
         {/* Hourly chart */}
         <GlassCard className="md:col-span-2">
           <div className="flex items-center justify-between mb-5">
-            <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Energy Overview</p>
-            <span className="text-xs text-white/55">Today</span>
+            <p className="text-sm text-white/60 uppercase tracking-widest font-medium">Energy Overview</p>
+            <span className="text-sm text-white/55">Today</span>
           </div>
           <HourlyGenerationChart points={d?.hourly ?? []} nowIndex={d?.nowIndex} />
         </GlassCard>
@@ -885,7 +859,7 @@ export default function OverviewPage() {
             <motion.div whileHover={{ y: -2 }}
               className="glass rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:border-white/15 transition-colors"
             >
-              <span className="text-sm font-medium text-white/50 group-hover:text-white/80 transition-colors">
+              <span className="text-base font-medium text-white/50 group-hover:text-white/80 transition-colors">
                 {nav.label}
               </span>
               <ArrowRight size={14} className="text-white/45 group-hover:text-white/50 transition-colors" />

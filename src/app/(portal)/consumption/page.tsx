@@ -170,8 +170,8 @@ export default function ConsumptionPage() {
   if (noSite) {
     return (
       <GlassCard className="border-amber-500/20">
-        <p className="text-sm text-amber-300 font-medium">No site linked to your account.</p>
-        <p className="text-xs text-white/55 mt-1">Contact your 360Watts installer to link your solar site.</p>
+        <p className="text-base text-amber-300 font-medium">No site linked to your account.</p>
+        <p className="text-sm text-white/55 mt-1">Contact your 360Watts installer to link your solar site.</p>
       </GlassCard>
     );
   }
@@ -186,14 +186,14 @@ export default function ConsumptionPage() {
         <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
           Consumption
         </h1>
-        <p className="text-muted-foreground text-sm">Energy usage breakdown and load forecast</p>
+        <p className="text-muted-foreground text-base">Energy usage breakdown and load forecast</p>
       </div>
 
       {error && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-          bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          bg-red-500/10 border border-red-500/20 text-base text-red-300">
           <span>{error}</span>
-          <button onClick={refresh} className="text-xs underline underline-offset-2 opacity-70 hover:opacity-100">Retry</button>
+          <button onClick={refresh} className="text-sm underline underline-offset-2 opacity-70 hover:opacity-100">Retry</button>
         </div>
       )}
 
@@ -213,7 +213,7 @@ export default function ConsumptionPage() {
           <div className="flex gap-2">
             {(["Day", "Week", "Month"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                   view === v ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-white/5"}`}>
                 {v}
               </button>
@@ -228,7 +228,7 @@ export default function ConsumptionPage() {
           ).map((l) => (
             <div key={l.label} className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ background: l.color }} />
-              <span className="text-xs text-muted-foreground">{l.label}</span>
+              <span className="text-sm text-muted-foreground">{l.label}</span>
             </div>
           ))}
         </div>
@@ -236,22 +236,22 @@ export default function ConsumptionPage() {
         {loading && !data ? (
           <div className="h-56 rounded-xl bg-white/[0.04] animate-pulse" />
         ) : !chartData || chartData.labels.length === 0 ? (
-          <div className="h-56 flex items-center justify-center text-sm text-white/40">No data available for this period.</div>
+          <div className="h-56 flex items-center justify-center text-base text-white/40">No data available for this period.</div>
         ) : (
           <DataChart type={chartType} data={chartData} height={220} />
         )}
 
         {view === "Day" && (
           <div className="mt-3">
-            <p className="text-xs text-muted-foreground mb-2 font-medium">TANGEDCO Tariff Bands</p>
+            <p className="text-sm text-muted-foreground mb-2 font-medium">TANGEDCO Tariff Bands</p>
             <div className="flex w-full rounded-lg overflow-hidden border border-white/5" style={{ height: 52 }}>
               {TARIFF_BANDS.map((band) => (
                 <div key={band.label}
                   className="flex flex-col items-center justify-center px-2 py-1.5 border-r last:border-r-0 transition-colors"
                   style={{ flex: band.flex, background: band.bg, borderColor: band.border, borderRightColor: "rgba(255,255,255,0.06)" }}>
-                  <span className="text-xs font-semibold" style={{ color: band.textColor }}>{band.rate}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">{band.time}</span>
-                  <span className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: band.textColor, opacity: 0.7 }}>{band.label}</span>
+                  <span className="text-sm font-semibold" style={{ color: band.textColor }}>{band.rate}</span>
+                  <span className="text-xs text-muted-foreground leading-tight">{band.time}</span>
+                  <span className="text-[11px] uppercase tracking-wider mt-0.5" style={{ color: band.textColor, opacity: 0.7 }}>{band.label}</span>
                 </div>
               ))}
             </div>
@@ -265,7 +265,7 @@ export default function ConsumptionPage() {
           <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             Load Forecast — Next 24h
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">P10 / P50 / P90 probabilistic bands</p>
+          <p className="text-sm text-muted-foreground mt-0.5">P10 / P50 / P90 probabilistic bands</p>
         </div>
         <div className="flex items-center gap-6 mb-4">
           {[
@@ -275,14 +275,14 @@ export default function ConsumptionPage() {
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-2">
               <div className="w-6 h-0.5" style={{ background: l.dash ? "transparent" : l.color, borderTop: l.dash ? `1.5px dashed ${l.color}` : undefined }} />
-              <span className="text-xs text-muted-foreground">{l.label}</span>
+              <span className="text-sm text-muted-foreground">{l.label}</span>
             </div>
           ))}
         </div>
         {loading && !data ? (
           <div className="h-48 rounded-xl bg-white/[0.04] animate-pulse" />
         ) : !data?.forecastChart || data.forecastChart.labels.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-sm text-white/40">No forecast data available.</div>
+          <div className="h-48 flex items-center justify-center text-base text-white/40">No forecast data available.</div>
         ) : (
           <DataChart type="line" data={data.forecastChart} height={200} />
         )}
@@ -304,8 +304,8 @@ export default function ConsumptionPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-foreground">{a.name}</span>
-                    <span className="text-sm font-mono text-muted-foreground">{kwh} kWh</span>
+                    <span className="text-base text-foreground">{a.name}</span>
+                    <span className="text-base font-mono text-muted-foreground">{kwh} kWh</span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: a.colorHex }}
@@ -313,7 +313,7 @@ export default function ConsumptionPage() {
                       transition={{ delay: i * 0.08 + 0.2, duration: 0.6, ease: "easeOut" }} />
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground w-8 text-right shrink-0">{a.pct}%</span>
+                <span className="text-sm text-muted-foreground w-8 text-right shrink-0">{a.pct}%</span>
               </motion.div>
             );
           })}

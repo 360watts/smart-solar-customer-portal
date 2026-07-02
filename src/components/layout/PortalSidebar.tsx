@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, User, ChevronLeft,
-  LogOut, PiggyBank,
+  LogOut, PiggyBank, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ const NAV = [
   { href: "/weather", icon: Cloud, label: "Weather" },
   { href: "/alerts", icon: AlertCircle, label: "Alerts", badge: 2 },
   { href: "/device", icon: Cpu, label: "Device" },
+  { href: "/care", icon: ShieldCheck, label: "360Care" },
 ];
 
 // Memoized so AuthContext updates (e.g. loading flag) don't force a full
@@ -72,7 +73,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
-              className="ml-3 font-bold text-white text-sm tracking-wide whitespace-nowrap"
+              className="ml-3 font-bold text-white text-base tracking-wide whitespace-nowrap"
               style={{ fontFamily: "var(--font-display)" }}
             >
               360Watts
@@ -114,14 +115,14 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-sm font-medium whitespace-nowrap flex-1"
+                      className="text-base font-medium whitespace-nowrap flex-1"
                     >
                       {item.label}
                     </motion.span>
                   )}
                 </AnimatePresence>
                 {!collapsed && item.badge && (
-                  <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-1.5 py-0.5 leading-none">
+                  <span className="text-sm bg-red-500/20 text-red-400 rounded-full px-1.5 py-0.5 leading-none">
                     {item.badge}
                   </span>
                 )}
@@ -136,7 +137,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-white/55 hover:text-white/50 hover:bg-white/4 transition-colors text-xs"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-white/55 hover:text-white/50 hover:bg-white/4 transition-colors text-sm"
         >
           <motion.div animate={{ rotate: collapsed ? 180 : 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
             <ChevronLeft size={15} />
@@ -165,7 +166,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
               className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/25 transition-colors"
               whileHover={{ scale: 1.05 }}
             >
-                  <span className="text-xs font-bold text-emerald-400">{initials}</span>
+                  <span className="text-sm font-bold text-emerald-400">{initials}</span>
                 </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -176,8 +177,8 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                   transition={{ duration: 0.15 }}
                   className="min-w-0"
                 >
-                  <p className="text-xs font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">{displayName}</p>
-                  <p className="text-xs text-white/55 truncate group-hover:text-white/65 transition-colors">Customer Portal</p>
+                  <p className="text-sm font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">{displayName}</p>
+                  <p className="text-sm text-white/55 truncate group-hover:text-white/65 transition-colors">Customer Portal</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -193,7 +194,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
           <LogOut size={16} className="shrink-0" />
           <AnimatePresence>
             {!collapsed && (
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs font-medium">
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm font-medium">
                 Sign out
               </motion.span>
             )}

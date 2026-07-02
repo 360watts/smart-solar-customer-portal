@@ -90,14 +90,14 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
         {SERIES.map((s) => (
           <div key={s.key} className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }} />
-            <span className="text-[10px] font-medium tracking-wider uppercase font-mono" style={{ color: s.color, opacity: 0.85 }}>
+            <span className="text-xs font-medium tracking-wider uppercase font-mono" style={{ color: s.color, opacity: 0.85 }}>
               {s.label}
             </span>
           </div>
         ))}
         <div className="flex items-center gap-1.5 ml-auto">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: GRID_EXPORT_COLOR, boxShadow: `0 0 6px ${GRID_EXPORT_COLOR}` }} />
-          <span className="text-[10px] font-medium tracking-wider uppercase font-mono" style={{ color: GRID_EXPORT_COLOR, opacity: 0.85 }}>
+          <span className="text-xs font-medium tracking-wider uppercase font-mono" style={{ color: GRID_EXPORT_COLOR, opacity: 0.85 }}>
             Export
           </span>
         </div>
@@ -203,7 +203,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
               }}
             >
               {/* Hour label */}
-              <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-2.5 pb-2 border-b border-white/[0.06]">
+              <div className="text-xs font-mono text-white/40 uppercase tracking-widest mb-2.5 pb-2 border-b border-white/[0.06]">
                 {tooltip.hour}
               </div>
 
@@ -211,9 +211,9 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
               <div className="flex items-center justify-between gap-4 mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: SERIES[0].color, boxShadow: `0 0 6px ${SERIES[0].color}` }} />
-                  <span className="text-[11px] text-white/55 font-medium">Solar</span>
+                  <span className="text-xs text-white/55 font-medium">Solar</span>
                 </div>
-                <span className="text-[12px] font-bold font-mono" style={{ color: SERIES[0].color }}>
+                <span className="text-sm font-bold font-mono" style={{ color: SERIES[0].color }}>
                   {tooltip.solar.toFixed(2)} kW
                 </span>
               </div>
@@ -222,9 +222,9 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
               <div className="flex items-center justify-between gap-4 mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: SERIES[1].color, boxShadow: `0 0 6px ${SERIES[1].color}` }} />
-                  <span className="text-[11px] text-white/55 font-medium">Load</span>
+                  <span className="text-xs text-white/55 font-medium">Load</span>
                 </div>
-                <span className="text-[12px] font-bold font-mono" style={{ color: SERIES[1].color }}>
+                <span className="text-sm font-bold font-mono" style={{ color: SERIES[1].color }}>
                   {tooltip.load.toFixed(2)} kW
                 </span>
               </div>
@@ -237,11 +237,11 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: gridColor, boxShadow: `0 0 6px ${gridColor}` }} />
-                      <span className="text-[11px] text-white/55 font-medium">
+                      <span className="text-xs text-white/55 font-medium">
                         Grid {isExport ? "↑ export" : "↓ import"}
                       </span>
                     </div>
-                    <span className="text-[12px] font-bold font-mono" style={{ color: gridColor }}>
+                    <span className="text-sm font-bold font-mono" style={{ color: gridColor }}>
                       {Math.abs(tooltip.grid).toFixed(2)} kW
                     </span>
                   </div>
@@ -254,7 +254,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
       </AnimatePresence>
 
       {/* Time labels */}
-      <div className="flex justify-between mt-3 text-[10px] text-white/30 font-mono">
+      <div className="flex justify-between mt-3 text-xs text-white/30 font-mono">
         {points.map((pt, i) => (
           <span key={i} className={i % 3 === 0 ? "text-white/40" : "invisible"}>
             {pt.hour}

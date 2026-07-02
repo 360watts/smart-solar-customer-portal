@@ -39,7 +39,7 @@ function formatDate(iso: string): string {
 }
 
 const inputClass =
-  "w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-primary/50 placeholder:text-white/30";
+  "w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-base focus:outline-none focus:border-primary/50 placeholder:text-white/30";
 
 // ---------------------------------------------------------------------------
 // Page
@@ -194,7 +194,7 @@ export default function ProfilePage() {
       <div className="space-y-4">
         <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
         <GlassCard>
-          <p className="text-sm text-red-300">{error || "Profile data is unavailable."}</p>
+          <p className="text-base text-red-300">{error || "Profile data is unavailable."}</p>
         </GlassCard>
       </div>
     );
@@ -211,7 +211,7 @@ export default function ProfilePage() {
 
       {error && (
         <GlassCard>
-          <p className="text-sm text-red-300">{error}</p>
+          <p className="text-base text-red-300">{error}</p>
         </GlassCard>
       )}
 
@@ -238,7 +238,7 @@ export default function ProfilePage() {
             <h2 className="font-display text-xl font-bold text-white truncate">
               {profile.first_name} {profile.last_name}
             </h2>
-            <p className="text-sm text-white/50 mt-0.5 truncate">{profile.email}</p>
+            <p className="text-base text-white/50 mt-0.5 truncate">{profile.email}</p>
             <div className="mt-2">
               <StatusPill
                 status={profile.subscription_plan === "premium" ? "active" : "inactive"}
@@ -260,8 +260,8 @@ export default function ProfilePage() {
             { label: "Account", value: user?.site_id ?? "—" },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-              <span className="text-xs text-white/40 uppercase tracking-wide">{label}</span>
-              <span className="font-mono text-sm text-white">{value}</span>
+              <span className="text-sm text-white/40 uppercase tracking-wide">{label}</span>
+              <span className="font-mono text-base text-white">{value}</span>
             </div>
           ))}
         </div>
@@ -274,7 +274,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSave}
             disabled={!isDirty || saveState === "saving"}
-            className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary"
+            className="px-4 py-1.5 rounded-lg text-base font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary"
           >
             {saveState === "saving" ? "Saving…" : "Save"}
           </button>
@@ -283,7 +283,7 @@ export default function ProfilePage() {
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-white/40 mb-1.5">First Name</label>
+              <label className="block text-sm text-white/40 mb-1.5">First Name</label>
               <input
                 type="text"
                 value={editFirst}
@@ -292,7 +292,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-white/40 mb-1.5">Last Name</label>
+              <label className="block text-sm text-white/40 mb-1.5">Last Name</label>
               <input
                 type="text"
                 value={editLast}
@@ -302,7 +302,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-white/40 mb-1.5">Phone</label>
+            <label className="block text-sm text-white/40 mb-1.5">Phone</label>
             <input
               type="tel"
               value={editPhone}
@@ -320,7 +320,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-3 text-sm text-emerald-400"
+              className="mt-3 text-base text-emerald-400"
             >
               Saved ✓
             </motion.p>
@@ -330,7 +330,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-3 text-sm text-red-400"
+              className="mt-3 text-base text-red-400"
             >
               Failed to save. Please try again.
             </motion.p>
@@ -343,7 +343,7 @@ export default function ProfilePage() {
         <h3 className="font-semibold text-white mb-4">Change Password</h3>
         <form onSubmit={handleChangePassword} className="space-y-3">
           <div>
-            <label className="block text-xs text-white/40 mb-1.5">Current Password</label>
+            <label className="block text-sm text-white/40 mb-1.5">Current Password</label>
             <input
               type="password"
               value={currentPw}
@@ -353,7 +353,7 @@ export default function ProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-white/40 mb-1.5">New Password</label>
+            <label className="block text-sm text-white/40 mb-1.5">New Password</label>
             <input
               type="password"
               value={newPw}
@@ -363,7 +363,7 @@ export default function ProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-white/40 mb-1.5">Confirm New Password</label>
+            <label className="block text-sm text-white/40 mb-1.5">Confirm New Password</label>
             <input
               type="password"
               value={confirmPw}
@@ -379,7 +379,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-sm text-red-400"
+                className="text-base text-red-400"
               >
                 {pwError}
               </motion.p>
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-sm text-emerald-400"
+                className="text-base text-emerald-400"
               >
                 Password changed ✓
               </motion.p>
@@ -399,7 +399,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={pwState === "saving"}
-            className="mt-2 w-full py-3 rounded-lg text-sm font-semibold bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="mt-2 w-full py-3 rounded-lg text-base font-semibold bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {pwState === "saving" ? "Updating…" : "Update Password"}
           </button>

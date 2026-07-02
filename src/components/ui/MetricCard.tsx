@@ -78,7 +78,7 @@ export default function MetricCard({
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-base text-muted-foreground mb-1">{title}</p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-foreground font-display">
               {typeof value === "number" ? displayValue : value}
@@ -92,7 +92,7 @@ export default function MetricCard({
       </div>
 
       {trend && (
-        <div className={`flex items-center gap-1 text-sm ${trendColor}`}>
+        <div className={`flex items-center gap-1 text-base ${trendColor}`}>
           <TrendIcon size={16} />
           <span>{trend.value}</span>
         </div>

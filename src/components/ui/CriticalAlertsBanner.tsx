@@ -69,7 +69,7 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
               <AlertTriangle size={16} className="text-red-400" strokeWidth={2.5} />
             </motion.div>
 
-            <p className="text-sm text-red-200 font-medium flex-1 min-w-0 truncate">
+            <p className="text-base text-red-200 font-medium flex-1 min-w-0 truncate">
               <span className="font-bold">{criticalCount} critical alert{criticalCount !== 1 ? "s" : ""}</span>
               {offlineCount > 0 && (
                 <span className="text-red-200/70">
@@ -78,7 +78,7 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
               )}
             </p>
 
-            <span className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-red-300/80 group-hover:text-red-200">
+            <span className="flex-shrink-0 flex items-center gap-1 text-sm font-medium text-red-300/80 group-hover:text-red-200">
               View details
               <ChevronRight size={13} />
             </span>

@@ -1,9 +1,12 @@
 "use client";
 
+import { useId, type ElementType } from "react";
 import { motion } from "framer-motion";
-import { Cpu, Zap, Battery, Sun, Wifi, WifiOff, AlertTriangle } from "lucide-react";
+import { Cpu, Zap, Battery, Sun, Wifi, AlertTriangle, Clock, Radio, Globe, Activity } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
+import AnimatedNumber from "@/components/ui/AnimatedNumber";
+import SkeletonPulse from "@/components/ui/SkeletonPulse";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
@@ -91,9 +94,14 @@ interface DisplayDevice {
   serial: string;
   label: string;
   is_online: boolean;
-  statusLabel: string;
   description: string;
-  details: Array<{ label: string; value: string; tone?: string }>;
+  details: Array<{ label: string; icon: ElementType; value: string; tone?: string }>;
+  /** Only set for the device matching the inverter gateway — communication-path info that has nowhere else to live. */
+  commsBanner?: { text: string; tone: "warn" | "info" };
+  dataSourceBadge?: { label: string; tone: "good" | "warn" };
+  /** The inverter gateway is the site's primary comms hub — gets the hero treatment (signal gauge, richer header). */
+  isPrimary: boolean;
+  signalPct: number | null;
 }
 
 interface DeviceSummary {
@@ -156,6 +164,10 @@ function runStateLabel(v: number | string | null): string {
   return DEYE_RUN_STATE[v] ?? `State ${v}`;
 }
 
+// Spring transition shared with the rest of the portal (Overview, Alerts) so card
+// entrances feel consistent across pages instead of this page's own plain tween.
+const SPRING = { type: "spring" as const, stiffness: 280, damping: 28 };
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
@@ -169,11 +181,16 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function signalBars(dbm: number): { count: number; color: string; label: string } {
-  if (dbm >= -60) return { count: 5, color: "#2FBF71", label: "Excellent" };
-  if (dbm >= -70) return { count: 4, color: "#2FBF71", label: "Good" };
-  if (dbm >= -80) return { count: 3, color: "#E9B949", label: "Fair" };
-  if (dbm >= -90) return { count: 2, color: "#E9B949", label: "Weak" };
+// Despite the `signal_strength_dbm` field name, firmware actually sends a 0–100
+// RSSI percentage (confirmed against the backend's own severity thresholds in
+// _build_heartbeat_health_payload: warn<=40, critical<=25 — a dBm scale would
+// never use positive thresholds like these). Bucketed on that scale, aligned
+// to the same warn/critical boundaries the backend already uses.
+function signalBars(pct: number): { count: number; color: string; label: string } {
+  if (pct >= 70) return { count: 5, color: "#2FBF71", label: "Excellent" };
+  if (pct >= 55) return { count: 4, color: "#2FBF71", label: "Good" };
+  if (pct >= 40) return { count: 3, color: "#E9B949", label: "Fair" };
+  if (pct >= 25) return { count: 2, color: "#E9B949", label: "Weak" };
   return { count: 1, color: "#F87171", label: "Poor" };
 }
 
@@ -197,6 +214,13 @@ function efficiencyColor(pct: number): string {
   return "#F87171";
 }
 
+function healthTone(pct: number | null): { label: string; color: string } {
+  if (pct == null) return { label: "No Data", color: "#6B7A99" };
+  if (pct >= 80) return { label: "Excellent", color: "#2FBF71" };
+  if (pct >= 60) return { label: "Fair", color: "#E9B949" };
+  return { label: "Needs Attention", color: "#F87171" };
+}
+
 function tempColor(c: number, warn = 65, critical = 75): string {
   if (c > critical) return "#F87171";
   if (c > warn) return "#E9B949";
@@ -204,77 +228,73 @@ function tempColor(c: number, warn = 65, critical = 75): string {
 }
 
 function fleetDeviceLabel(deviceType?: string): string {
-  if (deviceType === "energy_meter") return "Energy Meter IoT Gateway";
-  return "Inverter IoT Gateway";
+  if (deviceType === "energy_meter") return "Energy Meter Gateway";
+  return "Inverter Gateway";
 }
 
-function buildDisplayDevices(fleet: FleetDevice[], inverterLoggerSerial?: string | null): DisplayDevice[] {
-  const rows: DisplayDevice[] = fleet.map((device) => ({
-    key: `attached-${device.device_serial}`,
-    serial: device.device_serial,
-    label: fleetDeviceLabel(device.device_type),
-    is_online: device.is_online,
-    statusLabel: device.is_online ? "Online" : "Offline",
-    description: device.device_type === "energy_meter"
-      ? "ESP32 gateway for the energy meter"
-      : "ESP32 gateway for the inverter",
-    details: [
-      { label: "Last seen", value: timeAgo(device.last_heartbeat ?? "") },
-      { label: "Firmware", value: device.firmware_version || "—" },
-      { label: "Model", value: device.model || "ESP32" },
-      { label: "Link", value: device.connectivity_type || "—" },
-      { label: "Signal", value: device.signal_strength_dbm != null ? `${device.signal_strength_dbm} dBm` : "—" },
-      { label: "IP", value: device.network_ip || "—" },
-      { label: "Temp", value: device.device_temp_c != null ? `${device.device_temp_c.toFixed(1)}°C` : "—", tone: device.device_temp_c != null ? tempColor(device.device_temp_c) : undefined },
-    ],
-  }));
+// Builds one card per physical communication device, merging in the gateway-only
+// facts (data source, RS-485 staleness) that used to live in a separate,
+// duplicate "Gateway Status" card — each device now has exactly one card with
+// its full picture, instead of the same identity split across two places.
+function buildDisplayDevices(fleet: FleetDevice[], gateway: GatewayStatus): DisplayDevice[] {
+  return fleet.map((device) => {
+    const isGatewayDevice = device.device_serial === gateway.serial;
+    const details: DisplayDevice["details"] = [
+      { label: "Last seen", icon: Clock, value: timeAgo(device.last_heartbeat ?? "") },
+      { label: "Model", icon: Cpu, value: device.model || "ESP32" },
+      { label: "Firmware", icon: Zap, value: device.firmware_version || "—" },
+      { label: "Link", icon: Radio, value: device.connectivity_type || "—" },
+      { label: "Signal", icon: Wifi, value: device.signal_strength_dbm != null ? `${device.signal_strength_dbm}%` : "—" },
+      { label: "IP Address", icon: Globe, value: device.network_ip || "—" },
+      {
+        // Firmware currently reports exactly 0.0 for every device fleet-wide —
+        // an unimplemented sensor stub, not a real reading. Showing "0.0°C" as
+        // if it were live would be misleading, so treat 0 the same as no data
+        // until firmware actually wires up the chip-temp sensor.
+        label: "Chip Temp",
+        icon: Activity,
+        value: device.device_temp_c ? `${device.device_temp_c.toFixed(1)}°C` : "—",
+        tone: device.device_temp_c ? tempColor(device.device_temp_c) : undefined,
+      },
+    ];
 
-  if (inverterLoggerSerial && !rows.some((device) => device.serial === inverterLoggerSerial)) {
-    rows.push({
-      key: `logger-${inverterLoggerSerial}`,
-      serial: inverterLoggerSerial,
-      label: "Deye Logger",
-      is_online: true,
-      statusLabel: "Configured",
-      description: "Logger serial from the inverter model",
-      details: [
-        { label: "Source", value: "Inverter equipment" },
-        { label: "Telemetry", value: "Deye Logger fallback" },
-      ],
-    });
-  }
+    let commsBanner: DisplayDevice["commsBanner"];
+    let dataSourceBadge: DisplayDevice["dataSourceBadge"];
+    if (isGatewayDevice && gateway.data_source) {
+      // Backend reports exactly two values here: 'rs485' (live local read) or
+      // 'deye_cloud' (falling back to Deye's cloud API when RS-485 goes quiet).
+      // Previously mislabeled "Deye Logger" here, which is actually the name of
+      // a different physical WiFi-stick accessory listed under Equipment below —
+      // conflating the two made it unclear what data path was actually live.
+      dataSourceBadge = gateway.data_source === "rs485"
+        ? { label: "RS-485 (live)", tone: "good" }
+        : { label: "Deye Cloud (fallback)", tone: "warn" };
+      if (gateway.rs485_stale) {
+        commsBanner = {
+          tone: "warn",
+          text: `RS-485 link inactive since ${gateway.rs485_last_seen ? timeAgo(gateway.rs485_last_seen) : "unknown"} — readings are coming from Deye's cloud API instead. The gateway itself is still online.`,
+        };
+      }
+    }
 
-  return rows;
+    return {
+      key: `attached-${device.device_serial}`,
+      serial: device.device_serial,
+      label: fleetDeviceLabel(device.device_type),
+      is_online: device.is_online,
+      description: device.device_type === "energy_meter"
+        ? "ESP32 gateway reading the energy meter"
+        : "ESP32 gateway reading the inverter",
+      details,
+      commsBanner,
+      dataSourceBadge,
+      isPrimary: isGatewayDevice,
+      signalPct: device.signal_strength_dbm ?? null,
+    };
+  });
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
-function SignalBarVisual({ dbm, showLabel }: { dbm: number | null; showLabel?: boolean }) {
-  if (dbm == null) {
-    return <span style={{ color: "#6B7A99", fontSize: 12 }}>No signal data</span>;
-  }
-  const { count, color, label } = signalBars(dbm);
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="inline-flex items-end gap-[2px]">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <span
-            key={i}
-            style={{
-              width: 4,
-              height: 4 + i * 3,
-              borderRadius: 1,
-              backgroundColor: i <= count ? color : "rgba(255,255,255,0.12)",
-              display: "block",
-            }}
-          />
-        ))}
-      </span>
-      <span style={{ color, fontSize: 12 }}>{dbm} dBm</span>
-      {showLabel && <span style={{ color: "#6B7A99", fontSize: 12 }}>{label}</span>}
-    </span>
-  );
-}
 
 function SocArc({ pct }: { pct: number }) {
   const color = pct > 50 ? "#2FBF71" : pct > 20 ? "#E9B949" : "#F87171";
@@ -303,6 +323,61 @@ function SocArc({ pct }: { pct: number }) {
       </span>
       <span style={{ color, fontWeight: 600, fontSize: 14 }}>{pct}%</span>
     </span>
+  );
+}
+
+// Point on a circle at `deg` (0 = 12 o'clock), used to build the 270° gauge arc.
+function arcPoint(deg: number, cx: number, cy: number, r: number) {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+// Instrument-style gauge — a 270° arc (gap at the bottom) with a soft glow
+// filter and gradient stroke, in the same construction as the staff app's
+// "Solar Observatory" hardware-health panel (EnergyFlowHealthRow.tsx), just
+// re-skinned into Solar Noir's palette so the two apps read as one system
+// instead of two different component libraries for the same concept.
+function MiniArc({
+  pct, color, size = 76, strokeWidth = 7,
+}: { pct: number; color: string; size?: number; strokeWidth?: number }) {
+  const cx = size / 2, cy = size / 2, r = cx - strokeWidth / 2 - 2;
+  const start = arcPoint(225, cx, cy, r), end = arcPoint(135, cx, cy, r);
+  const path = `M ${start.x} ${start.y} A ${r} ${r} 0 1 1 ${end.x} ${end.y}`;
+  const uid = useId().replace(/:/g, "");
+  const clamped = Math.min(100, Math.max(0, pct)) / 100;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: "visible", display: "block" }}>
+      <defs>
+        <filter id={`${uid}-glow`} x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="3" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <path d={path} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <motion.path
+        d={path} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
+        pathLength={1}
+        initial={{ strokeDashoffset: 1 }}
+        animate={{ strokeDashoffset: 1 - clamped }}
+        transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
+        style={{ strokeDasharray: "1 1", filter: `url(#${uid}-glow)` }}
+      />
+    </svg>
+  );
+}
+
+// Small pulsing dot — live/online indicator, matching the staff panel's PulseDot.
+function PulseDot({ color }: { color: string }) {
+  return (
+    <div className="relative w-2 h-2">
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{ background: color, opacity: 0.4 }}
+        animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="absolute inset-[1px] rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+    </div>
   );
 }
 
@@ -357,8 +432,7 @@ export default function DevicePage() {
   const equipment = data?.equipment ?? EMPTY_EQUIPMENT;
   const health = data?.health ?? EMPTY_HEALTH;
   const fleet = data?.fleet ?? [];
-  const inverterLoggerSerial = equipment.inverters.find((inv) => inv.logger_serial)?.logger_serial;
-  const displayDevices = buildDisplayDevices(fleet, inverterLoggerSerial);
+  const displayDevices = buildDisplayDevices(fleet, gateway);
   const displayOfflineCount = displayDevices.filter((d) => !d.is_online).length;
 
   const faultCodes = [
@@ -369,6 +443,8 @@ export default function DevicePage() {
     telemetry.fault_code_5,
   ].filter((f): f is string => !!f && f !== "0");
 
+  const solarOutputKw = ((telemetry.pv1_power_w || 0) + (telemetry.pv2_power_w || 0)) / 1000;
+
   return (
     <div className="space-y-5 pb-8">
       <motion.h1
@@ -376,20 +452,20 @@ export default function DevicePage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-3xl font-bold text-foreground font-display mb-6"
       >
-        Device
+        Devices
       </motion.h1>
 
       {noSite && (
         <GlassCard>
-          <p className="text-sm text-amber-300">No site linked to your account.</p>
+          <p className="text-base text-amber-300">No site linked to your account.</p>
         </GlassCard>
       )}
 
       {error && (
         <GlassCard>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-red-300">{error}</p>
-            <button onClick={refresh} className="text-xs text-muted-foreground underline underline-offset-2">
+            <p className="text-base text-red-300">{error}</p>
+            <button onClick={refresh} className="text-sm text-muted-foreground underline underline-offset-2">
               Retry
             </button>
           </div>
@@ -397,313 +473,379 @@ export default function DevicePage() {
       )}
 
       {loading && (
-        <GlassCard>
-          <p className="text-sm text-muted-foreground">Loading device summary…</p>
-        </GlassCard>
+        <div className="space-y-5">
+          <SkeletonPulse className="h-40 w-full rounded-2xl" />
+          <SkeletonPulse className="h-32 w-full rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => <SkeletonPulse key={i} className="h-32 rounded-2xl" />)}
+          </div>
+        </div>
       )}
 
-      {/* Endpoint status strip — device-table ESP32 gateways plus inverter logger metadata. */}
-      {displayDevices.length > 1 && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassCard className={displayOfflineCount > 0 ? "border-red-500/30" : "border-white/10"}>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Device Map</p>
-                <h2 className="text-lg font-semibold text-foreground mt-1">Site communication endpoints</h2>
+      {!loading && (
+        <>
+          {/* 1. Device fleet — one card per physical communication device. Each
+              card is now the single source of truth for that device (identity,
+              connectivity, and — for the inverter gateway — its data path) so
+              nothing is split across a second "status" card anymore. */}
+          {displayDevices.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-sm text-white/60 uppercase tracking-widest font-medium">
+                  {displayDevices.length} device{displayDevices.length !== 1 ? "s" : ""} on this site
+                </p>
+                {displayDevices.length > 1 && (
+                  <span className={`text-sm font-semibold ${displayOfflineCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    {displayOfflineCount > 0 ? `${displayOfflineCount} offline` : "All online"}
+                  </span>
+                )}
               </div>
-              <span className={`text-xs font-semibold ${displayOfflineCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                {displayOfflineCount > 0 ? `${displayOfflineCount} offline` : "Gateways online"}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              {displayDevices.map((d) => (
-                <div
-                  key={d.key}
-                  className="rounded-xl border p-3 flex flex-col gap-3"
-                  style={
-                    d.is_online
-                      ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
-                      : { background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: "#f87171" }
+              <div className={`grid grid-cols-1 ${displayDevices.length > 1 ? "lg:grid-cols-2" : ""} gap-4`}>
+                {displayDevices.map((d, i) => (
+                  <motion.div
+                    key={d.key}
+                    className="h-full"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...SPRING, delay: i * 0.06 }}
+                  >
+                    <GlassCard
+                      glow={d.is_online ? "green" : undefined}
+                      className={`h-full flex flex-col relative overflow-hidden ${!d.is_online ? "border-red-500/30" : d.isPrimary ? "border-emerald-500/25" : ""}`}
+                    >
+                      {/* Primary (gateway) card gets a subtle ambient glow wash — visually the hero device on this page */}
+                      {d.isPrimary && d.is_online && (
+                        <div
+                          className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full"
+                          style={{ background: "radial-gradient(circle, rgba(47,191,113,0.14) 0%, transparent 70%)" }}
+                        />
+                      )}
+
+                      <div className="flex items-start justify-between gap-3 mb-3 relative">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative flex-shrink-0">
+                            {d.isPrimary && d.is_online && (
+                              <motion.div
+                                className="absolute inset-0 rounded-xl"
+                                style={{ background: "rgba(47,191,113,0.35)" }}
+                                animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
+                                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                              />
+                            )}
+                            <div
+                              style={{ background: d.is_online ? "rgba(47,191,113,0.15)" : "rgba(239,68,68,0.12)" }}
+                              className={`relative rounded-xl flex items-center justify-center ${d.isPrimary ? "w-14 h-14" : "w-11 h-11"}`}
+                            >
+                              <Cpu size={d.isPrimary ? 26 : 20} style={{ color: d.is_online ? "#2FBF71" : "#F87171" }} />
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              {d.isPrimary && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                  style={{ background: "rgba(47,191,113,0.15)", color: "#2FBF71" }}>
+                                  Primary
+                                </span>
+                              )}
+                              <h3 className={`font-semibold text-foreground truncate ${d.isPrimary ? "text-lg" : ""}`}>{d.label}</h3>
+                            </div>
+                            <p className="text-sm text-muted-foreground font-mono truncate">{d.serial}</p>
+                          </div>
+                        </div>
+                        <StatusPill status={d.is_online ? "active" : "error"} label={d.is_online ? "Online" : "Offline"} />
+                      </div>
+
+                      <p className="text-sm text-white/50 mb-3 relative">{d.description}</p>
+
+                      {/* Hero row for the gateway: signal gauge + data-source path side by side.
+                          Same instrument-tile construction (accent bar, ambient glow, pulse dot,
+                          270° arc) as the Hardware Health tiles below, so the gateway's signal
+                          reads as part of the same instrument system rather than a one-off. */}
+                      {d.isPrimary && d.signalPct != null ? (() => {
+                        const sig = signalBars(d.signalPct);
+                        return (
+                          <div className="relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
+                            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${sig.color}cc, ${sig.color}33)` }} />
+                            <div
+                              className="pointer-events-none absolute -top-4 left-6 w-20 h-10 rounded-full opacity-40"
+                              style={{ background: sig.color, filter: "blur(20px)" }}
+                            />
+                            <div className="absolute top-2.5 right-2.5"><PulseDot color={sig.color} /></div>
+                            <div className="flex items-center gap-4 p-3.5 relative">
+                              <div className="relative w-16 h-16 flex-shrink-0">
+                                <MiniArc pct={d.signalPct} color={sig.color} size={64} strokeWidth={6} />
+                                <div className="absolute inset-0 flex items-center justify-center pb-1.5">
+                                  <span
+                                    className="text-sm font-bold"
+                                    style={{ color: sig.color, fontFamily: "var(--font-jetbrains-mono), monospace" }}
+                                  >
+                                    {d.signalPct}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-white/80">
+                                  Signal — {sig.label}
+                                </p>
+                                {d.dataSourceBadge && (
+                                  <span
+                                    className="inline-block mt-1.5 text-sm font-mono px-2 py-0.5 rounded-full"
+                                    style={
+                                      d.dataSourceBadge.tone === "good"
+                                        ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
+                                        : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
+                                    }
+                                  >
+                                    Data via: {d.dataSourceBadge.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })() : d.dataSourceBadge ? (
+                        <div className="mb-3 relative">
+                          <span
+                            className="text-sm font-mono px-2 py-0.5 rounded-full"
+                            style={
+                              d.dataSourceBadge.tone === "good"
+                                ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
+                                : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
+                            }
+                          >
+                            Data via: {d.dataSourceBadge.label}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-3 relative">
+                        {d.details.map((detail) => (
+                          <div key={`${d.key}-${detail.label}`} className="min-w-0 flex items-start gap-2">
+                            <detail.icon size={13} className="text-white/25 flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-xs uppercase tracking-wider text-white/35">{detail.label}</p>
+                              <p
+                                className="mt-0.5 truncate text-sm font-semibold text-white/75"
+                                style={detail.tone ? { color: detail.tone } : undefined}
+                              >
+                                {detail.value}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {d.commsBanner && (
+                        <div className="mt-auto pt-3 relative">
+                          <div
+                            className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
+                            style={{ background: "rgba(233,185,73,0.08)", border: "1px solid rgba(233,185,73,0.2)", color: "#E9B949" }}
+                          >
+                            <AlertTriangle size={13} className="flex-shrink-0" />
+                            <span>{d.commsBanner.text}</span>
+                          </div>
+                        </div>
+                      )}
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* 2. Live Inverter Snapshot */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.1 }}>
+            <GlassCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Live Status</h3>
+                <span className="text-sm text-muted-foreground">Updated {timeAgo(telemetry.timestamp)}</span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {/* Run State */}
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                  <p className="text-sm text-muted-foreground mb-1">Run State</p>
+                  <p className="text-base font-semibold text-foreground">{runStateLabel(telemetry.run_state)}</p>
+                </div>
+                {/* Solar Output */}
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                  <p className="text-sm text-muted-foreground mb-1">Solar Output</p>
+                  <p className="text-base font-semibold text-foreground">
+                    <AnimatedNumber value={solarOutputKw} decimals={2} /> kW
+                  </p>
+                </div>
+                {/* Inverter Temp */}
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                  <p className="text-sm text-muted-foreground mb-1">Inverter Temp</p>
+                  <p className="text-base font-semibold" style={{ color: tempColor(telemetry.inverter_temp_c) }}>
+                    <AnimatedNumber value={telemetry.inverter_temp_c} decimals={1} />°C
+                  </p>
+                </div>
+                {/* Battery SOC */}
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                  <p className="text-sm text-muted-foreground mb-1">Battery SOC</p>
+                  {telemetry.battery_soc_percent != null
+                    ? <SocArc pct={telemetry.battery_soc_percent} />
+                    : <p className="text-base font-semibold text-muted-foreground mt-1">—</p>
                   }
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {d.is_online ? <Wifi size={14} /> : <WifiOff size={14} />}
-                      <span className="font-semibold text-sm text-foreground truncate">{d.label}</span>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{d.statusLabel}</span>
+                </div>
+              </div>
+
+              {faultCodes.length > 0 && (
+                <div className="flex flex-wrap gap-2 border-t border-white/5 pt-3">
+                  <span className="flex items-center gap-1.5 text-sm text-red-400">
+                    <AlertTriangle size={13} />
+                    Fault Codes:
+                  </span>
+                  {faultCodes.map((fc, i) => (
+                    <span
+                      key={i}
+                      style={{ background: "rgba(248,113,113,0.12)", color: "#F87171", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontFamily: "monospace" }}
+                    >
+                      {fc}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          </motion.div>
+
+          {/* 3. Equipment Cards */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.15 }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Inverters */}
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap size={16} style={{ color: "#2FBF71" }} />
+                  <h4 className="text-base font-semibold text-foreground">Inverter</h4>
+                </div>
+                {equipment.inverters.length === 0 ? (
+                  <p className="text-sm text-white/40">No inverter on record.</p>
+                ) : equipment.inverters.map((inv, i) => (
+                  <div key={i} className="space-y-1.5 text-base">
+                    <p className="font-bold text-foreground">{inv.brand} {inv.model}</p>
+                    <p className="text-muted-foreground">{inv.capacity_kva} kVA</p>
+                    {inv.logger_serial && (
+                      <p className="text-muted-foreground">
+                        WiFi logger stick <span className="font-mono text-white/70">{inv.logger_serial}</span>
+                      </p>
+                    )}
+                    <p className="text-muted-foreground">Installed {inv.installed_date}</p>
+                    <p style={{ color: warrantyColor(inv.warranty_expiry), fontSize: 12 }}>
+                      Warranty expires {warrantyYear(inv.warranty_expiry)}
+                    </p>
                   </div>
-                  <p className="mt-2 text-xs text-white/50">{d.description}</p>
-                  <p className="font-mono text-xs text-white/70 break-all">{d.serial}</p>
-                  <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
-                    {d.details.map((detail) => (
-                      <div key={`${d.key}-${detail.label}`} className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-wider text-white/35">{detail.label}</p>
-                        <p className="mt-0.5 truncate text-xs font-semibold text-white/75" style={detail.tone ? { color: detail.tone } : undefined}>
-                          {detail.value}
+                ))}
+              </GlassCard>
+
+              {/* Batteries */}
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Battery size={16} style={{ color: "#2FBF71" }} />
+                  <h4 className="text-base font-semibold text-foreground">Battery</h4>
+                </div>
+                {equipment.batteries.length === 0 ? (
+                  <p className="text-sm text-white/40">No battery installed — grid-tied system.</p>
+                ) : equipment.batteries.map((bat, i) => (
+                  <div key={i} className="space-y-1.5 text-base">
+                    <p className="font-bold text-foreground">{bat.brand} {bat.model}</p>
+                    <p className="text-muted-foreground">{bat.capacity_kwh} kWh</p>
+                    <p className="text-muted-foreground">Installed {bat.installed_date}</p>
+                    <p style={{ color: warrantyColor(bat.warranty_expiry), fontSize: 12 }}>
+                      Warranty expires {warrantyYear(bat.warranty_expiry)}
+                    </p>
+                  </div>
+                ))}
+              </GlassCard>
+
+              {/* Panels — group identical make/model to avoid repeating 8× the same row */}
+              <GlassCard>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sun size={16} style={{ color: "#2FBF71" }} />
+                  <h4 className="text-base font-semibold text-foreground">Solar Panels</h4>
+                </div>
+                {equipment.panels.length === 0 ? (
+                  <p className="text-sm text-white/40">No panels on record.</p>
+                ) : (() => {
+                  // Group by brand+model key, sum count
+                  const groups = new Map<string, { panel: typeof equipment.panels[0]; count: number }>();
+                  for (const p of equipment.panels) {
+                    const key = `${p.brand}|${p.model}|${p.capacity_wp}`;
+                    const existing = groups.get(key);
+                    if (existing) existing.count++;
+                    else groups.set(key, { panel: p, count: 1 });
+                  }
+                  return Array.from(groups.values()).map(({ panel, count }, i) => (
+                    <div key={i} className="space-y-1.5 text-base">
+                      <p className="font-bold text-foreground">
+                        {count > 1 && <span className="text-emerald-400 mr-1">{count}×</span>}
+                        {panel.brand} {panel.model}
+                      </p>
+                      <p className="text-muted-foreground">{panel.capacity_wp}W · {panel.technology}</p>
+                      <p className="text-muted-foreground">Installed {panel.installed_date}</p>
+                      <p style={{ color: warrantyColor(panel.warranty_expiry), fontSize: 12 }}>
+                        Warranty expires {warrantyYear(panel.warranty_expiry)}
+                      </p>
+                    </div>
+                  ));
+                })()}
+              </GlassCard>
+            </div>
+          </motion.div>
+
+          {/* 4. Hardware Health summary strip — the full per-component breakdown
+              (gauges, live metrics, alerts, maintenance tips) now lives on the
+              360Care page, which computes it from the same backend score. This
+              strip answers "is everything OK?" at a glance and links out to the
+              full report instead of duplicating it here. */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.2 }}>
+            <GlassCard>
+              {(() => {
+                const metrics = [health.solar_efficiency_pct, health.inverter_efficiency_pct, health.battery_efficiency_pct];
+                const available = metrics.filter((m): m is number => m != null);
+                const overallPct = available.length > 0
+                  ? Math.round(available.reduce((s, v) => s + v, 0) / available.length)
+                  : null;
+                const overallTone = healthTone(overallPct);
+                const color = overallPct != null ? efficiencyColor(overallPct) : "#6B7A99";
+
+                return (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `${color}18`, border: `1px solid ${color}35` }}
+                      >
+                        <Activity size={18} style={{ color }} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-base text-foreground">Hardware Health</h3>
+                        <p className="text-sm text-white/40 truncate">
+                          {overallPct != null ? `${overallPct}% overall` : "No data"} &bull; Solar, inverter &amp; battery
                         </p>
                       </div>
-                    ))}
+                      {overallPct != null && (
+                        <span
+                          className="ml-auto sm:ml-0 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                          style={{ background: `${overallTone.color}26`, color: overallTone.color }}
+                        >
+                          {overallTone.label}
+                        </span>
+                      )}
+                    </div>
+                    <a
+                      href="/care/health"
+                      className="shrink-0 flex items-center justify-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 border border-emerald-500/25 hover:border-emerald-500/40 rounded-lg px-4 py-2 transition-colors whitespace-nowrap"
+                    >
+                      View Full Health Report
+                    </a>
                   </div>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        </motion.div>
+                );
+              })()}
+            </GlassCard>
+          </motion.div>
+        </>
       )}
-
-      {/* 1. Gateway Status Card */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <GlassCard glow={gateway.is_online ? "green" : undefined}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div
-                style={{ background: "rgba(47,191,113,0.15)" }}
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
-              >
-                <Cpu size={22} style={{ color: "#2FBF71" }} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Inverter IoT Gateway</h3>
-                <p className="text-sm text-muted-foreground font-mono">{gateway.serial}</p>
-              </div>
-            </div>
-            <StatusPill status={gateway.is_online ? "active" : "error"} label={gateway.is_online ? "Online" : "Offline"} />
-          </div>
-
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground border-t border-white/5 pt-3 mt-2">
-            <span>
-              <span className="text-white/40 mr-1">Last seen:</span>
-              {timeAgo(gateway.last_heartbeat)}
-            </span>
-            <span>
-              <span className="text-white/40 mr-1">Signal:</span>
-              <SignalBarVisual dbm={health.signal_strength_dbm} />
-            </span>
-            {equipment.inverters[0] && (
-              <span>
-                <span className="text-white/40 mr-1">Firmware:</span>
-                <span className="font-mono text-xs">{equipment.inverters[0].firmware_version}</span>
-              </span>
-            )}
-            {/* Data source indicator */}
-            {gateway.data_source && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-white/40 mr-1">Data via:</span>
-                <span
-                  className="text-xs font-mono px-2 py-0.5 rounded-full"
-                  style={
-                    gateway.data_source === "rs485"
-                      ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
-                      : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
-                  }
-                >
-                  {gateway.data_source === "rs485" ? "RS-485" : "Deye Logger"}
-                </span>
-              </span>
-            )}
-          </div>
-
-          {/* RS-485 stale warning */}
-          {gateway.rs485_stale && (
-            <div className="mt-3 flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
-              style={{ background: "rgba(233,185,73,0.08)", border: "1px solid rgba(233,185,73,0.2)", color: "#E9B949" }}>
-              <span>⚠</span>
-              <span>
-                RS-485 link inactive since {gateway.rs485_last_seen ? timeAgo(gateway.rs485_last_seen) : "unknown"}.
-                Showing values from the Deye Logger WiFi stick. Gateway is online.
-              </span>
-            </div>
-          )}
-        </GlassCard>
-      </motion.div>
-
-      {/* 2. Live Inverter Snapshot */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <GlassCard>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Live Status</h3>
-            <span className="text-xs text-muted-foreground">Updated {timeAgo(telemetry.timestamp)}</span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            {/* Run State */}
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Run State</p>
-              <p className="text-sm font-semibold text-foreground">{runStateLabel(telemetry.run_state)}</p>
-            </div>
-            {/* Solar Output */}
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Solar Output</p>
-              <p className="text-sm font-semibold text-foreground">
-                {(((telemetry.pv1_power_w || 0) + (telemetry.pv2_power_w || 0)) / 1000).toFixed(2)} kW
-              </p>
-            </div>
-            {/* Inverter Temp */}
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Inverter Temp</p>
-              <p
-                className="text-sm font-semibold"
-                style={{ color: tempColor(telemetry.inverter_temp_c) }}
-              >
-                {telemetry.inverter_temp_c}°C
-              </p>
-            </div>
-            {/* Battery SOC */}
-            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Battery SOC</p>
-              {telemetry.battery_soc_percent != null
-                ? <SocArc pct={telemetry.battery_soc_percent} />
-                : <p className="text-sm font-semibold text-muted-foreground mt-1">—</p>
-              }
-            </div>
-          </div>
-
-          {faultCodes.length > 0 && (
-            <div className="flex flex-wrap gap-2 border-t border-white/5 pt-3">
-              <span className="flex items-center gap-1.5 text-xs text-red-400">
-                <AlertTriangle size={13} />
-                Fault Codes:
-              </span>
-              {faultCodes.map((fc, i) => (
-                <span
-                  key={i}
-                  style={{ background: "rgba(248,113,113,0.12)", color: "#F87171", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontFamily: "monospace" }}
-                >
-                  {fc}
-                </span>
-              ))}
-            </div>
-          )}
-        </GlassCard>
-      </motion.div>
-
-      {/* 3. Equipment Cards */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Inverters */}
-          <GlassCard>
-            <div className="flex items-center gap-2 mb-3">
-              <Zap size={16} style={{ color: "#2FBF71" }} />
-              <h4 className="text-sm font-semibold text-foreground">Inverter</h4>
-            </div>
-            {equipment.inverters.map((inv, i) => (
-              <div key={i} className="space-y-1.5 text-sm">
-                <p className="font-bold text-foreground">{inv.brand} {inv.model}</p>
-                <p className="text-muted-foreground">{inv.capacity_kva} kVA</p>
-                {inv.logger_serial && (
-                  <p className="text-muted-foreground">
-                    Deye Logger <span className="font-mono text-white/70">{inv.logger_serial}</span>
-                  </p>
-                )}
-                <p className="text-muted-foreground">Installed {inv.installed_date}</p>
-                <p style={{ color: warrantyColor(inv.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {warrantyYear(inv.warranty_expiry)}
-                </p>
-              </div>
-            ))}
-          </GlassCard>
-
-          {/* Batteries */}
-          <GlassCard>
-            <div className="flex items-center gap-2 mb-3">
-              <Battery size={16} style={{ color: "#2FBF71" }} />
-              <h4 className="text-sm font-semibold text-foreground">Battery</h4>
-            </div>
-            {equipment.batteries.map((bat, i) => (
-              <div key={i} className="space-y-1.5 text-sm">
-                <p className="font-bold text-foreground">{bat.brand} {bat.model}</p>
-                <p className="text-muted-foreground">{bat.capacity_kwh} kWh</p>
-                <p className="text-muted-foreground">Installed {bat.installed_date}</p>
-                <p style={{ color: warrantyColor(bat.warranty_expiry), fontSize: 12 }}>
-                  Warranty expires {warrantyYear(bat.warranty_expiry)}
-                </p>
-              </div>
-            ))}
-          </GlassCard>
-
-          {/* Panels — group identical make/model to avoid repeating 8× the same row */}
-          <GlassCard>
-            <div className="flex items-center gap-2 mb-3">
-              <Sun size={16} style={{ color: "#2FBF71" }} />
-              <h4 className="text-sm font-semibold text-foreground">Solar Panels</h4>
-            </div>
-            {(() => {
-              // Group by brand+model key, sum count
-              const groups = new Map<string, { panel: typeof equipment.panels[0]; count: number }>();
-              for (const p of equipment.panels) {
-                const key = `${p.brand}|${p.model}|${p.capacity_wp}`;
-                const existing = groups.get(key);
-                if (existing) existing.count++;
-                else groups.set(key, { panel: p, count: 1 });
-              }
-              return Array.from(groups.values()).map(({ panel, count }, i) => (
-                <div key={i} className="space-y-1.5 text-sm">
-                  <p className="font-bold text-foreground">
-                    {count > 1 && <span className="text-emerald-400 mr-1">{count}×</span>}
-                    {panel.brand} {panel.model}
-                  </p>
-                  <p className="text-muted-foreground">{panel.capacity_wp}W · {panel.technology}</p>
-                  <p className="text-muted-foreground">Installed {panel.installed_date}</p>
-                  <p style={{ color: warrantyColor(panel.warranty_expiry), fontSize: 12 }}>
-                    Warranty expires {warrantyYear(panel.warranty_expiry)}
-                  </p>
-                </div>
-              ));
-            })()}
-          </GlassCard>
-        </div>
-      </motion.div>
-
-      {/* 4. Hardware Health */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-4">
-            <Wifi size={16} style={{ color: "#2FBF71" }} />
-            <h3 className="font-semibold text-foreground">Hardware Health</h3>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              { label: "Solar", icon: <Sun size={15} />, pct: health.solar_efficiency_pct },
-              { label: "Inverter", icon: <Zap size={15} />, pct: health.inverter_efficiency_pct },
-              { label: "Battery", icon: <Battery size={15} />, pct: health.battery_efficiency_pct },
-            ].map(({ label, icon, pct }) => {
-              const hasData = pct != null;
-              const color = hasData ? efficiencyColor(pct!) : "#6B7A99";
-              return (
-                <div key={label} className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 w-24 text-muted-foreground text-sm">
-                    <span style={{ color }}>{icon}</span>
-                    <span>{label}</span>
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      height: 8,
-                      borderRadius: 4,
-                      background: "rgba(255,255,255,0.07)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {hasData && (
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        style={{ height: "100%", borderRadius: 4, background: color }}
-                      />
-                    )}
-                  </div>
-                  <span style={{ color, fontSize: 13, fontWeight: 600, width: 38, textAlign: "right" }}>
-                    {hasData ? `${pct}%` : "—"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </GlassCard>
-      </motion.div>
     </div>
   );
 }

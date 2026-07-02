@@ -52,13 +52,13 @@ export default function LoginForm() {
           <h1 className="text-2xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
             Welcome back
           </h1>
-          <p className="text-muted-foreground text-sm mb-8">
+          <p className="text-muted-foreground text-base mb-8">
             Sign in to your solar dashboard
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+              <label className="block text-sm text-muted-foreground mb-2 uppercase tracking-wider">
                 Email
               </label>
               <div className="relative">
@@ -69,13 +69,13 @@ export default function LoginForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+              <label className="block text-sm text-muted-foreground mb-2 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
@@ -86,13 +86,13 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+              <div className="text-base bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
                 <div className="flex items-center gap-2 text-red-400">
                   <AlertCircle size={16} className="shrink-0" />
                   {error}
@@ -100,7 +100,7 @@ export default function LoginForm() {
                 {employeeAppUrl && (
                   <a
                     href={employeeAppUrl}
-                    className="inline-flex items-center gap-1.5 mt-2 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                    className="inline-flex items-center gap-1.5 mt-2 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
                   >
                     Go to the staff app
                     <ExternalLink size={11} />
@@ -119,7 +119,7 @@ export default function LoginForm() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             Need help?{" "}
             <a href="mailto:support@360watts.com" className="text-primary hover:underline">
               Contact support
@@ -127,7 +127,7 @@ export default function LoginForm() {
           </p>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-sm text-muted-foreground mt-6">
           © 2026 360Watts Energy Pvt Ltd
         </p>
       </motion.div>

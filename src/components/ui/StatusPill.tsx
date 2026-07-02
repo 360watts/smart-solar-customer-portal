@@ -32,7 +32,7 @@ export default function StatusPill({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-medium",
+        "inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium",
         colors[status]
       )}
     >

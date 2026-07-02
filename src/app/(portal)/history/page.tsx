@@ -69,7 +69,7 @@ function SelfUsePill({ pct }: { pct: number }) {
     pct >= 70 ? COLORS.primary : pct >= 50 ? COLORS.amber : COLORS.muted;
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+      className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium"
       style={{
         backgroundColor: `${color}20`,
         color,
@@ -165,11 +165,11 @@ export default function HistoryPage() {
           >
             History
           </h1>
-          <p className="text-muted-foreground text-sm">12-month energy &amp; savings overview</p>
+          <p className="text-muted-foreground text-base">12-month energy &amp; savings overview</p>
         </div>
         <button
           onClick={() => exportCSV(safeRows)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/10"
+          className="flex items-center gap-2 text-base text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-primary/10"
         >
           <Download size={16} />
           Export CSV
@@ -178,7 +178,7 @@ export default function HistoryPage() {
 
       {error && (
         <GlassCard>
-          <p className="text-sm text-red-300">{error}</p>
+          <p className="text-base text-red-300">{error}</p>
         </GlassCard>
       )}
 
@@ -235,7 +235,7 @@ export default function HistoryPage() {
               <button
                 key={v}
                 onClick={() => setChartView(v)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${
+                className={`px-3 py-1 rounded-lg text-sm font-medium capitalize transition-colors ${
                   chartView === v
                     ? "bg-primary/20 text-primary"
                     : "text-muted-foreground hover:bg-white/5"
@@ -262,7 +262,7 @@ export default function HistoryPage() {
           Monthly Breakdown
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
               <tr className="border-b border-border">
                 {[
@@ -276,7 +276,7 @@ export default function HistoryPage() {
                 ].map((h) => (
                   <th
                     key={h}
-                    className="text-left text-xs text-muted-foreground font-medium pb-3 pr-4 last:pr-0"
+                    className="text-left text-sm text-muted-foreground font-medium pb-3 pr-4 last:pr-0"
                   >
                     {h}
                   </th>

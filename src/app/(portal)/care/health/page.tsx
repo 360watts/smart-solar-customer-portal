@@ -1,0 +1,158 @@
+"use client";
+
+import { ArrowLeft, RadioTower } from "lucide-react";
+import { useRouter } from "next/navigation";
+import GlassCard from "@/components/ui/GlassCard";
+import SkeletonPulse from "@/components/ui/SkeletonPulse";
+import { MiniArc, PulseDot, COMPONENT_META, healthStatusColor } from "@/components/care/InstrumentGauge";
+import { useSystemHealth } from "@/lib/care/useSystemHealth";
+import { statusLabel, type ComponentHealth } from "@/lib/care/types";
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_META; data: ComponentHealth }) {
+  const meta = COMPONENT_META[compKey];
+  const Icon = meta.icon;
+  const sc = healthStatusColor(data.status);
+
+  return (
+    <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
+      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${meta.color}cc, ${meta.color}33)` }} />
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}30` }}
+            >
+              <Icon size={15} style={{ color: meta.color }} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50 truncate">{meta.label}</p>
+              <p className="text-white/40 text-xs mt-0.5 truncate">{data.age}</p>
+            </div>
+          </div>
+          <PulseDot color={sc} />
+        </div>
+
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
+            <MiniArc score={data.health_score} color={meta.color} size={72} />
+            <div className="absolute inset-0 flex items-center justify-center pb-1">
+              <span className="font-mono text-base font-bold" style={{ color: meta.color }}>
+                {data.health_score}
+              </span>
+            </div>
+          </div>
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 rounded-full whitespace-nowrap"
+            style={{ background: `${sc}14`, border: `1px solid ${sc}30`, color: sc }}
+          >
+            {statusLabel(data.status)}
+          </span>
+        </div>
+
+        <ul className="space-y-1 text-sm text-white/70 mt-4">
+          {data.specs.map((spec) => (
+            <li key={spec} className="truncate">{spec}</li>
+          ))}
+        </ul>
+
+        <div className="h-px bg-white/8 my-4" />
+
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35 mb-2">Live Metrics (7d)</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          {Object.entries(data.details).map(([key, value]) => (
+            <div key={key} className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-white/40 truncate">{key}</p>
+              <p className="font-mono text-xs font-semibold text-white/80 truncate">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {data.alert && (
+          <p className="mt-4 text-sm text-amber-400 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2">
+            {data.alert}
+          </p>
+        )}
+        {data.warranty && (
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-white/35">
+            Warranty: {data.warranty}
+          </p>
+        )}
+      </div>
+    </GlassCard>
+  );
+}
+
+export default function SystemHealthDetailsPage() {
+  const router = useRouter();
+  const { data: health, loading } = useSystemHealth();
+
+  return (
+    <div className="space-y-6">
+      <button
+        onClick={() => router.push("/care")}
+        className="flex items-center gap-2 text-white/60 hover:text-white/90 text-sm"
+      >
+        <ArrowLeft size={16} /> Back to 360Care
+      </button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+          System Health Details
+        </h1>
+        {health && (
+          <span className="flex items-center gap-1 font-mono text-[10px] text-white/35 whitespace-nowrap">
+            <RadioTower size={11} /> Synced {timeAgo(health.last_updated)}
+          </span>
+        )}
+      </div>
+
+      {loading || !health ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <SkeletonPulse className="h-64" />
+          <SkeletonPulse className="h-64" />
+          <SkeletonPulse className="h-64" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <InstrumentCard compKey="solar_panel" data={health.solar_panel} />
+            <InstrumentCard compKey="inverter" data={health.inverter} />
+            <InstrumentCard compKey="battery" data={health.battery} />
+          </div>
+
+          <GlassCard>
+            <h3 className="text-white font-semibold text-base mb-4" style={{ fontFamily: "var(--font-display)" }}>
+              Installation Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">System Size</p>
+                <p className="text-white text-base font-semibold mt-1">{health.installation.system_size}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Installed On</p>
+                <p className="text-white text-base font-semibold mt-1">{health.installation.installed_date}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Installer</p>
+                <p className="text-white text-base font-semibold mt-1">{health.installation.installer_name}</p>
+              </div>
+            </div>
+          </GlassCard>
+        </>
+      )}
+    </div>
+  );
+}

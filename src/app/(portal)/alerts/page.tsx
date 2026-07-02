@@ -165,7 +165,7 @@ export default function AlertsPage() {
   const offlineSerials = new Set(offlineDevices.map((d) => d.serial));
 
   const pillBtn = (active: boolean) =>
-    `px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+    `px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
       active
         ? "bg-white/20 text-white"
         : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
@@ -178,13 +178,13 @@ export default function AlertsPage() {
         <h1 className="text-3xl font-bold text-foreground font-display">
           Alerts
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-base text-muted-foreground mt-1">
           System health &amp; notifications
         </p>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-base text-red-300">
           {error}
         </div>
       )}
@@ -193,8 +193,8 @@ export default function AlertsPage() {
       {devices.length > 0 && (
         <GlassCard className={offlineDevices.length > 0 ? "border-red-500/30" : "border-white/10"}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Device Connectivity</p>
-            <span className={`text-xs font-semibold ${offlineDevices.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
+            <p className="text-sm text-white/60 uppercase tracking-widest font-medium">Device Connectivity</p>
+            <span className={`text-sm font-semibold ${offlineDevices.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
               {offlineDevices.length > 0
                 ? `${offlineDevices.length}/${devices.length} offline`
                 : "All devices online"}
@@ -204,7 +204,7 @@ export default function AlertsPage() {
             {devices.map((d) => (
               <span
                 key={d.serial}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border"
                 style={
                   d.is_online
                     ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
@@ -223,21 +223,21 @@ export default function AlertsPage() {
       {/* Summary bar */}
       <div className="flex flex-wrap gap-3">
         <span
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
           style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444" }}
         >
           <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
           {criticalCount} Critical
         </span>
         <span
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
           style={{ background: "rgba(233,185,73,0.15)", color: "#E9B949" }}
         >
           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
           {warningCount} Warning
         </span>
         <span
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
           style={{ background: "rgba(96,165,250,0.15)", color: "#60a5fa" }}
         >
           <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
@@ -248,7 +248,7 @@ export default function AlertsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/40 uppercase tracking-wider">Status</span>
+          <span className="text-sm text-white/40 uppercase tracking-wider">Status</span>
           <div className="flex gap-1">
             {(["all", "active", "resolved"] as StatusFilter[]).map((s) => (
               <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} className={pillBtn(statusFilter === s)}>
@@ -258,7 +258,7 @@ export default function AlertsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/40 uppercase tracking-wider">Severity</span>
+          <span className="text-sm text-white/40 uppercase tracking-wider">Severity</span>
           <div className="flex gap-1">
             {(["all", "critical", "warning", "info"] as SeverityFilter[]).map((s) => (
               <button key={s} onClick={() => { setSeverityFilter(s); setPage(1); }} className={pillBtn(severityFilter === s)}>
@@ -283,12 +283,12 @@ export default function AlertsPage() {
               <CheckCircle className="w-8 h-8 text-emerald-400" />
             </div>
             <p className="text-xl font-semibold text-white">All Clear</p>
-            <p className="text-sm text-white/50">No alerts matching your filters</p>
+            <p className="text-base text-white/50">No alerts matching your filters</p>
           </motion.div>
         ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-3">
-              <span className="text-xs text-white/55">
+              <span className="text-sm text-white/55">
                 Showing {filtered.length === 0 ? 0 : pageStart + 1}-{Math.min(pageEnd, filtered.length)} of {filtered.length} alerts
               </span>
               {totalPages > 1 && (
@@ -297,7 +297,7 @@ export default function AlertsPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     Prev
                   </button>
@@ -306,7 +306,7 @@ export default function AlertsPage() {
                       type="button"
                       key={p}
                       onClick={() => setPage(p)}
-                      className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${
+                      className={`h-8 min-w-8 rounded-lg px-2 text-sm font-semibold transition ${
                         p === currentPage
                           ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/25"
                           : "bg-white/[0.04] text-white/55 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/80"
@@ -319,7 +319,7 @@ export default function AlertsPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     Next
                   </button>
@@ -358,32 +358,32 @@ export default function AlertsPage() {
                       {/* Body */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-white text-sm">{alert.title}</p>
+                          <p className="font-semibold text-white text-base">{alert.title}</p>
                           {isCritical && (
                             <motion.span
                               animate={{ opacity: [1, 0.7, 1] }}
                               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                              className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/90 text-white shadow-lg shadow-red-500/30"
+                              className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/90 text-white shadow-lg shadow-red-500/30"
                             >
                               CRITICAL
                             </motion.span>
                           )}
                           {deviceOffline && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
                               <WifiOff size={10} /> Device Offline
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-white/60 mt-0.5">{alert.message}</p>
+                        <p className="text-sm text-white/60 mt-0.5">{alert.message}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
+                          <span className="text-sm px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
                             {alert.device_serial}
                           </span>
-                          <span className="flex items-center gap-1 text-xs text-white/40">
+                          <span className="flex items-center gap-1 text-sm text-white/40">
                             <Clock size={11} /> {timeAgo(alert.triggered_at)}
                           </span>
                           {alert.fault_code && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300 font-mono">
+                            <span className="text-sm px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300 font-mono">
                               {alert.fault_code}
                             </span>
                           )}
@@ -399,7 +399,7 @@ export default function AlertsPage() {
                         {alert.status === "active" && (
                           <button
                             onClick={() => acknowledgeAlert(alert.id)}
-                            className="text-xs px-3 py-1 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all cursor-pointer"
+                            className="text-sm px-3 py-1 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all cursor-pointer"
                           >
                             Acknowledge
                           </button>

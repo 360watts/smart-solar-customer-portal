@@ -9,7 +9,7 @@ export default function PortalHeader() {
   return (
     <header className="hidden md:flex items-center justify-between h-16 px-6 border-b border-border glass">
       <div>
-        <p className="text-sm text-muted-foreground">Welcome back</p>
+        <p className="text-base text-muted-foreground">Welcome back</p>
         <h1 className="text-xl font-bold text-foreground font-display">
           Good morning
         </h1>

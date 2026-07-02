@@ -5,7 +5,7 @@ export default function UnauthorizedPage() {
         <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
           Unauthorized
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-3 text-base text-muted-foreground">
           This portal is for customer accounts only. Please use the employee application for staff access.
         </p>
       </div>

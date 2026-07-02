@@ -110,8 +110,8 @@ function SolarQualityArc({ score }: { score: number }) {
         <path d={`M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} strokeLinecap="round" />
         <path d={`M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round" strokeDasharray={`${progress} ${circumference}`} style={{ transition: "stroke-dasharray 1s ease" }} />
       </svg>
-      <p className="text-xs text-muted-foreground -mt-2">Solar Quality</p>
-      <p className="text-sm font-bold mt-0.5" style={{ color, fontFamily: "var(--font-display)" }}>{score}</p>
+      <p className="text-sm text-muted-foreground -mt-2">Solar Quality</p>
+      <p className="text-base font-bold mt-0.5" style={{ color, fontFamily: "var(--font-display)" }}>{score}</p>
     </div>
   );
 }
@@ -160,10 +160,10 @@ export default function WeatherPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>Weather</h1>
-        <p className="text-muted-foreground text-sm">Coimbatore — solar irradiance &amp; conditions</p>
+        <p className="text-muted-foreground text-base">Coimbatore — solar irradiance &amp; conditions</p>
       </div>
 
-      {error && <GlassCard><p className="text-sm text-red-300">{error}</p></GlassCard>}
+      {error && <GlassCard><p className="text-base text-red-300">{error}</p></GlassCard>}
 
       <GlassCard glow="amber">
         <div className="flex flex-col lg:flex-row items-start gap-6">
@@ -189,8 +189,8 @@ export default function WeatherPage() {
               <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/4 border border-white/6">
                 <s.icon size={13} className="text-amber-400 shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground leading-tight">{s.label}</p>
-                  <p className="text-sm font-semibold text-foreground leading-tight">{s.value}</p>
+                  <p className="text-sm text-muted-foreground leading-tight">{s.label}</p>
+                  <p className="text-base font-semibold text-foreground leading-tight">{s.value}</p>
                 </div>
               </div>
             ))}
@@ -204,7 +204,7 @@ export default function WeatherPage() {
       <GlassCard>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>Solar Irradiance — Today</h2>
-          <span className="text-xs text-muted-foreground font-mono">W/m²</span>
+          <span className="text-sm text-muted-foreground font-mono">W/m²</span>
         </div>
         <DataChart type="line" data={(data?.ghiChart ?? MOCK_GHI_DATA) as Parameters<typeof DataChart>[0]["data"]} height={200} />
       </GlassCard>
@@ -216,15 +216,15 @@ export default function WeatherPage() {
             const scoreColor = f.solarScore > 75 ? COLORS.primary : f.solarScore > 40 ? COLORS.amber : COLORS.muted;
             return (
               <div key={i} className="shrink-0 w-36 rounded-2xl p-4 flex flex-col gap-2 border border-white/6" style={{ background: "rgba(255,255,255,0.03)" }}>
-                <p className="text-xs font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>{f.day}</p>
+                <p className="text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>{f.day}</p>
                 <f.Icon size={28} className="my-1" style={{ color: i === 0 ? COLORS.amber : COLORS.muted }} />
-                <p className="text-xs text-muted-foreground leading-tight">{f.condition}</p>
-                <p className="text-sm font-medium text-foreground">{f.high}° / {f.low}°</p>
-                <p className="text-xs text-muted-foreground">{f.avgGhi} W/m²</p>
+                <p className="text-sm text-muted-foreground leading-tight">{f.condition}</p>
+                <p className="text-base font-medium text-foreground">{f.high}° / {f.low}°</p>
+                <p className="text-sm text-muted-foreground">{f.avgGhi} W/m²</p>
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">Score</span>
-                    <span className="text-xs font-medium" style={{ color: scoreColor }}>{f.solarScore}</span>
+                    <span className="text-sm text-muted-foreground">Score</span>
+                    <span className="text-sm font-medium" style={{ color: scoreColor }}>{f.solarScore}</span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${f.solarScore}%`, background: scoreColor }} />
@@ -236,7 +236,7 @@ export default function WeatherPage() {
         </div>
       </GlassCard>
 
-      <p className="text-xs text-muted-foreground text-center pb-2">
+      <p className="text-sm text-muted-foreground text-center pb-2">
         Weather data: Open-Meteo · Updated {data?.fetchedAt ? timeAgo(data.fetchedAt) : "recently"}
       </p>
     </div>
