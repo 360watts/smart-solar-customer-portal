@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Info, CheckCircle } from "lucide-react";
+import { AlertTriangle, Info, CheckCircle, Clock, WifiOff, Wifi } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,45 +22,49 @@ interface Alert {
   fault_code: string | null;
 }
 
-const MOCK_ALERTS: Alert[] = [
-  {
-    id: "1",
-    alert_type: "high_temperature",
-    severity: "warning",
-    title: "High Temperature",
-    message: "Inverter temperature exceeded safe range (72°C)",
-    device_serial: "EC19BE506BCE",
-    triggered_at: new Date(Date.now() - 2 * 3600000).toISOString(),
-    status: "active",
-    fault_code: "INV-003",
-  },
-  {
-    id: "2",
-    alert_type: "low_generation",
-    severity: "critical",
-    title: "Low Generation",
-    message: "PV output 45% below forecast for 3+ consecutive hours",
-    device_serial: "EC19BE506BCE",
-    triggered_at: new Date(Date.now() - 5 * 3600000).toISOString(),
-    status: "active",
-    fault_code: "PV-007",
-  },
-  {
-    id: "3",
-    alert_type: "communication_error",
-    severity: "info",
-    title: "Communication Delay",
-    message: "Device data delayed by 8 minutes",
-    device_serial: "EC19BE506BCE",
-    triggered_at: new Date(Date.now() - 24 * 3600000).toISOString(),
-    status: "resolved",
-    fault_code: null,
-  },
-];
+interface AlertsDevice {
+  serial: string;
+  is_online: boolean;
+}
+
+interface AlertsPageData {
+  alerts: Alert[];
+  devices: AlertsDevice[];
+}
+
+// Human-readable fallback titles for alert types the backend doesn't label explicitly.
+const TYPE_LABELS: Record<string, string> = {
+  device_offline: "Device Offline",
+  low_battery: "Low Battery",
+  high_temperature: "High Temperature",
+  communication_error: "Communication Error",
+  threshold_exceeded: "Threshold Exceeded",
+  maintenance_due: "Maintenance Due",
+  fault: "Fault Detected",
+  custom: "Alert",
+};
+
+function normalizeAlert(raw: Record<string, unknown>): Alert {
+  const alertType = String(raw.alert_type ?? raw.type ?? "custom");
+  const severity = (raw.severity as Alert["severity"]) || "warning";
+  const deviceSerial = String(raw.device_serial ?? raw.device_id ?? "—");
+  return {
+    id: String(raw.id ?? `${deviceSerial}-${raw.timestamp ?? raw.triggered_at}`),
+    alert_type: alertType,
+    severity,
+    title: (raw.title as string) || TYPE_LABELS[alertType] || "Alert",
+    message: (raw.message as string) || "",
+    device_serial: deviceSerial,
+    triggered_at: String(raw.triggered_at ?? raw.timestamp ?? new Date().toISOString()),
+    status: (raw.status as Alert["status"]) || "active",
+    fault_code: (raw.fault_code as string) || null,
+  };
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
@@ -68,11 +72,14 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-const SEVERITY_STYLES: Record<string, { color: string; bg: string }> = {
-  critical: { color: "#EF4444", bg: "rgba(239,68,68,0.1)" },
-  warning: { color: "#E9B949", bg: "rgba(233,185,73,0.1)" },
-  info: { color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+const SEVERITY_STYLES: Record<string, { color: string; bg: string; border: string }> = {
+  critical: { color: "#EF4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)" },
+  warning: { color: "#E9B949", bg: "rgba(233,185,73,0.1)", border: "rgba(233,185,73,0.25)" },
+  info: { color: "#60a5fa", bg: "rgba(96,165,250,0.1)", border: "rgba(96,165,250,0.25)" },
 };
+
+// Severity rank for sort — critical first, then warning, then info; ties broken by recency.
+const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2 };
 
 type StatusFilter = "all" | "active" | "resolved";
 type SeverityFilter = "all" | "critical" | "warning" | "info";
@@ -83,17 +90,35 @@ export default function AlertsPage() {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [localOverrides, setLocalOverrides] = useState<Record<string, Alert["status"]>>({});
 
-  const { data: alertsData, loading, error } = useSiteQuery<Alert[]>(
+  const { data, loading, error } = useSiteQuery<AlertsPageData>(
     user?.site_id,
-    async (siteId) => {
-      const res = await portalApi.getSiteAlerts(siteId);
-      const raw = res.data?.results ?? res.data;
-      return Array.isArray(raw) ? raw : [];
+    async (siteId, signal) => {
+      const [alertsRes, overviewRes] = await Promise.all([
+        portalApi.getSiteAlerts(siteId, signal),
+        portalApi.getPortalOverview(siteId, undefined, signal).catch(() => null),
+      ]);
+      signal.throwIfAborted();
+
+      const rawAlerts = alertsRes.data as unknown;
+      const list = Array.isArray(rawAlerts)
+        ? rawAlerts
+        : Array.isArray((rawAlerts as { results?: unknown[] })?.results)
+          ? (rawAlerts as { results: unknown[] }).results
+          : [];
+      const alerts = (list as Record<string, unknown>[]).map(normalizeAlert);
+
+      const realtime = (overviewRes?.data?.data?.realtime ?? {}) as Record<string, unknown>;
+      const devices = (
+        (realtime.devices ?? []) as Array<{ device_serial: string; is_online?: boolean }>
+      ).map((d) => ({ serial: d.device_serial, is_online: Boolean(d.is_online) }));
+
+      return { alerts, devices };
     },
     { cacheKey: `alerts:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 30 },
   );
 
-  const alerts: Alert[] = alertsData ?? [];
+  const alerts: Alert[] = data?.alerts ?? [];
+  const devices: AlertsDevice[] = data?.devices ?? [];
   const loaded = !loading;
 
   function acknowledgeAlert(alertId: string) {
@@ -105,22 +130,33 @@ export default function AlertsPage() {
     localOverrides[a.id] ? { ...a, status: localOverrides[a.id]! } : a
   );
 
-  const filtered = displayAlerts.filter((a) => {
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && (a.status === "active" || a.status === "acknowledged")) ||
-      (statusFilter === "resolved" && a.status === "resolved");
-    const matchSeverity =
-      severityFilter === "all" || a.severity === severityFilter;
-    return matchStatus && matchSeverity;
-  });
+  const filtered = displayAlerts
+    .filter((a) => {
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && (a.status === "active" || a.status === "acknowledged")) ||
+        (statusFilter === "resolved" && a.status === "resolved");
+      const matchSeverity =
+        severityFilter === "all" || a.severity === severityFilter;
+      return matchStatus && matchSeverity;
+    })
+    .sort((a, b) => {
+      const rankDiff = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
+      if (rankDiff !== 0) return rankDiff;
+      return new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime();
+    });
 
   const criticalCount = displayAlerts.filter((a) => a.severity === "critical").length;
   const warningCount = displayAlerts.filter((a) => a.severity === "warning").length;
   const infoCount = displayAlerts.filter((a) => a.severity === "info").length;
+  const offlineDevices = devices.filter((d) => !d.is_online);
+
+  // Map device_serial → offline flag so each alert card can show live device status,
+  // not just the alert's own severity — the device may have recovered since triggering.
+  const offlineSerials = new Set(offlineDevices.map((d) => d.serial));
 
   const pillBtn = (active: boolean) =>
-    `px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+    `px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
       active
         ? "bg-white/20 text-white"
         : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
@@ -142,6 +178,36 @@ export default function AlertsPage() {
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
+      )}
+
+      {/* Device status strip — offline devices surfaced here too, not just in alert text */}
+      {devices.length > 0 && (
+        <GlassCard className={offlineDevices.length > 0 ? "border-red-500/30" : "border-white/10"}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Device Connectivity</p>
+            <span className={`text-xs font-semibold ${offlineDevices.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
+              {offlineDevices.length > 0
+                ? `${offlineDevices.length}/${devices.length} offline`
+                : "All devices online"}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {devices.map((d) => (
+              <span
+                key={d.serial}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono border"
+                style={
+                  d.is_online
+                    ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
+                    : { background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: "#f87171" }
+                }
+              >
+                {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}
+                {d.serial}
+              </span>
+            ))}
+          </div>
+        </GlassCard>
       )}
 
       {/* Summary bar */}
@@ -210,65 +276,91 @@ export default function AlertsPage() {
             <p className="text-sm text-white/50">No alerts matching your filters</p>
           </motion.div>
         ) : (
-          filtered.map((alert) => {
-            const sev = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
-            const Icon = alert.severity === "info" ? Info : AlertTriangle;
-            return (
-              <motion.div
-                key={alert.id}
-                layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.2 }}
-              >
-                <GlassCard>
-                  <div className="flex items-start gap-4">
-                    {/* Severity icon */}
-                    <div
-                      className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5"
-                      style={{ background: sev.bg }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: sev.color }} />
-                    </div>
+          <div className="space-y-3">
+            {filtered.map((alert) => {
+              const sev = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
+              const Icon = alert.severity === "info" ? Info : AlertTriangle;
+              const deviceOffline = offlineSerials.has(alert.device_serial);
+              const isCritical = alert.severity === "critical";
+              return (
+                <motion.div
+                  key={alert.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <GlassCard
+                    className={isCritical ? "border-red-500/30 bg-gradient-to-br from-red-950/15 to-transparent" : undefined}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Severity icon — critical alerts pulse, matching the overview's critical card */}
+                      <motion.div
+                        animate={isCritical ? { scale: [1, 1.08, 1] } : {}}
+                        transition={isCritical ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
+                        className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5"
+                        style={{ background: sev.bg, border: `1px solid ${sev.border}` }}
+                      >
+                        <Icon className="w-5 h-5" style={{ color: sev.color }} />
+                      </motion.div>
 
-                    {/* Body */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm">{alert.title}</p>
-                      <p className="text-xs text-white/60 mt-0.5">{alert.message}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
-                          {alert.device_serial}
-                        </span>
-                        <span className="text-xs text-white/40">{timeAgo(alert.triggered_at)}</span>
-                        {alert.fault_code && (
+                      {/* Body */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-white text-sm">{alert.title}</p>
+                          {isCritical && (
+                            <motion.span
+                              animate={{ opacity: [1, 0.7, 1] }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                              className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/90 text-white shadow-lg shadow-red-500/30"
+                            >
+                              CRITICAL
+                            </motion.span>
+                          )}
+                          {deviceOffline && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                              <WifiOff size={10} /> Device Offline
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-white/60 mt-0.5">{alert.message}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
                           <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
-                            {alert.fault_code}
+                            {alert.device_serial}
                           </span>
+                          <span className="flex items-center gap-1 text-xs text-white/40">
+                            <Clock size={11} /> {timeAgo(alert.triggered_at)}
+                          </span>
+                          {alert.fault_code && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300 font-mono">
+                              {alert.fault_code}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: status + ack */}
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <StatusPill
+                          status={alert.status === "resolved" ? "active" : "warning"}
+                          label={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                        />
+                        {alert.status === "active" && (
+                          <button
+                            onClick={() => acknowledgeAlert(alert.id)}
+                            className="text-xs px-3 py-1 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all cursor-pointer"
+                          >
+                            Acknowledge
+                          </button>
                         )}
                       </div>
                     </div>
-
-                    {/* Right: status + ack */}
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <StatusPill
-                        status={alert.status === "resolved" ? "active" : "warning"}
-                        label={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
-                      />
-                      {alert.status === "active" && (
-                        <button
-                          onClick={() => acknowledgeAlert(alert.id)}
-                          className="text-xs px-3 py-1 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all"
-                        >
-                          Acknowledge
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            );
-          })
+                  </GlassCard>
+                </motion.div>
+              );
+            })}
+          </div>
         )}
       </AnimatePresence>
     </div>

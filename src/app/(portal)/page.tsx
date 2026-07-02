@@ -6,8 +6,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, RefreshCw } from "lucide-react";
-import StatusPill from "@/components/ui/StatusPill";
 import GlassCard from "@/components/ui/GlassCard";
+import AlertsSection from "@/components/ui/AlertsSection";
+import CriticalAlertsBanner from "@/components/ui/CriticalAlertsBanner";
+import DeviceStatusSection from "@/components/ui/DeviceStatusSection";
 import EnergyFlowDiagram from "@/components/ui/EnergyFlowDiagram";
 import HourlyGenerationChart, { type HourlyPoint } from "@/components/ui/HourlyGenerationChart";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +18,12 @@ import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Device {
+  serial: string;
+  status: "online" | "offline";
+  alert_count: number;
+}
 
 interface DashboardData {
   currentSolarKw: number;
@@ -27,6 +35,8 @@ interface DashboardData {
   monthGenKwh: number;
   selfUsePct: number;
   activeAlerts: number;
+  alertsCounts: { critical: number; warning: number; info: number };
+  devices: Device[];
   isOnline: boolean;
   capacityKwp: number;
   siteName: string;
@@ -365,12 +375,60 @@ export default function OverviewPage() {
       const co2AvoidedKg = Math.round(todayGenKwh * 0.82);
 
       // Alerts
-      const alertsList: Array<{ status?: string; resolved?: boolean }> = Array.isArray(payload.alerts)
+      const alertsList: Array<{
+        id?: string | number;
+        status?: string;
+        resolved?: boolean;
+        severity?: string;
+        title?: string;
+        message?: string;
+        device_serial?: string;
+        fault_code?: string | null;
+        timestamp?: string;
+      }> = Array.isArray(payload.alerts)
         ? payload.alerts as never[]
         : [];
-      const activeAlerts = alertsList.filter(
+      const activeAlertsList = alertsList.filter(
         (a) => a.status !== "resolved" && !a.resolved,
-      ).length;
+      );
+      const activeAlerts = activeAlertsList.length;
+
+      // Calculate severity breakdown from actual alert data
+      let alertsCounts = { critical: 0, warning: 0, info: 0 };
+      const deviceAlertMap = new Map<string, { count: number; severity: "critical" | "warning" | "info" }>();
+
+      if (activeAlerts > 0) {
+        // Count by severity from real alert data
+        for (const alert of activeAlertsList) {
+          const severity = (alert.severity || "warning") as "critical" | "warning" | "info";
+          if (severity === "critical") alertsCounts.critical++;
+          else if (severity === "warning") alertsCounts.warning++;
+          else alertsCounts.info++;
+        }
+
+        // Build device alert map keyed by device_serial (now present on every alert)
+        for (const alert of activeAlertsList) {
+          if (!alert.device_serial) continue;
+          const existing = deviceAlertMap.get(alert.device_serial);
+          const isCritical = alert.severity === "critical";
+          deviceAlertMap.set(alert.device_serial, {
+            count: (existing?.count ?? 0) + 1,
+            severity: existing?.severity === "critical" || isCritical ? "critical" : "warning",
+          });
+        }
+      }
+
+      // Build devices array with status from realtime.devices (all devices on site)
+      const devices: Device[] = (
+        ((payload.realtime as Record<string, any>)?.devices ?? []) as Array<{
+          device_serial: string;
+          is_online?: boolean;
+        }>
+      ).map((dev) => ({
+        serial: dev.device_serial,
+        status: dev.is_online ? "online" : "offline",
+        alert_count: deviceAlertMap.get(dev.device_serial)?.count ?? 0,
+      }));
 
       // Gateway (rt already defined above)
       const site = (payload.site ?? {}) as Record<string, unknown>;
@@ -390,6 +448,8 @@ export default function OverviewPage() {
         monthGenKwh,
         selfUsePct,
         activeAlerts,
+        alertsCounts,
+        devices,
         isOnline,
         capacityKwp,
         siteName,
@@ -413,7 +473,12 @@ export default function OverviewPage() {
   const firstName = user?.first_name || "there";
   const d = data;
 
-  const flowData = d
+  // All devices offline → live readings are stale/frozen at last-known values.
+  // Showing them as if live would be misleading, so the flow diagram and
+  // "Live Output" panel switch to an explicit offline state instead.
+  const allDevicesOffline = !!d && d.devices.length > 0 && d.devices.every((dev) => dev.status === "offline");
+
+  const flowData = d && !allDevicesOffline
     ? {
         solarKw:    d.currentSolarKw,
         homeKw:     d.currentLoadKw,
@@ -425,8 +490,20 @@ export default function OverviewPage() {
     : null;
 
   return (
-    <div className="relative space-y-6 bg-sun-glow">
-      {/* Hero */}
+    <div className="relative bg-sun-glow">
+      {/* Main content */}
+      <div className="space-y-6">
+        {/* Critical alerts banner */}
+        {d && d.alertsCounts.critical > 0 && (
+          <CriticalAlertsBanner
+            criticalCount={d.alertsCounts.critical}
+            offlineDevices={d.devices
+              .filter((dev) => dev.status === "offline")
+              .map((dev) => ({ serial: dev.serial, alert_count: dev.alert_count }))}
+          />
+        )}
+
+        {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
@@ -440,23 +517,21 @@ export default function OverviewPage() {
             <Greeting name={firstName} />
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-end gap-3 w-full sm:w-auto">
           {d ? (
-            <StatusPill
-              status={d.isOnline ? "active" : "inactive"}
-              label={d.isOnline ? "System online" : "System offline"}
-              animated={d.isOnline}
-            />
+            <DeviceStatusSection devices={d.devices} />
           ) : (
-            <SkeletonPulse className="w-28 h-6" />
+            <SkeletonPulse className="w-full sm:w-80 h-12" />
           )}
-          <LiveClock />
-          {isStale && (
-            <button onClick={refresh} title="Refresh data"
-              className="text-white/30 hover:text-white/60 transition-colors">
-              <RefreshCw size={13} />
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            <LiveClock />
+            {isStale && (
+              <button onClick={refresh} title="Refresh data"
+                className="text-white/30 hover:text-white/60 transition-colors">
+                <RefreshCw size={13} />
+              </button>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -481,9 +556,12 @@ export default function OverviewPage() {
         {/* Left — live output stats */}
         <div className="min-w-0" style={{ flex: "3" }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs uppercase tracking-[0.18em] font-medium" style={{ color: "#2FBF71" }}>
-              Live Output
+            <div className={`w-1.5 h-1.5 rounded-full ${allDevicesOffline ? "bg-red-500" : "bg-emerald-400 animate-pulse"}`} />
+            <span
+              className="text-xs uppercase tracking-[0.18em] font-medium"
+              style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
+            >
+              {allDevicesOffline ? "Offline — Last Known" : "Live Output"}
             </span>
           </div>
 
@@ -498,16 +576,20 @@ export default function OverviewPage() {
           ) : (
             <>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="stat-number text-6xl glow-text-green">
+                <span className={`stat-number text-6xl ${allDevicesOffline ? "text-white/40" : "glow-text-green"}`}>
                   <AnimatedNumber value={d?.currentSolarKw ?? 0} decimals={1} />
                 </span>
                 <span className="text-xl text-white/45 font-light">kW</span>
               </div>
               <p className="text-white/55 text-sm mb-8">
-                Peak today:{" "}
-                <span className="text-white/55">
-                  {d?.peakTodayKw.toFixed(1) ?? "—"} kW
-                </span>
+                {allDevicesOffline ? (
+                  <span className="text-red-300/80 font-medium">Frozen at last reading before disconnect</span>
+                ) : (
+                  <>
+                    Peak today:{" "}
+                    <span className="text-white/55">{d?.peakTodayKw.toFixed(1) ?? "—"} kW</span>
+                  </>
+                )}
               </p>
               <div className="flex flex-col gap-2">
                 {[
@@ -541,10 +623,25 @@ export default function OverviewPage() {
 
         {/* Right — energy flow */}
         <div className="min-w-0" style={{ flex: "7" }}>
-          <p className="text-xs uppercase tracking-[0.18em] font-medium mb-3" style={{ color: "#2FBF71" }}>
-            Live Energy Flow
+          <p
+            className="text-xs uppercase tracking-[0.18em] font-medium mb-3"
+            style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
+          >
+            {allDevicesOffline ? "Energy Flow Unavailable" : "Live Energy Flow"}
           </p>
-          {flowData ? (
+          {loading ? (
+            <SkeletonPulse className="h-48 w-full rounded-2xl" />
+          ) : allDevicesOffline ? (
+            <div className="h-48 w-full rounded-2xl border border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center gap-2 text-center px-6">
+              <AlertTriangle size={22} className="text-red-400/70" />
+              <p className="text-sm text-red-200/80 font-medium">
+                Both devices are offline — live flow can&apos;t be shown
+              </p>
+              <p className="text-xs text-white/40">
+                Figures on the left are the last reading before disconnect
+              </p>
+            </div>
+          ) : flowData ? (
             <EnergyFlowDiagram data={flowData} />
           ) : (
             <SkeletonPulse className="h-48 w-full rounded-2xl" />
@@ -562,7 +659,16 @@ export default function OverviewPage() {
           <>
             <KpiTile label="System Capacity"   value={d?.capacityKwp ?? 0}     unit="kWp" icon={Sun}           color="green" delay={0} />
             <KpiTile label="Today's Generation" value={d?.todayGenKwh ?? 0}     unit="kWh" icon={Zap}           color="amber" delay={1} />
-            <KpiTile label="Active Alerts"      value={d?.activeAlerts ?? 0}    unit=""    icon={AlertTriangle} color="red"   delay={2} />
+            <AlertsSection
+              counts={d?.alertsCounts ?? { critical: 0, warning: 0, info: 0 }}
+              loading={loading}
+              delay={2}
+              impact={
+                d && (d.alertsCounts.critical ?? 0) > 0
+                  ? `CRITICAL: ${d.devices.filter((dev) => dev.status === "offline").length} device${d.devices.filter((dev) => dev.status === "offline").length !== 1 ? "s" : ""} offline`
+                  : undefined
+              }
+            />
             <KpiTile
               label="Performance Ratio"
               value={d?.performanceRatio ?? Math.round((d?.todayGenKwh ?? 0) / Math.max(d?.capacityKwp ?? 1, 1) / 5 * 100)}
@@ -608,6 +714,7 @@ export default function OverviewPage() {
             </motion.div>
           </Link>
         ))}
+      </div>
       </div>
     </div>
   );

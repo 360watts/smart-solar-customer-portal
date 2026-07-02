@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Cpu, Zap, Battery, Sun, Wifi, AlertTriangle } from "lucide-react";
+import { Cpu, Zap, Battery, Sun, Wifi, WifiOff, AlertTriangle } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,11 +71,17 @@ interface HardwareHealth {
   solar_efficiency_pct: number | null;
 }
 
+interface FleetDevice {
+  device_serial: string;
+  is_online: boolean;
+}
+
 interface DeviceSummary {
   gateway: GatewayStatus;
   telemetry: TelemetryReading | null;
   equipment: Equipment;
   health: HardwareHealth;
+  fleet: FleetDevice[];
 }
 
 // ── Empty placeholders used only before real summary data has loaded ───────────
@@ -244,14 +250,22 @@ export default function DevicePage() {
   const { data, loading, error, noSite, refresh } = useSiteQuery<DeviceSummary>(
     user?.site_id,
     async (siteId, signal) => {
-      const summary = await portalApi.getPortalDevice(siteId, signal);
+      const [summary, overview] = await Promise.all([
+        portalApi.getPortalDevice(siteId, signal),
+        portalApi.getPortalOverview(siteId, undefined, signal).catch(() => null),
+      ]);
       signal.throwIfAborted();
       const payload = summary.data.data;
+      const realtime = (overview?.data?.data?.realtime ?? {}) as Record<string, unknown>;
+      const fleet = (
+        (realtime.devices ?? []) as Array<{ device_serial: string; is_online?: boolean }>
+      ).map((d) => ({ device_serial: d.device_serial, is_online: Boolean(d.is_online) }));
       return {
         gateway: (payload.gateway ?? EMPTY_GATEWAY) as GatewayStatus,
         telemetry: (payload.telemetry ?? null) as TelemetryReading | null,
         equipment: (payload.equipment ?? EMPTY_EQUIPMENT) as Equipment,
         health: (payload.hardware_health ?? EMPTY_HEALTH) as HardwareHealth,
+        fleet,
       };
     },
     {
@@ -266,6 +280,8 @@ export default function DevicePage() {
   const telemetry = data?.telemetry ?? EMPTY_TELEMETRY;
   const equipment = data?.equipment ?? EMPTY_EQUIPMENT;
   const health = data?.health ?? EMPTY_HEALTH;
+  const fleet = data?.fleet ?? [];
+  const fleetOfflineCount = fleet.filter((d) => !d.is_online).length;
 
   const faultCodes = [
     telemetry.fault_code_1,
@@ -306,6 +322,36 @@ export default function DevicePage() {
         <GlassCard>
           <p className="text-sm text-muted-foreground">Loading device summary…</p>
         </GlassCard>
+      )}
+
+      {/* Fleet status strip — shows offline state across all devices on this site */}
+      {fleet.length > 1 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <GlassCard className={fleetOfflineCount > 0 ? "border-red-500/30" : "border-white/10"}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-white/60 uppercase tracking-widest font-medium">All Devices</p>
+              <span className={`text-xs font-semibold ${fleetOfflineCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                {fleetOfflineCount > 0 ? `${fleetOfflineCount}/${fleet.length} offline` : "All online"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {fleet.map((d) => (
+                <span
+                  key={d.device_serial}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono border"
+                  style={
+                    d.is_online
+                      ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
+                      : { background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: "#f87171" }
+                  }
+                >
+                  {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}
+                  {d.device_serial}
+                </span>
+              ))}
+            </div>
+          </GlassCard>
+        </motion.div>
       )}
 
       {/* 1. Gateway Status Card */}
