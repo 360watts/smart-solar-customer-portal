@@ -86,19 +86,45 @@ function LiveClock() {
   return <span className="text-xs text-white/55 font-mono">{time || "••:••"}</span>;
 }
 
-// ─── KPI Tile ─────────────────────────────────────────────────────────────────
-function KpiTile({
-  label, value, unit, icon: Icon, color, trend, delay = 0,
-}: {
-  label: string; value: number; unit: string; icon: React.ElementType;
-  color: "green" | "amber" | "blue" | "red"; trend?: string; delay?: number;
-}) {
-  const cm = {
-    green: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-    amber: { text: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-400/20"  },
-    blue:  { text: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-400/20"   },
-    red:   { text: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-400/20"    },
-  }[color];
+// ─── Detailed KPI Card ─────────────────────────────────────────────────────────
+// Matches the visual density of AlertsSection: icon+badge header, animated big
+// number, a labeled progress bar, a 2-up stat breakdown, and a footer caption.
+interface KpiStatRow { label: string; value: string; dot: string; glow: string }
+interface DetailedKpiCardProps {
+  label: string;
+  icon: React.ElementType;
+  color: "green" | "amber" | "blue";
+  badge?: string;
+  badgeTone?: "neutral" | "good" | "warn";
+  bigValue: number;
+  bigDecimals?: number;
+  bigUnit: string;
+  progressPct: number;
+  progressLabel: string;
+  rows: KpiStatRow[];
+  footer: string;
+  loading: boolean;
+  delay?: number;
+}
+
+const KPI_COLOR_MAP = {
+  green: { text: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", hex: "#2FBF71", glow: "rgba(47,191,113,0.5)" },
+  amber: { text: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-400/20",   hex: "#E9B949", glow: "rgba(233,185,73,0.5)" },
+  blue:  { text: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-400/20",     hex: "#60a5fa", glow: "rgba(96,165,250,0.5)" },
+} as const;
+
+function DetailedKpiCard({
+  label, icon: Icon, color, badge, badgeTone = "neutral",
+  bigValue, bigDecimals = 1, bigUnit, progressPct, progressLabel,
+  rows, footer, loading, delay = 0,
+}: DetailedKpiCardProps) {
+  const cm = KPI_COLOR_MAP[color];
+  const badgeStyle =
+    badgeTone === "good" ? { background: "rgba(47,191,113,0.15)", color: "#2FBF71" } :
+    badgeTone === "warn" ? { background: "rgba(233,185,73,0.15)", color: "#E9B949" } :
+    { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" };
+  const clampedPct = Math.min(100, Math.max(0, progressPct));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
@@ -106,19 +132,69 @@ function KpiTile({
       whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
       className={`glass border ${cm.border} rounded-2xl p-5 cursor-default`}
     >
+      {/* Header: icon + badge */}
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl ${cm.bg} flex items-center justify-center`}>
+        <div className={`w-10 h-10 rounded-xl ${cm.bg} flex items-center justify-center flex-shrink-0`}>
           <Icon size={18} className={cm.text} />
         </div>
-        {trend && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cm.bg} ${cm.text}`}>{trend}</span>
+        {badge && !loading && (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={badgeStyle}>
+            {badge}
+          </span>
         )}
       </div>
-      <div className="stat-number text-3xl text-white mb-0.5">
-        <AnimatedNumber value={value} decimals={value % 1 === 0 ? 0 : 1} />
-        <span className="text-base font-normal text-white/60 ml-1">{unit}</span>
-      </div>
-      <p className="text-xs text-white/60 mt-1 font-medium uppercase tracking-wider">{label}</p>
+
+      {loading ? (
+        <div className="space-y-3">
+          <SkeletonPulse className="h-9 w-24" />
+          <SkeletonPulse className="h-1.5 w-full rounded-full" />
+          <SkeletonPulse className="h-8 w-full rounded-xl" />
+        </div>
+      ) : (
+        <>
+          {/* Big number */}
+          <div className="stat-number text-3xl text-white mb-0.5">
+            <AnimatedNumber value={bigValue} decimals={bigDecimals} />
+            <span className="text-base font-normal text-white/60 ml-1">{bigUnit}</span>
+          </div>
+          <p className="text-xs text-white/60 mt-1 mb-3 font-medium uppercase tracking-wider">{label}</p>
+
+          {/* Progress bar */}
+          <div className="mb-3">
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: cm.hex, boxShadow: `0 0 6px ${cm.glow}` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${clampedPct}%` }}
+                transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="text-[10px] text-white/45">{progressLabel}</span>
+              <span className="text-[10px] font-semibold" style={{ color: cm.hex }}>{Math.round(clampedPct)}%</span>
+            </div>
+          </div>
+
+          {/* Stat rows */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {rows.map((row) => (
+              <div key={row.label} className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.dot, boxShadow: `0 0 5px ${row.glow}` }} />
+                  <span className="text-[10px] text-white/50 truncate">{row.label}</span>
+                </div>
+                <span className="text-xs font-bold text-white/85 tabular-nums" style={{ fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <p className="text-[10px] text-white/40 pt-2 border-t border-white/5 leading-relaxed">{footer}</p>
+        </>
+      )}
     </motion.div>
   );
 }
@@ -657,23 +733,100 @@ export default function OverviewPage() {
           ))
         ) : (
           <>
-            <KpiTile label="System Capacity"   value={d?.capacityKwp ?? 0}     unit="kWp" icon={Sun}           color="green" delay={0} />
-            <KpiTile label="Today's Generation" value={d?.todayGenKwh ?? 0}     unit="kWh" icon={Zap}           color="amber" delay={1} />
-            <AlertsSection
-              counts={d?.alertsCounts ?? { critical: 0, warning: 0, info: 0 }}
-              loading={loading}
-              delay={2}
-              impact={
-                d && (d.alertsCounts.critical ?? 0) > 0
-                  ? `CRITICAL: ${d.devices.filter((dev) => dev.status === "offline").length} device${d.devices.filter((dev) => dev.status === "offline").length !== 1 ? "s" : ""} offline`
-                  : undefined
-              }
-            />
-            <KpiTile
-              label="Performance Ratio"
-              value={d?.performanceRatio ?? Math.round((d?.todayGenKwh ?? 0) / Math.max(d?.capacityKwp ?? 1, 1) / 5 * 100)}
-              unit="%" icon={Activity} color="blue" delay={3}
-            />
+            {(() => {
+              const capacityKwp = d?.capacityKwp ?? 0;
+              const peakTodayKw = d?.peakTodayKw ?? 0;
+              const todayGenKwh = d?.todayGenKwh ?? 0;
+              const monthGenKwh = d?.monthGenKwh ?? 0;
+              const co2AvoidedKg = d?.co2AvoidedKg ?? 0;
+              const headroomKw = Math.max(0, capacityKwp - peakTodayKw);
+              const utilizationPct = capacityKwp > 0 ? (peakTodayKw / capacityKwp) * 100 : 0;
+
+              // ~5 peak-sun-hours/day is a reasonable Coimbatore reference for "a great day's yield".
+              const dailyPotentialKwh = capacityKwp * 5;
+              const potentialPct = dailyPotentialKwh > 0 ? (todayGenKwh / dailyPotentialKwh) * 100 : 0;
+
+              const prPct = d?.performanceRatio ?? Math.round(potentialPct);
+              const prRating =
+                prPct >= 80 ? { label: "Excellent", tone: "good" as const } :
+                prPct >= 60 ? { label: "Good", tone: "neutral" as const } :
+                prPct >= 40 ? { label: "Fair", tone: "warn" as const } :
+                { label: "Needs Review", tone: "warn" as const };
+
+              return (
+                <>
+                  <DetailedKpiCard
+                    label="System Capacity"
+                    icon={Sun}
+                    color="green"
+                    badge={capacityKwp > 0 ? "Installed" : undefined}
+                    badgeTone="good"
+                    bigValue={capacityKwp}
+                    bigUnit="kWp"
+                    progressPct={utilizationPct}
+                    progressLabel="Today's peak utilization"
+                    rows={[
+                      { label: "Peak Today", value: `${peakTodayKw.toFixed(1)} kW`, dot: "#2FBF71", glow: "rgba(47,191,113,0.5)" },
+                      { label: "Headroom", value: `${headroomKw.toFixed(1)} kW`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                    ]}
+                    footer={
+                      utilizationPct >= 90
+                        ? "System reached near-peak output today."
+                        : "Room to generate more on clearer days."
+                    }
+                    loading={loading}
+                    delay={0}
+                  />
+                  <DetailedKpiCard
+                    label="Today's Generation"
+                    icon={Zap}
+                    color="amber"
+                    badge="Today"
+                    badgeTone="neutral"
+                    bigValue={todayGenKwh}
+                    bigUnit="kWh"
+                    progressPct={potentialPct}
+                    progressLabel="Of estimated daily potential"
+                    rows={[
+                      { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                      { label: "CO₂ Avoided", value: `${co2AvoidedKg} kg`, dot: "#34d399", glow: "rgba(52,211,153,0.4)" },
+                    ]}
+                    footer="Generation compared against a clear-sky reference day for this system size."
+                    loading={loading}
+                    delay={1}
+                  />
+                  <AlertsSection
+                    counts={d?.alertsCounts ?? { critical: 0, warning: 0, info: 0 }}
+                    loading={loading}
+                    delay={2}
+                    impact={
+                      d && (d.alertsCounts.critical ?? 0) > 0
+                        ? `CRITICAL: ${d.devices.filter((dev) => dev.status === "offline").length} device${d.devices.filter((dev) => dev.status === "offline").length !== 1 ? "s" : ""} offline`
+                        : undefined
+                    }
+                  />
+                  <DetailedKpiCard
+                    label="Performance Ratio"
+                    icon={Activity}
+                    color="blue"
+                    badge={prRating.label}
+                    badgeTone={prRating.tone}
+                    bigValue={prPct}
+                    bigDecimals={0}
+                    bigUnit="%"
+                    progressPct={prPct}
+                    progressLabel="Actual vs expected output"
+                    rows={[
+                      { label: "Today's Yield", value: `${todayGenKwh.toFixed(1)} kWh`, dot: "#60a5fa", glow: "rgba(96,165,250,0.4)" },
+                      { label: "Capacity", value: `${capacityKwp.toFixed(1)} kWp`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                    ]}
+                    footer="Performance ratio compares real output against theoretical maximum for your installed capacity."
+                    loading={loading}
+                    delay={3}
+                  />
+                </>
+              );
+            })()}
           </>
         )}
       </div>
