@@ -24,6 +24,7 @@ interface Alert {
 
 interface AlertsDevice {
   serial: string;
+  device_type?: string;
   is_online: boolean;
 }
 
@@ -83,11 +84,13 @@ const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2
 
 type StatusFilter = "all" | "active" | "resolved";
 type SeverityFilter = "all" | "critical" | "warning" | "info";
+const ALERTS_PER_PAGE = 8;
 
 export default function AlertsPage() {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
+  const [page, setPage] = useState(1);
   const [localOverrides, setLocalOverrides] = useState<Record<string, Alert["status"]>>({});
 
   const { data, loading, error } = useSiteQuery<AlertsPageData>(
@@ -109,8 +112,8 @@ export default function AlertsPage() {
 
       const realtime = (overviewRes?.data?.data?.realtime ?? {}) as Record<string, unknown>;
       const devices = (
-        (realtime.devices ?? []) as Array<{ device_serial: string; is_online?: boolean }>
-      ).map((d) => ({ serial: d.device_serial, is_online: Boolean(d.is_online) }));
+        (realtime.devices ?? []) as Array<{ device_serial: string; device_type?: string; is_online?: boolean }>
+      ).map((d) => ({ serial: d.device_serial, device_type: d.device_type ?? "gateway", is_online: Boolean(d.is_online) }));
 
       return { alerts, devices };
     },
@@ -145,6 +148,12 @@ export default function AlertsPage() {
       if (rankDiff !== 0) return rankDiff;
       return new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime();
     });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ALERTS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * ALERTS_PER_PAGE;
+  const pageEnd = pageStart + ALERTS_PER_PAGE;
+  const visibleAlerts = filtered.slice(pageStart, pageEnd);
 
   const criticalCount = displayAlerts.filter((a) => a.severity === "critical").length;
   const warningCount = displayAlerts.filter((a) => a.severity === "warning").length;
@@ -195,7 +204,7 @@ export default function AlertsPage() {
             {devices.map((d) => (
               <span
                 key={d.serial}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono border"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs border"
                 style={
                   d.is_online
                     ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
@@ -203,7 +212,8 @@ export default function AlertsPage() {
                 }
               >
                 {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}
-                {d.serial}
+                <span className="font-semibold">{d.device_type === "energy_meter" ? "Energy Meter IoT Gateway" : "Inverter IoT Gateway"}</span>
+                <span className="font-mono text-white/45">{d.serial}</span>
               </span>
             ))}
           </div>
@@ -241,7 +251,7 @@ export default function AlertsPage() {
           <span className="text-xs text-white/40 uppercase tracking-wider">Status</span>
           <div className="flex gap-1">
             {(["all", "active", "resolved"] as StatusFilter[]).map((s) => (
-              <button key={s} onClick={() => setStatusFilter(s)} className={pillBtn(statusFilter === s)}>
+              <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} className={pillBtn(statusFilter === s)}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
             ))}
@@ -251,7 +261,7 @@ export default function AlertsPage() {
           <span className="text-xs text-white/40 uppercase tracking-wider">Severity</span>
           <div className="flex gap-1">
             {(["all", "critical", "warning", "info"] as SeverityFilter[]).map((s) => (
-              <button key={s} onClick={() => setSeverityFilter(s)} className={pillBtn(severityFilter === s)}>
+              <button key={s} onClick={() => { setSeverityFilter(s); setPage(1); }} className={pillBtn(severityFilter === s)}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
             ))}
@@ -277,7 +287,47 @@ export default function AlertsPage() {
           </motion.div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((alert) => {
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-3">
+              <span className="text-xs text-white/55">
+                Showing {filtered.length === 0 ? 0 : pageStart + 1}-{Math.min(pageEnd, filtered.length)} of {filtered.length} alerts
+              </span>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    Prev
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      type="button"
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${
+                        p === currentPage
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/25"
+                          : "bg-white/[0.04] text-white/55 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/80"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {visibleAlerts.map((alert) => {
               const sev = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
               const Icon = alert.severity === "info" ? Info : AlertTriangle;
               const deviceOffline = offlineSerials.has(alert.device_serial);

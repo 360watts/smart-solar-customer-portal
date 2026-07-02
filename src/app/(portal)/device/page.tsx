@@ -45,6 +45,7 @@ interface Equipment {
     installed_date: string;
     warranty_expiry: string;
     is_active: boolean;
+    logger_serial?: string | null;
   }>;
   batteries: Array<{
     brand: string;
@@ -73,7 +74,26 @@ interface HardwareHealth {
 
 interface FleetDevice {
   device_serial: string;
+  device_type?: "gateway" | "energy_meter" | string;
   is_online: boolean;
+  last_heartbeat?: string | null;
+  age_seconds?: number | null;
+  model?: string;
+  firmware_version?: string;
+  connectivity_type?: string;
+  network_ip?: string;
+  signal_strength_dbm?: number | null;
+  device_temp_c?: number | null;
+}
+
+interface DisplayDevice {
+  key: string;
+  serial: string;
+  label: string;
+  is_online: boolean;
+  statusLabel: string;
+  description: string;
+  details: Array<{ label: string; value: string; tone?: string }>;
 }
 
 interface DeviceSummary {
@@ -183,6 +203,50 @@ function tempColor(c: number, warn = 65, critical = 75): string {
   return "#6B7A99";
 }
 
+function fleetDeviceLabel(deviceType?: string): string {
+  if (deviceType === "energy_meter") return "Energy Meter IoT Gateway";
+  return "Inverter IoT Gateway";
+}
+
+function buildDisplayDevices(fleet: FleetDevice[], inverterLoggerSerial?: string | null): DisplayDevice[] {
+  const rows: DisplayDevice[] = fleet.map((device) => ({
+    key: `attached-${device.device_serial}`,
+    serial: device.device_serial,
+    label: fleetDeviceLabel(device.device_type),
+    is_online: device.is_online,
+    statusLabel: device.is_online ? "Online" : "Offline",
+    description: device.device_type === "energy_meter"
+      ? "ESP32 gateway for the energy meter"
+      : "ESP32 gateway for the inverter",
+    details: [
+      { label: "Last seen", value: timeAgo(device.last_heartbeat ?? "") },
+      { label: "Firmware", value: device.firmware_version || "—" },
+      { label: "Model", value: device.model || "ESP32" },
+      { label: "Link", value: device.connectivity_type || "—" },
+      { label: "Signal", value: device.signal_strength_dbm != null ? `${device.signal_strength_dbm} dBm` : "—" },
+      { label: "IP", value: device.network_ip || "—" },
+      { label: "Temp", value: device.device_temp_c != null ? `${device.device_temp_c.toFixed(1)}°C` : "—", tone: device.device_temp_c != null ? tempColor(device.device_temp_c) : undefined },
+    ],
+  }));
+
+  if (inverterLoggerSerial && !rows.some((device) => device.serial === inverterLoggerSerial)) {
+    rows.push({
+      key: `logger-${inverterLoggerSerial}`,
+      serial: inverterLoggerSerial,
+      label: "Deye Logger",
+      is_online: true,
+      statusLabel: "Configured",
+      description: "Logger serial from the inverter model",
+      details: [
+        { label: "Source", value: "Inverter equipment" },
+        { label: "Telemetry", value: "Deye Logger fallback" },
+      ],
+    });
+  }
+
+  return rows;
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function SignalBarVisual({ dbm, showLabel }: { dbm: number | null; showLabel?: boolean }) {
@@ -258,8 +322,20 @@ export default function DevicePage() {
       const payload = summary.data.data;
       const realtime = (overview?.data?.data?.realtime ?? {}) as Record<string, unknown>;
       const fleet = (
-        (realtime.devices ?? []) as Array<{ device_serial: string; is_online?: boolean }>
-      ).map((d) => ({ device_serial: d.device_serial, is_online: Boolean(d.is_online) }));
+        (realtime.devices ?? []) as Array<FleetDevice>
+      ).map((d) => ({
+        device_serial: d.device_serial,
+        device_type: d.device_type ?? "gateway",
+        is_online: Boolean(d.is_online),
+        last_heartbeat: d.last_heartbeat,
+        age_seconds: d.age_seconds,
+        model: d.model,
+        firmware_version: d.firmware_version,
+        connectivity_type: d.connectivity_type,
+        network_ip: d.network_ip,
+        signal_strength_dbm: d.signal_strength_dbm,
+        device_temp_c: d.device_temp_c,
+      }));
       return {
         gateway: (payload.gateway ?? EMPTY_GATEWAY) as GatewayStatus,
         telemetry: (payload.telemetry ?? null) as TelemetryReading | null,
@@ -281,7 +357,9 @@ export default function DevicePage() {
   const equipment = data?.equipment ?? EMPTY_EQUIPMENT;
   const health = data?.health ?? EMPTY_HEALTH;
   const fleet = data?.fleet ?? [];
-  const fleetOfflineCount = fleet.filter((d) => !d.is_online).length;
+  const inverterLoggerSerial = equipment.inverters.find((inv) => inv.logger_serial)?.logger_serial;
+  const displayDevices = buildDisplayDevices(fleet, inverterLoggerSerial);
+  const displayOfflineCount = displayDevices.filter((d) => !d.is_online).length;
 
   const faultCodes = [
     telemetry.fault_code_1,
@@ -324,30 +402,50 @@ export default function DevicePage() {
         </GlassCard>
       )}
 
-      {/* Fleet status strip — shows offline state across all devices on this site */}
-      {fleet.length > 1 && (
+      {/* Endpoint status strip — device-table ESP32 gateways plus inverter logger metadata. */}
+      {displayDevices.length > 1 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassCard className={fleetOfflineCount > 0 ? "border-red-500/30" : "border-white/10"}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-white/60 uppercase tracking-widest font-medium">All Devices</p>
-              <span className={`text-xs font-semibold ${fleetOfflineCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                {fleetOfflineCount > 0 ? `${fleetOfflineCount}/${fleet.length} offline` : "All online"}
+          <GlassCard className={displayOfflineCount > 0 ? "border-red-500/30" : "border-white/10"}>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <p className="text-xs text-white/60 uppercase tracking-widest font-medium">Device Map</p>
+                <h2 className="text-lg font-semibold text-foreground mt-1">Site communication endpoints</h2>
+              </div>
+              <span className={`text-xs font-semibold ${displayOfflineCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                {displayOfflineCount > 0 ? `${displayOfflineCount} offline` : "Gateways online"}
               </span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {fleet.map((d) => (
-                <span
-                  key={d.device_serial}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono border"
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              {displayDevices.map((d) => (
+                <div
+                  key={d.key}
+                  className="rounded-xl border p-3 flex flex-col gap-3"
                   style={
                     d.is_online
                       ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
                       : { background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: "#f87171" }
                   }
                 >
-                  {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}
-                  {d.device_serial}
-                </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {d.is_online ? <Wifi size={14} /> : <WifiOff size={14} />}
+                      <span className="font-semibold text-sm text-foreground truncate">{d.label}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{d.statusLabel}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-white/50">{d.description}</p>
+                  <p className="font-mono text-xs text-white/70 break-all">{d.serial}</p>
+                  <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                    {d.details.map((detail) => (
+                      <div key={`${d.key}-${detail.label}`} className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-white/35">{detail.label}</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-white/75" style={detail.tone ? { color: detail.tone } : undefined}>
+                          {detail.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </GlassCard>
@@ -366,7 +464,7 @@ export default function DevicePage() {
                 <Cpu size={22} style={{ color: "#2FBF71" }} />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">Deye Inverter Gateway</h3>
+                <h3 className="font-semibold text-foreground">Inverter IoT Gateway</h3>
                 <p className="text-sm text-muted-foreground font-mono">{gateway.serial}</p>
               </div>
             </div>
@@ -400,7 +498,7 @@ export default function DevicePage() {
                       : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
                   }
                 >
-                  {gateway.data_source === "rs485" ? "RS-485" : "Deye Cloud"}
+                  {gateway.data_source === "rs485" ? "RS-485" : "Deye Logger"}
                 </span>
               </span>
             )}
@@ -413,7 +511,7 @@ export default function DevicePage() {
               <span>⚠</span>
               <span>
                 RS-485 link inactive since {gateway.rs485_last_seen ? timeAgo(gateway.rs485_last_seen) : "unknown"}.
-                Showing values from Deye Cloud logger (WiFi stick). Gateway is online.
+                Showing values from the Deye Logger WiFi stick. Gateway is online.
               </span>
             </div>
           )}
@@ -493,6 +591,11 @@ export default function DevicePage() {
               <div key={i} className="space-y-1.5 text-sm">
                 <p className="font-bold text-foreground">{inv.brand} {inv.model}</p>
                 <p className="text-muted-foreground">{inv.capacity_kva} kVA</p>
+                {inv.logger_serial && (
+                  <p className="text-muted-foreground">
+                    Deye Logger <span className="font-mono text-white/70">{inv.logger_serial}</span>
+                  </p>
+                )}
                 <p className="text-muted-foreground">Installed {inv.installed_date}</p>
                 <p style={{ color: warrantyColor(inv.warranty_expiry), fontSize: 12 }}>
                   Warranty expires {warrantyYear(inv.warranty_expiry)}

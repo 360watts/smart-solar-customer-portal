@@ -21,6 +21,8 @@ import { TTL } from "@/lib/portalCache";
 
 interface Device {
   serial: string;
+  label?: string;
+  device_type?: string;
   status: "online" | "offline";
   alert_count: number;
 }
@@ -45,6 +47,11 @@ interface DashboardData {
   performanceRatio: number | null;
   hourly: HourlyPoint[];
   nowIndex: number;
+}
+
+function deviceTypeLabel(deviceType?: string): string {
+  if (deviceType === "energy_meter") return "Energy Meter IoT Gateway";
+  return "Inverter IoT Gateway";
 }
 
 // ─── Animated counter ─────────────────────────────────────────────────────────
@@ -101,6 +108,7 @@ interface DetailedKpiCardProps {
   bigUnit: string;
   progressPct: number;
   progressLabel: string;
+  progressValueLabel?: string;
   rows: KpiStatRow[];
   footer: string;
   loading: boolean;
@@ -115,7 +123,7 @@ const KPI_COLOR_MAP = {
 
 function DetailedKpiCard({
   label, icon: Icon, color, badge, badgeTone = "neutral",
-  bigValue, bigDecimals = 1, bigUnit, progressPct, progressLabel,
+  bigValue, bigDecimals = 1, bigUnit, progressPct, progressLabel, progressValueLabel,
   rows, footer, loading, delay = 0,
 }: DetailedKpiCardProps) {
   const cm = KPI_COLOR_MAP[color];
@@ -130,7 +138,7 @@ function DetailedKpiCard({
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 28, delay: delay * 0.08 }}
       whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
-      className={`glass border ${cm.border} rounded-2xl p-5 cursor-default`}
+      className={`glass border ${cm.border} rounded-2xl p-5 cursor-default h-full min-h-[248px] flex flex-col`}
     >
       {/* Header: icon + badge */}
       <div className="flex items-start justify-between mb-4">
@@ -145,7 +153,7 @@ function DetailedKpiCard({
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1">
           <SkeletonPulse className="h-9 w-24" />
           <SkeletonPulse className="h-1.5 w-full rounded-full" />
           <SkeletonPulse className="h-8 w-full rounded-xl" />
@@ -172,7 +180,7 @@ function DetailedKpiCard({
             </div>
             <div className="flex justify-between mt-1.5">
               <span className="text-[10px] text-white/45">{progressLabel}</span>
-              <span className="text-[10px] font-semibold" style={{ color: cm.hex }}>{Math.round(clampedPct)}%</span>
+              <span className="text-[10px] font-semibold" style={{ color: cm.hex }}>{progressValueLabel ?? `${Math.round(clampedPct)}%`}</span>
             </div>
           </div>
 
@@ -192,7 +200,7 @@ function DetailedKpiCard({
           </div>
 
           {/* Footer */}
-          <p className="text-[10px] text-white/40 pt-2 border-t border-white/5 leading-relaxed">{footer}</p>
+          <p className="mt-auto min-h-[48px] rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-2 text-[11px] text-white/62 leading-snug">{footer}</p>
         </>
       )}
     </motion.div>
@@ -498,10 +506,13 @@ export default function OverviewPage() {
       const devices: Device[] = (
         ((payload.realtime as Record<string, any>)?.devices ?? []) as Array<{
           device_serial: string;
+          device_type?: string;
           is_online?: boolean;
         }>
       ).map((dev) => ({
         serial: dev.device_serial,
+        label: deviceTypeLabel(dev.device_type),
+        device_type: dev.device_type ?? "gateway",
         status: dev.is_online ? "online" : "offline",
         alert_count: deviceAlertMap.get(dev.device_serial)?.count ?? 0,
       }));
@@ -740,7 +751,24 @@ export default function OverviewPage() {
               const monthGenKwh = d?.monthGenKwh ?? 0;
               const co2AvoidedKg = d?.co2AvoidedKg ?? 0;
               const headroomKw = Math.max(0, capacityKwp - peakTodayKw);
-              const utilizationPct = capacityKwp > 0 ? (peakTodayKw / capacityKwp) * 100 : 0;
+              const onlineDevices = d?.devices.filter((dev) => dev.status === "online").length ?? 0;
+              const totalDevices = d?.devices.length ?? 0;
+              const healthPct = totalDevices > 0
+                ? Math.round((onlineDevices / totalDevices) * 100)
+                : d?.isOnline
+                  ? 100
+                  : 0;
+              const healthLabel =
+                healthPct >= 100 ? "Healthy" :
+                healthPct >= 70 ? "Degraded" :
+                healthPct > 0 ? "Needs Review" :
+                "Offline";
+              const healthFooter =
+                totalDevices === 0
+                  ? "System health is based on the site connection state."
+                  : healthPct >= 100
+                    ? "All monitored devices are online and reporting."
+                    : `${onlineDevices} of ${totalDevices} monitored devices are online.`;
 
               // ~5 peak-sun-hours/day is a reasonable Coimbatore reference for "a great day's yield".
               const dailyPotentialKwh = capacityKwp * 5;
@@ -763,17 +791,14 @@ export default function OverviewPage() {
                     badgeTone="good"
                     bigValue={capacityKwp}
                     bigUnit="kWp"
-                    progressPct={utilizationPct}
-                    progressLabel="Today's peak utilization"
+                    progressPct={healthPct}
+                    progressLabel="System health"
+                    progressValueLabel={healthLabel}
                     rows={[
                       { label: "Peak Today", value: `${peakTodayKw.toFixed(1)} kW`, dot: "#2FBF71", glow: "rgba(47,191,113,0.5)" },
                       { label: "Headroom", value: `${headroomKw.toFixed(1)} kW`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
                     ]}
-                    footer={
-                      utilizationPct >= 90
-                        ? "System reached near-peak output today."
-                        : "Room to generate more on clearer days."
-                    }
+                    footer={healthFooter}
                     loading={loading}
                     delay={0}
                   />

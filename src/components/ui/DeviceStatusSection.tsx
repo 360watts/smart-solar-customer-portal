@@ -6,6 +6,8 @@ import { AlertTriangle, Wifi, WifiOff, ChevronDown } from "lucide-react";
 
 interface Device {
   serial: string;
+  label?: string;
+  device_type?: string;
   status: "online" | "offline";
   last_seen?: string;
   alert_count: number;
@@ -33,11 +35,12 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
   onExpandChange,
 }) => {
   const [expanded, setExpanded] = useState(initialExpanded);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mq.matches);
     const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", listener);
     return () => mq.removeEventListener("change", listener);
@@ -188,8 +191,13 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ background: isOnline ? "#10b981" : "#ef4444" }}
                     />
-                    <p className={`text-xs font-mono ${textColor}`}>{device.serial}</p>
+                    <p className={`text-xs font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
                   </div>
+                  {device.label && (
+                    <p className={`text-xs mt-1 font-mono ${isOnline ? "text-emerald-200/50" : "text-red-200/50"}`}>
+                      {device.serial}
+                    </p>
+                  )}
                   <p className={`text-xs mt-1 ${isOnline ? "text-emerald-200/60" : "text-red-200/60"}`}>
                     {isOnline ? "Connected" : "Disconnected"}
                   </p>
