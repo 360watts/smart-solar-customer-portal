@@ -47,6 +47,7 @@ interface SolarData {
   regime: RegimeType;
   forecastRows: ForecastRow[];
   dailyRows: DailyRow[];
+  telRows: TelRow[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -70,6 +71,21 @@ function isToday(iso: string): boolean {
   return d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
+}
+
+/** Average actual PV kW for telemetry rows falling within the same hour as `hourIso`. */
+function actualKwForHour(hourIso: string, telRows: TelRow[]): number | null {
+  const target = new Date(hourIso);
+  const matching = telRows.filter((row) => {
+    const ts = new Date(row.timestamp);
+    return ts.getFullYear() === target.getFullYear()
+      && ts.getMonth() === target.getMonth()
+      && ts.getDate() === target.getDate()
+      && ts.getHours() === target.getHours();
+  });
+  if (matching.length === 0) return null;
+  const sum = matching.reduce((s, row) => s + pvKw(row), 0);
+  return parseFloat((sum / matching.length).toFixed(2));
 }
 
 function isTomorrow(iso: string): boolean {
@@ -202,7 +218,7 @@ export default function SolarPage() {
       const activeRegime = [...forecastRows].reverse().find((r) => r.regime && r.regime !== "Night");
       const regime = (activeRegime?.regime as RegimeType) ?? null;
 
-      return { todayGenKwh, currentOutputKw, peakKw, performanceRatio, regime, forecastRows, dailyRows };
+      return { todayGenKwh, currentOutputKw, peakKw, performanceRatio, regime, forecastRows, dailyRows, telRows };
     },
     { cacheKey: `solar:${user?.site_id}`, ttl: TTL.realtime, autoRefreshSec: 60 },
   );
@@ -214,6 +230,20 @@ export default function SolarPage() {
       forecastRange === "today" ? isToday(r.forecast_for) : isTomorrow(r.forecast_for),
     );
     if (rows.length === 0) return null;
+
+    const now = new Date();
+    // Actual generation only exists for today, and only up to the current
+    // hour — future hours (including all of "tomorrow") stay null so the
+    // line simply stops at "now" instead of drawing a misleading flat/zero
+    // tail into hours that haven't happened yet.
+    const actualData = forecastRange === "today"
+      ? rows.map((r) => {
+          const hour = new Date(r.forecast_for);
+          if (hour > now) return null;
+          return actualKwForHour(r.forecast_for, data?.telRows ?? []);
+        })
+      : rows.map(() => null);
+
     return {
       labels: rows.map((r) => fmtHour(r.forecast_for)),
       datasets: [
@@ -221,9 +251,10 @@ export default function SolarPage() {
         { label: "P50 (Median)",        data: rows.map((r) => Number(r.p50_kw) || 0),              borderColor: COLORS.primary,            backgroundColor: "transparent",            borderWidth: 2,   tension: 0.4, pointRadius: 0 },
         { label: "P10 (Conservative)",  data: rows.map((r) => Number(r.p10_kw) || 0),              borderColor: COLORS.p10,               backgroundColor: "transparent",            borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
         { label: "Physics Baseline",    data: rows.map((r) => Number(r.physics_baseline_kw) || 0), borderColor: "rgba(47,191,113,0.25)",   backgroundColor: "transparent",            borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+        { label: "Actual",              data: actualData,                                          borderColor: COLORS.solar,              backgroundColor: "transparent",            borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: false },
       ],
     };
-  }, [data?.forecastRows, forecastRange]);
+  }, [data?.forecastRows, data?.telRows, forecastRange]);
 
   const weeklyTrendData = useMemo(() => {
     const rows = data?.dailyRows ?? [];
@@ -311,6 +342,7 @@ export default function SolarPage() {
             { label: "P90 Optimistic",   color: COLORS.p90,                 dash: false },
             { label: "P10 Conservative", color: COLORS.p10,                 dash: true  },
             { label: "Physics Baseline", color: "rgba(47,191,113,0.35)",   dash: true  },
+            ...(forecastRange === "today" ? [{ label: "Actual", color: COLORS.solar, dash: false }] : []),
           ].map((l) => (
             <div key={l.label} className="flex items-center gap-1.5">
               <div className="w-5 h-px" style={{
@@ -342,11 +374,11 @@ export default function SolarPage() {
           </h2>
         </div>
         {loading ? (
-          <SkeletonPulse className="h-44 w-full rounded-xl" />
+          <SkeletonPulse className="h-64 w-full rounded-xl" />
         ) : weeklyTrendData ? (
-          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={180} />
+          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={260} />
         ) : (
-          <div className="h-44 flex items-center justify-center text-white/30 text-base">
+          <div className="h-64 flex items-center justify-center text-white/30 text-base">
             No generation data available
           </div>
         )}

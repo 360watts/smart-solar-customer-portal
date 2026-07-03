@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import React, { ReactNode } from "react";
 
 import PortalSidebar from "@/components/layout/PortalSidebar";
 import { hasSessionCookies } from "@/lib/server-auth";
+
+export const metadata: Metadata = {
+  title: "Customer Portal",
+  description: "Monitor your solar generation, savings, devices, and service health.",
+};
 
 export default async function PortalLayout({
   children,

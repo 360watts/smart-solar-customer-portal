@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Unauthorized",
+  description: "This account does not have access to the 360watts customer portal.",
+};
+
 export default function UnauthorizedPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-6">

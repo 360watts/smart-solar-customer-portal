@@ -223,7 +223,7 @@ export default function HistoryPage() {
           bars={chartView === "energy" ? energyTrendBars : savingsTrendBars}
           trend={{ mode: "moving-average", window: 3 }}
           unit={chartView === "energy" ? "kWh" : "₹"}
-          height={220}
+          height={300}
         />
       </GlassCard>
 

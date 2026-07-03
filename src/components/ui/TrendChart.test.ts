@@ -30,8 +30,9 @@ afterEach(() => {
 });
 
 describe("buildMovingAverage", () => {
-  it("returns null until the default trailing window is full", () => {
-    expect(buildMovingAverage([3, 6, 9, 12])).toEqual([null, null, 6, 9]);
+  it("uses an expanding window for leading points instead of null, so the line connects every bar", () => {
+    // idx0: mean([3]); idx1: mean([3,6]); idx2: mean([3,6,9]) (window full); idx3: mean([6,9,12])
+    expect(buildMovingAverage([3, 6, 9, 12])).toEqual([3, 4.5, 6, 9]);
   });
 
   it("keeps the same length as the input", () => {
@@ -41,11 +42,11 @@ describe("buildMovingAverage", () => {
   });
 
   it("averages once when the window equals the input length", () => {
-    expect(buildMovingAverage([4, 8, 12], 3)).toEqual([null, null, 8]);
+    expect(buildMovingAverage([4, 8, 12], 3)).toEqual([4, 6, 8]);
   });
 
-  it("returns all nulls when the window is larger than the input", () => {
-    expect(buildMovingAverage([4, 8], 3)).toEqual([null, null]);
+  it("expands over all available points when the window is larger than the input", () => {
+    expect(buildMovingAverage([4, 8], 3)).toEqual([4, 6]);
   });
 
   it("returns an empty array for empty input", () => {
@@ -183,9 +184,10 @@ describe("buildTrendChartData", () => {
     expect(result.datasets[0].yAxisID).toBe("y");
   });
 
-  it("adds a moving-average line dataset on the primary axis", () => {
+  it("adds a moving-average line dataset on the primary axis, connecting every bar", () => {
     const result = buildTrendChartData({
-      ...baseProps,
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      bars: [{ label: "Generation kWh", values: [10, 15, 8, 20, 12], color: "#2FBF71" }],
       trend: { mode: "moving-average", window: 3 },
     });
 
@@ -193,8 +195,25 @@ describe("buildTrendChartData", () => {
     const line = result.datasets.find((dataset) => dataset.type === "line");
 
     expect(line).toBeDefined();
-    expect(line?.data).toEqual([null, null, 11, 43 / 3]);
+    // idx0: mean([10]); idx1: mean([10,15]); idx2: mean([10,15,8]) (window full); idx3: mean([15,8,20]); idx4: mean([8,20,12])
+    expect(line?.data).toEqual([10, 12.5, 11, 43 / 3, 40 / 3]);
     expect(line?.yAxisID).toBe("y");
+  });
+
+  it("still connects every bar with a moving-average line when there are few data points", () => {
+    // Previously a sparse series (e.g. 4 months with window=3) produced only
+    // 2 plotted points, appearing as a floating line disconnected from the
+    // earlier bars. The expanding-window leading average (see
+    // buildMovingAverage) means the line now has one point per bar, always.
+    const result = buildTrendChartData({
+      ...baseProps, // 4 labels/values, window defaults to 3
+      trend: { mode: "moving-average", window: 3 },
+    });
+
+    expect(result.datasets).toHaveLength(2);
+    const line = result.datasets.find((dataset) => dataset.type === "line");
+    expect(line?.data).toHaveLength(baseProps.bars[0].values.length);
+    expect(line?.data.every((value) => typeof value === "number")).toBe(true);
   });
 
   it("uses self-sufficiency values directly on the right axis", () => {
@@ -222,16 +241,16 @@ describe("buildTrendChartData", () => {
 
   it("moving-average tracks bars[0] with multiple bar series", () => {
     const result = buildTrendChartData({
-      labels: ["Mon", "Tue", "Wed", "Thu"],
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
       bars: [
         {
           label: "Generation kWh",
-          values: [10, 15, 8, 20],
+          values: [10, 15, 8, 20, 12],
           color: "#2FBF71",
         },
         {
           label: "Consumption kWh",
-          values: [5, 5, 5, 5],
+          values: [5, 5, 5, 5, 5],
           color: "#60a5fa",
         },
       ],
@@ -240,7 +259,7 @@ describe("buildTrendChartData", () => {
     const line = result.datasets.find((dataset) => dataset.type === "line");
 
     expect(result.datasets).toHaveLength(3);
-    expect(line?.data).toEqual([null, null, 11, 43 / 3]);
+    expect(line?.data).toEqual([10, 12.5, 11, 43 / 3, 40 / 3]);
   });
 
   it("throws when bars are empty", () => {

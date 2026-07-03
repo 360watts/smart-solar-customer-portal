@@ -99,13 +99,9 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
         <div className="hidden lg:flex items-center gap-3">
           <Link
             href="/auth/login"
-            className={`px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 border font-medium rounded-lg transition-all font-['Poppins'] text-sm xl:text-base ${
-              showTransparent
-                ? "border-white/50 text-white hover:bg-white/10"
-                : "border-[#017c54]/30 text-[#017c54] hover:bg-[#017c54]/5"
-            }`}
+            className="px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 border border-[#F07522]/50 bg-gradient-to-r from-[#F07522] to-[#d9631a] text-white font-medium rounded-lg transition-all font-['Poppins'] text-sm xl:text-base hover:opacity-90"
           >
-            Customer Login
+            360watts Login
           </Link>
           <a
             href="#solar-calculator"
@@ -153,7 +149,7 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
               href="/auth/login"
               className="flex items-center justify-center w-full px-4 py-3 mb-2 border border-[#017c54]/25 text-[#017c54] font-semibold rounded-xl font-['Poppins']"
             >
-              Customer Login
+              360watts Login
             </Link>
             <a
               href="#solar-calculator"

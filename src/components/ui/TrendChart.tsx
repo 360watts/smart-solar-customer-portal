@@ -90,21 +90,24 @@ export interface TrendChartProps {
 export function buildMovingAverage(
   values: number[],
   window = 3,
-): (number | null)[] {
+): number[] {
   if (!Number.isInteger(window) || window < 1) {
     throw new Error("TrendChart: moving average window must be a positive integer.");
   }
 
   if (values.length === 0) return [];
 
+  // Expanding window for the leading points (mean of whatever's available so
+  // far) rather than `null` until a full window exists — a trend line that
+  // only starts partway through the chart reads as a rendering glitch, not a
+  // trend. Connecting every bar from the first one is worth the leading
+  // points being a less statistically "pure" average.
   return values.map((_, index) => {
-    if (index < window - 1) return null;
-
-    const start = index - window + 1;
+    const start = Math.max(0, index - window + 1);
     const windowValues = values.slice(start, index + 1);
     const total = windowValues.reduce((sum, value) => sum + value, 0);
 
-    return total / window;
+    return total / windowValues.length;
   });
 }
 
@@ -339,8 +342,28 @@ function createPeakMinMarkersPlugin(
         ctx.beginPath();
         ctx.arc(markerX, markerY, dotRadius, 0, Math.PI * 2);
         ctx.fill();
+
+        // A translucent backdrop behind the label keeps it legible over the
+        // trend line, gridlines, or a bar edge — whatever happens to sit
+        // behind it — rather than relying on positioning alone to dodge them.
         ctx.textAlign = "center";
         ctx.textBaseline = labelPosition === "above" ? "bottom" : "top";
+        const backdropPaddingX = 5;
+        const backdropPaddingY = 3;
+        const backdropHeight = fontSize + backdropPaddingY * 2;
+        const backdropY = labelPosition === "above" ? labelY - backdropHeight + backdropPaddingY : labelY - backdropPaddingY;
+        ctx.fillStyle = "rgba(6, 10, 16, 0.78)";
+        ctx.beginPath();
+        ctx.roundRect(
+          labelX - labelWidth / 2 - backdropPaddingX,
+          backdropY,
+          labelWidth + backdropPaddingX * 2,
+          backdropHeight,
+          6,
+        );
+        ctx.fill();
+
+        ctx.fillStyle = color;
         ctx.fillText(label, labelX, labelY);
         ctx.restore();
       };
@@ -385,9 +408,11 @@ export function buildTrendChartData(
   }
 
   const isSelfSufficiency = props.trend.mode === "self-sufficiency";
+  const movingAverageWindow = props.trend.mode === "moving-average" ? (props.trend.window ?? 3) : 3;
+
   const lineData = props.trend.mode === "self-sufficiency"
     ? (trendValues ?? [])
-    : buildMovingAverage(bars[0].values, props.trend.window ?? 3);
+    : buildMovingAverage(bars[0].values, movingAverageWindow);
 
   const lineDataset: ChartDataset<"bar" | "line"> = {
     type: "line" as const,
@@ -505,6 +530,15 @@ export default function TrendChart({
     chartRef.current?.resetZoom?.();
   };
   const plugins = bars.length === 1 ? [createPeakMinMarkersPlugin(unit)] : [];
+  // react-chartjs-2's generic <Chart> doesn't reliably re-apply plugin or
+  // scale changes to an already-mounted Chart.js instance — it primarily
+  // reacts to data/option VALUE changes via chart.update(), not additions or
+  // removals of plugins/scales themselves. Concretely: toggling a page
+  // between a single-series view (peak/min markers + no secondary axis) and
+  // a multi-series view (no markers) without remounting left the markers
+  // permanently missing after the first toggle. Keying on everything that
+  // changes the chart's "shape" forces a clean remount instead.
+  const chartShapeKey = `${bars.length}-${trend?.mode ?? "none"}`;
 
   return (
     <div style={{ position: "relative" }}>
@@ -515,6 +549,7 @@ export default function TrendChart({
       )}
       <div style={{ height }} onDoubleClick={handleDoubleClick}>
         <Chart
+          key={chartShapeKey}
           ref={chartRef}
           type="bar"
           data={data}

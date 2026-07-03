@@ -271,10 +271,10 @@ export default function ConsumptionPage() {
         </div>
 
         {loading && !data ? (
-          <div className="h-56 rounded-xl bg-white/[0.04] animate-pulse" />
+          <div className="h-[280px] rounded-xl bg-white/[0.04] animate-pulse" />
         ) : view === "Week" ? (
           !data?.weekTrend || data.weekTrend.labels.length === 0 ? (
-            <div className="h-56 flex items-center justify-center text-base text-white/40">No data available for this period.</div>
+            <div className="h-[280px] flex items-center justify-center text-base text-white/40">No data available for this period.</div>
           ) : (
             <TrendChart
               labels={data.weekTrend.labels}
@@ -284,13 +284,13 @@ export default function ConsumptionPage() {
               ]}
               trend={{ mode: "self-sufficiency", values: data.weekTrend.selfSufficiency, label: "Self-Sufficiency" }}
               unit="kWh"
-              height={220}
+              height={280}
             />
           )
         ) : !chartData || chartData.labels.length === 0 ? (
-          <div className="h-56 flex items-center justify-center text-base text-white/40">No data available for this period.</div>
+          <div className="h-[280px] flex items-center justify-center text-base text-white/40">No data available for this period.</div>
         ) : (
-          <DataChart type={chartType} data={chartData} height={220} />
+          <DataChart type={chartType} data={chartData} height={280} />
         )}
 
         {view === "Day" && (

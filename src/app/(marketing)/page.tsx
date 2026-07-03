@@ -35,7 +35,9 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://360watts.com"),
-  title: "360watts - Smart Solar & Home Automation Solutions | Coimbatore",
+  title: {
+    absolute: "360watts - Smart Solar & Home Automation Solutions | Coimbatore",
+  },
   description:
     "360watts provides solar power solutions and smart home automation in Coimbatore, Tamil Nadu. Save energy, reduce bills, and live sustainably with an integrated platform.",
   openGraph: {

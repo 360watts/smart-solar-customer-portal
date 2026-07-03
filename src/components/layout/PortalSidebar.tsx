@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, User, ChevronLeft,
+  LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, ChevronLeft,
   LogOut, PiggyBank, ShieldCheck,
 } from "lucide-react";
 import { cn, getPlanTierMeta } from "@/lib/utils";
@@ -57,15 +58,22 @@ const PortalSidebar = React.memo(function PortalSidebar() {
       >
       {/* Logo */}
       <div className="flex items-center h-16 px-4 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <div className="relative w-8 h-8 shrink-0">
+        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+          {/* Soft ambient bloom behind the mark, on-theme instead of a white chip */}
           <motion.div
-            className="absolute inset-0 rounded-full bg-emerald-500/20"
-            animate={tabVisible ? { scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] } : { scale: 1, opacity: 0.5 }}
+            className="absolute inset-[-6px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(47,191,113,0.35) 0%, rgba(47,191,113,0) 70%)" }}
+            animate={tabVisible ? { scale: [1, 1.25, 1], opacity: [0.7, 0.35, 0.7] } : { scale: 1, opacity: 0.55 }}
             transition={tabVisible ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0 }}
           />
-          <div className="relative w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-            <Sun size={16} className="text-emerald-400" />
-          </div>
+          <Image
+            src="/final-logo-png-4x-2.png"
+            alt="360watts"
+            width={25}
+            height={18}
+            priority
+            className="relative h-[22px] w-auto object-contain logo-glow"
+          />
         </div>
         <AnimatePresence>
           {!collapsed && (
@@ -77,7 +85,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
               className="ml-3 font-bold text-white text-base tracking-wide whitespace-nowrap"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              360Watts
+              360watts
             </motion.span>
           )}
         </AnimatePresence>
@@ -116,7 +124,8 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="text-base font-medium whitespace-nowrap flex-1"
+                      className="text-[15px] font-semibold tracking-[0.01em] whitespace-nowrap flex-1"
+                      style={{ fontFamily: "var(--font-nav)" }}
                     >
                       {item.label}
                     </motion.span>
