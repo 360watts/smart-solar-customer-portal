@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Zap, TrendingUp, Leaf, ArrowUpRight, Download } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import MetricCard from "@/components/ui/MetricCard";
-import DataChart from "@/components/ui/DataChart";
+import TrendChart from "@/components/ui/TrendChart";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -117,42 +117,14 @@ export default function HistoryPage() {
   const totalCo2 = calcCo2(totalGen);
   const totalExport = safeRows.reduce((s, r) => s + r.sell, 0);
 
-  // Chart data derived from rows
-  const energyChartData = {
-    labels: safeRows.map((r) => r.month.slice(0, 3)),
-    datasets: [
-      {
-        label: "Generation kWh",
-        data: safeRows.map((r) => r.gen),
-        backgroundColor: COLORS.primaryMuted,
-        borderColor: COLORS.primary,
-        borderWidth: 1,
-        borderRadius: 6,
-      },
-      {
-        label: "Consumption kWh",
-        data: safeRows.map((r) => r.con),
-        backgroundColor: COLORS.amberMuted,
-        borderColor: COLORS.amber,
-        borderWidth: 1,
-        borderRadius: 6,
-      },
-    ],
-  };
-
-  const savingsChartData = {
-    labels: safeRows.map((r) => r.month.slice(0, 3)),
-    datasets: [
-      {
-        label: "Savings ₹",
-        data: safeRows.map((r) => r.savings),
-        backgroundColor: COLORS.primaryMuted,
-        borderColor: COLORS.primary,
-        borderWidth: 1,
-        borderRadius: 6,
-      },
-    ],
-  };
+  const monthlyLabels = safeRows.map((r) => r.month.slice(0, 3));
+  const energyTrendBars = [
+    { label: "Generation kWh", values: safeRows.map((r) => r.gen), color: COLORS.primary },
+    { label: "Consumption kWh", values: safeRows.map((r) => r.con), color: COLORS.amber },
+  ];
+  const savingsTrendBars = [
+    { label: "Savings ₹", values: safeRows.map((r) => r.savings), color: COLORS.primary },
+  ];
 
   return (
     <div className="space-y-8">
@@ -246,9 +218,11 @@ export default function HistoryPage() {
             ))}
           </div>
         </div>
-        <DataChart
-          type="bar"
-          data={chartView === "energy" ? energyChartData : savingsChartData}
+        <TrendChart
+          labels={monthlyLabels}
+          bars={chartView === "energy" ? energyTrendBars : savingsTrendBars}
+          trend={{ mode: "moving-average", window: 3 }}
+          unit={chartView === "energy" ? "kWh" : "₹"}
           height={220}
         />
       </GlassCard>

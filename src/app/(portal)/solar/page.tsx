@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Sun, TrendingUp, Zap, CloudSun, Activity } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import DataChart from "@/components/ui/DataChart";
+import TrendChart from "@/components/ui/TrendChart";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -146,9 +147,13 @@ function KpiCard({
 export default function SolarPage() {
   const { user } = useAuth();
   const [forecastRange, setForecastRange] = useState<"today" | "tomorrow">("today");
-
-  const todayISO    = new Date().toISOString().slice(0, 10);
-  const weekAgoISO  = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const [{ todayISO, weekAgoISO }] = useState(() => {
+    const now = new Date();
+    return {
+      todayISO: now.toISOString().slice(0, 10),
+      weekAgoISO: new Date(now.getTime() - 7 * 864e5).toISOString().slice(0, 10),
+    };
+  });
 
   const { data, loading, error } = useSiteQuery<SolarData>(
     user?.site_id,
@@ -220,18 +225,15 @@ export default function SolarPage() {
     };
   }, [data?.forecastRows, forecastRange]);
 
-  const weeklyChartData = useMemo(() => {
+  const weeklyTrendData = useMemo(() => {
     const rows = data?.dailyRows ?? [];
     if (rows.length === 0) return null;
     return {
       labels: rows.map((r) => fmtDay(r.period_start)),
-      datasets: [{
+      bars: [{
         label: "Generation kWh",
-        data: rows.map((r) => parseFloat(Number(r.pv_gen_kwh).toFixed(1))),
-        backgroundColor: COLORS.primaryMuted,
-        borderColor: COLORS.primary,
-        borderWidth: 1,
-        borderRadius: 6,
+        values: rows.map((r) => parseFloat(Number(r.pv_gen_kwh).toFixed(1))),
+        color: COLORS.primary,
       }],
     };
   }, [data?.dailyRows]);
@@ -341,8 +343,8 @@ export default function SolarPage() {
         </div>
         {loading ? (
           <SkeletonPulse className="h-44 w-full rounded-xl" />
-        ) : weeklyChartData ? (
-          <DataChart type="bar" data={weeklyChartData} height={180} />
+        ) : weeklyTrendData ? (
+          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={180} />
         ) : (
           <div className="h-44 flex items-center justify-center text-white/30 text-base">
             No generation data available

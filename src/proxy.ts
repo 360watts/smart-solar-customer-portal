@@ -10,17 +10,19 @@ import {
 } from "@/lib/server-auth";
 
 const LOGIN_PATH = "/auth/login";
-const PORTAL_HOME = "/";
+const PORTAL_HOME = "/dashboard";
 
 function isProtectedPath(pathname: string): boolean {
   return [
-    "/",
+    "/dashboard",
     "/solar",
     "/consumption",
     "/history",
+    "/savings",
     "/weather",
     "/alerts",
     "/device",
+    "/care",
     "/profile",
   ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
@@ -69,14 +71,16 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
+    "/dashboard/:path*",
     "/auth/login",
     "/solar/:path*",
     "/consumption/:path*",
     "/history/:path*",
+    "/savings/:path*",
     "/weather/:path*",
     "/alerts/:path*",
     "/device/:path*",
+    "/care/:path*",
     "/profile/:path*",
   ],
 };

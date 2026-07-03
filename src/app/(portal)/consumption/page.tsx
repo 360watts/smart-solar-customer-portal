@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import GlassCard from "@/components/ui/GlassCard";
 import MetricCard from "@/components/ui/MetricCard";
 import DataChart from "@/components/ui/DataChart";
+import TrendChart from "@/components/ui/TrendChart";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +35,12 @@ interface ChartData {
   datasets: ChartDataset[];
 }
 
+interface EnergySummaryRow {
+  period_start?: string;
+  pv_gen_kwh?: number;
+  load_kwh?: number;
+}
+
 interface ConsumptionData {
   // KPIs
   consumptionKwh: number;
@@ -44,6 +51,12 @@ interface ConsumptionData {
   dayChart: ChartData;
   weekChart: ChartData;
   monthChart: ChartData;
+  weekTrend: {
+    labels: string[];
+    consumption: number[];
+    generation: number[];
+    selfSufficiency: number[];
+  } | null;
   // Load forecast
   forecastChart: ChartData;
 }
@@ -66,8 +79,6 @@ const TARIFF_BANDS = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function hourLabel(ts: string): string {
-  const d = new Date(ts);
-  const h = d.getHours();
   return formatHourLabel(ts);
 }
 
@@ -84,7 +95,7 @@ function buildDayChart(rows: Array<{ timestamp: string; pv1_power_w: number; pv2
 }
 
 function buildAggChart(
-  rows: Array<{ period_start?: string; pv_gen_kwh?: number; load_kwh?: number }>,
+  rows: EnergySummaryRow[],
   labelFn: (ts: string) => string,
 ): ChartData {
   const labels = rows.map((r) => labelFn(r.period_start ?? ""));
@@ -139,10 +150,25 @@ export default function ConsumptionPage() {
       // Telemetry: plain array with Watts fields
       const telRows = telDayS.status === "fulfilled" && Array.isArray(telDayS.value.data) ? telDayS.value.data : [];
       // Week / month: plain arrays from energy-summary
-      const weekRows  = weekS.status  === "fulfilled" ? (Array.isArray(weekS.value.data)  ? weekS.value.data  : (weekS.value.data?.results  ?? [])) : [];
-      const monthRows = monthS.status === "fulfilled" ? (Array.isArray(monthS.value.data) ? monthS.value.data : (monthS.value.data?.results ?? [])) : [];
+      const weekRows: EnergySummaryRow[]  = weekS.status  === "fulfilled" ? (Array.isArray(weekS.value.data)  ? weekS.value.data  : (weekS.value.data?.results  ?? [])) : [];
+      const monthRows: EnergySummaryRow[] = monthS.status === "fulfilled" ? (Array.isArray(monthS.value.data) ? monthS.value.data : (monthS.value.data?.results ?? [])) : [];
       // Load forecast: plain array
       const fRows = forecastS.status === "fulfilled" && Array.isArray(forecastS.value.data) ? forecastS.value.data : [];
+      const weekLabel = (ts: string) => new Date(ts).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+      const weekTrend = weekRows.length
+        ? (() => {
+          const labels = weekRows.map((r) => weekLabel(r.period_start ?? ""));
+          const consumption = weekRows.map((r) => Number(r.load_kwh) || 0);
+          const generation = weekRows.map((r) => Number(r.pv_gen_kwh) || 0);
+          const selfSufficiency = generation.map((gen, index) => {
+            const con = consumption[index];
+            if (con === 0) return 0;
+            return Math.min(100, Math.max(0, (gen / con) * 100));
+          });
+
+          return { labels, consumption, generation, selfSufficiency };
+        })()
+        : null;
 
       // site_daily_energy lags by ~1 day; fall back to integrating 5-min telemetry
       // when the summary entry for today is missing (each row ≈ 5 min = 1/12 h).
@@ -159,7 +185,8 @@ export default function ConsumptionPage() {
           : 0,
         gridImportKwh:      Number(todayTotals.grid_import_kwh) || 0,
         dayChart:      telRows.length   ? buildDayChart(telRows)                                      : { labels: [], datasets: [] },
-        weekChart:     weekRows.length  ? buildAggChart(weekRows,  (ts) => new Date(ts).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" })) : { labels: [], datasets: [] },
+        weekChart:     weekRows.length  ? buildAggChart(weekRows, weekLabel)                          : { labels: [], datasets: [] },
+        weekTrend,
         monthChart:    monthRows.length ? buildAggChart(monthRows, (ts) => new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }))  : { labels: [], datasets: [] },
         forecastChart: fRows.length     ? buildForecastChart(fRows)                                  : { labels: [], datasets: [] },
       };
@@ -176,9 +203,9 @@ export default function ConsumptionPage() {
     );
   }
 
-  const chartData = view === "Day" ? data?.dayChart : view === "Week" ? data?.weekChart : data?.monthChart;
-  // Day = line (power over time), Week = bars (daily totals), Month = line (trend over months)
-  const chartType: "line" | "bar" = view === "Week" ? "bar" : "line";
+  const chartData = view === "Day" ? data?.dayChart : view === "Month" ? data?.monthChart : undefined;
+  // Day = line (power over time), Week = TrendChart (daily totals + self-sufficiency), Month = line (trend over months)
+  const chartType = "line" as const;
 
   return (
     <div className="space-y-8">
@@ -224,10 +251,20 @@ export default function ConsumptionPage() {
         <div className="flex items-center gap-6 mb-4">
           {(view === "Day"
             ? [{ label: "Solar", color: COLORS.primary }, { label: "Load", color: "#60a5fa" }, { label: "Grid Import", color: COLORS.amber }]
-            : [{ label: "Consumption", color: "#60a5fa" }, { label: "Generation", color: COLORS.primary }]
+            : view === "Week"
+              ? [
+                  { label: "Consumption", color: "#60a5fa" },
+                  { label: "Generation", color: COLORS.primary },
+                  { label: "Self-Sufficiency", color: COLORS.amber, dash: true },
+                ]
+              : [{ label: "Consumption", color: "#60a5fa" }, { label: "Generation", color: COLORS.primary }]
           ).map((l) => (
             <div key={l.label} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ background: l.color }} />
+              {l.dash ? (
+                <div className="w-6 h-0.5" style={{ borderTop: `1.5px dashed ${l.color}` }} />
+              ) : (
+                <div className="w-3 h-3 rounded-full" style={{ background: l.color }} />
+              )}
               <span className="text-sm text-muted-foreground">{l.label}</span>
             </div>
           ))}
@@ -235,6 +272,21 @@ export default function ConsumptionPage() {
 
         {loading && !data ? (
           <div className="h-56 rounded-xl bg-white/[0.04] animate-pulse" />
+        ) : view === "Week" ? (
+          !data?.weekTrend || data.weekTrend.labels.length === 0 ? (
+            <div className="h-56 flex items-center justify-center text-base text-white/40">No data available for this period.</div>
+          ) : (
+            <TrendChart
+              labels={data.weekTrend.labels}
+              bars={[
+                { label: "Consumption kWh", values: data.weekTrend.consumption, color: "#60a5fa" },
+                { label: "Generation kWh", values: data.weekTrend.generation, color: COLORS.primary },
+              ]}
+              trend={{ mode: "self-sufficiency", values: data.weekTrend.selfSufficiency, label: "Self-Sufficiency" }}
+              unit="kWh"
+              height={220}
+            />
+          )
         ) : !chartData || chartData.labels.length === 0 ? (
           <div className="h-56 flex items-center justify-center text-base text-white/40">No data available for this period.</div>
         ) : (

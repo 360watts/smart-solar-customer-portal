@@ -8,11 +8,11 @@ import {
   LayoutDashboard, Sun, Zap, TrendingUp, Cloud, AlertCircle, Cpu, User, ChevronLeft,
   LogOut, PiggyBank, ShieldCheck,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getPlanTierMeta } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV = [
-  { href: "/", icon: LayoutDashboard, label: "Overview" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { href: "/solar", icon: Sun, label: "Solar" },
   { href: "/consumption", icon: Zap, label: "Consumption" },
   { href: "/history", icon: TrendingUp, label: "History" },
@@ -34,6 +34,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
   const { user, logout } = useAuth();
   const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase() || "C";
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Customer";
+  const tier = getPlanTierMeta(user?.plan_type);
 
   useEffect(() => {
     const onVisibility = () => setTabVisible(!document.hidden);
@@ -178,7 +179,13 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                   className="min-w-0"
                 >
                   <p className="text-sm font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">{displayName}</p>
-                  <p className="text-sm text-white/55 truncate group-hover:text-white/65 transition-colors">Customer Portal</p>
+                  <p className={cn("text-sm truncate flex items-center gap-1.5", tier.textClass)}>
+                    <span
+                      className={cn("w-1.5 h-1.5 rounded-full shrink-0", tier.dotClass)}
+                      style={tier.glow ? { boxShadow: "0 0 6px currentColor" } : undefined}
+                    />
+                    {tier.label}
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -14,6 +14,8 @@ export interface BackendProfile {
   is_superuser?: boolean;
   site_id?: string | null;
   memberships?: SessionMembership[];
+  plan_type?: string | null;
+  subscription_status?: string | null;
 }
 
 export interface CustomerSession {
@@ -24,6 +26,8 @@ export interface CustomerSession {
     last_name: string;
     user_type: string | null;
     memberships: SessionMembership[];
+    plan_type: string | null;
+    subscription_status: string | null;
   };
   activeSiteId: string | null;
 }
@@ -47,6 +51,8 @@ export function buildCustomerSession(profile: BackendProfile): CustomerSession {
       last_name: profile.last_name,
       user_type: profile.user_type ?? null,
       memberships,
+      plan_type: profile.plan_type ?? null,
+      subscription_status: profile.subscription_status ?? null,
     },
     activeSiteId,
   };

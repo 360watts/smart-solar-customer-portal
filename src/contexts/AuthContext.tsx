@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const nextUser = await loginWithPassword(email, password);
     setUser(nextUser);
     setStatus("authenticated");
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 

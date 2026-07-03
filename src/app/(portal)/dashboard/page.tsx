@@ -41,6 +41,8 @@ interface DashboardData {
   alertsCounts: { critical: number; warning: number; info: number };
   devices: Device[];
   isOnline: boolean;
+  dataSource: string | null;
+  isTelemetryFresh: boolean;
   capacityKwp: number;
   siteName: string;
   peakTodayKw: number;
@@ -375,7 +377,18 @@ export default function OverviewPage() {
       // Use realtime latest_telemetry for live output — it's the absolute newest reading,
       // independent of the chart window. Fall back to chart's last row.
       const rt = (payload.realtime ?? {}) as Record<string, unknown>;
-      const ltRaw = (rt.latest_telemetry ?? null) as Record<string, number> | null;
+      const ltRawUnknown = (rt.latest_telemetry ?? null) as Record<string, unknown> | null;
+      const ltRaw = ltRawUnknown as Record<string, number> | null;
+      const dataSource = (rt.data_source ?? null) as string | null;
+      // Telemetry can still be live via the backend's Deye Cloud fallback poll even
+      // when every device is heartbeat-offline (RS-485/MQTT down) — don't conflate
+      // "device offline" with "no live data". 15 min matches the platform's Deye
+      // Cloud freshness window with headroom for the portal's own refresh interval.
+      const TELEMETRY_FRESH_MS = 15 * 60 * 1000;
+      const latestTelemetryAgeMs = ltRawUnknown?.timestamp
+        ? Date.now() - new Date(String(ltRawUnknown.timestamp)).getTime()
+        : null;
+      const isTelemetryFresh = latestTelemetryAgeMs !== null && latestTelemetryAgeMs < TELEMETRY_FRESH_MS;
       const liveRow = ltRaw ? {
         solarKw:    ltRaw.actual_solar_kw != null
           ? Number(ltRaw.actual_solar_kw)
@@ -517,6 +530,8 @@ export default function OverviewPage() {
         alertsCounts,
         devices,
         isOnline,
+        dataSource,
+        isTelemetryFresh,
         capacityKwp,
         siteName,
         peakTodayKw,
@@ -539,12 +554,16 @@ export default function OverviewPage() {
   const firstName = user?.first_name || "there";
   const d = data;
 
-  // All devices offline → live readings are stale/frozen at last-known values.
-  // Showing them as if live would be misleading, so the flow diagram and
-  // "Live Output" panel switch to an explicit offline state instead.
+  // All devices heartbeat-offline (RS-485/MQTT down). This does NOT necessarily
+  // mean the readings are stale — the backend's Deye Cloud fallback poll can still
+  // be delivering fresh telemetry directly from the inverter manufacturer's API
+  // while the gateway itself is unreachable. Only freeze the UI when the telemetry
+  // itself has actually gone stale; otherwise show it live with a "via cloud" note.
   const allDevicesOffline = !!d && d.devices.length > 0 && d.devices.every((dev) => dev.status === "offline");
+  const isLiveViaCloudFallback = allDevicesOffline && !!d?.isTelemetryFresh;
+  const isFlowFrozen = allDevicesOffline && !d?.isTelemetryFresh;
 
-  const flowData = d && !allDevicesOffline
+  const flowData = d && !isFlowFrozen
     ? {
         solarKw:    d.currentSolarKw,
         homeKw:     d.currentLoadKw,
@@ -617,12 +636,12 @@ export default function OverviewPage() {
         {/* Left — live output stats */}
         <div className="min-w-0" style={{ flex: "3" }}>
           <div className="flex items-center gap-2 mb-5">
-            <div className={`w-1.5 h-1.5 rounded-full ${allDevicesOffline ? "bg-red-500" : "bg-emerald-400 animate-pulse"}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${isFlowFrozen ? "bg-red-500" : isLiveViaCloudFallback ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-pulse"}`} />
             <span
               className="text-sm uppercase tracking-[0.18em] font-medium"
-              style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
+              style={{ color: isFlowFrozen ? "#f87171" : isLiveViaCloudFallback ? "#f0b429" : "#2FBF71" }}
             >
-              {allDevicesOffline ? "Offline — Last Known" : "Live Output"}
+              {isFlowFrozen ? "Offline — Last Known" : isLiveViaCloudFallback ? "Live · Via Cloud" : "Live Output"}
             </span>
           </div>
 
@@ -637,14 +656,18 @@ export default function OverviewPage() {
           ) : (
             <>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className={`stat-number text-6xl ${allDevicesOffline ? "text-white/40" : "glow-text-green"}`}>
+                <span className={`stat-number text-6xl ${isFlowFrozen ? "text-white/40" : "glow-text-green"}`}>
                   <AnimatedNumber value={d?.currentSolarKw ?? 0} decimals={1} />
                 </span>
                 <span className="text-xl text-white/45 font-light">kW</span>
               </div>
               <p className="text-white/55 text-base mb-8">
-                {allDevicesOffline ? (
+                {isFlowFrozen ? (
                   <span className="text-red-300/80 font-medium">Frozen at last reading before disconnect</span>
+                ) : isLiveViaCloudFallback ? (
+                  <span className="text-amber-300/80 font-medium">
+                    Gateway offline — showing live data via inverter cloud
+                  </span>
                 ) : (
                   <>
                     Peak today:{" "}
@@ -686,13 +709,13 @@ export default function OverviewPage() {
         <div className="min-w-0" style={{ flex: "7" }}>
           <p
             className="text-sm uppercase tracking-[0.18em] font-medium mb-3"
-            style={{ color: allDevicesOffline ? "#f87171" : "#2FBF71" }}
+            style={{ color: isFlowFrozen ? "#f87171" : isLiveViaCloudFallback ? "#f0b429" : "#2FBF71" }}
           >
-            {allDevicesOffline ? "Energy Flow Unavailable" : "Live Energy Flow"}
+            {isFlowFrozen ? "Energy Flow Unavailable" : isLiveViaCloudFallback ? "Live Energy Flow · Via Cloud" : "Live Energy Flow"}
           </p>
           {loading ? (
             <SkeletonPulse className="h-48 w-full rounded-2xl" />
-          ) : allDevicesOffline ? (
+          ) : isFlowFrozen ? (
             <div className="h-48 w-full rounded-2xl border border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center gap-2 text-center px-6">
               <AlertTriangle size={22} className="text-red-400/70" />
               <p className="text-base text-red-200/80 font-medium">
@@ -703,7 +726,16 @@ export default function OverviewPage() {
               </p>
             </div>
           ) : flowData ? (
-            <EnergyFlowDiagram data={flowData} />
+            <>
+              <EnergyFlowDiagram data={flowData} />
+              {isLiveViaCloudFallback && (
+                <p className="text-sm text-amber-300/60 mt-2 flex items-center gap-1.5">
+                  <AlertTriangle size={13} className="text-amber-400/60 shrink-0" />
+                  Gateway devices are offline — this data is coming from the inverter
+                  manufacturer&apos;s cloud, not the local gateway.
+                </p>
+              )}
+            </>
           ) : (
             <SkeletonPulse className="h-48 w-full rounded-2xl" />
           )}
