@@ -4,12 +4,21 @@ import {
   applySessionCookies,
   buildBackendRequest,
   clearSessionCookies,
+  isSameOriginRequest,
 } from "@/lib/server-auth";
+
+const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 async function handleRequest(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ) {
+  // Origin check only applies to state-changing methods — GET/HEAD are
+  // read-only and don't need CSRF protection.
+  if (STATE_CHANGING_METHODS.has(request.method) && !isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request rejected." }, { status: 403 });
+  }
+
   let params: { path: string[] };
   try {
     params = await context.params;

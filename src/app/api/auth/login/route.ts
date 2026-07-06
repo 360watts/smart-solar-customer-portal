@@ -5,10 +5,15 @@ import {
   applySessionCookies,
   clearSessionCookies,
   getEmployeeAppUrl,
+  isSameOriginRequest,
   loginCustomer,
 } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ message: "Cross-origin request rejected." }, { status: 403 });
+  }
+
   try {
     const { email, password } = (await request.json()) as {
       email?: string;

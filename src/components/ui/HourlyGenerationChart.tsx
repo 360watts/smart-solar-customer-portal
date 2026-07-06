@@ -65,7 +65,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
       [36, 44, 26], [56, 64, 44], [72, 64, 52],
     ];
     return (
-      <div className="flex items-end gap-0.5 h-32 opacity-20 animate-pulse">
+      <div className="flex-1 flex items-end gap-0.5 min-h-32 opacity-20 animate-pulse">
         {SKELETON_HEIGHTS.map((heights, i) => (
           <div key={i} className="flex-1 flex items-end gap-px" style={{ height: "100%" }}>
             {heights.map((h, j) => (
@@ -83,7 +83,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
     : { left: `${Math.round(tooltipX * 100 + 2)}%`, right: "auto", top: 0 };
 
   return (
-    <div ref={containerRef} className="chart-root relative overflow-visible">
+    <div ref={containerRef} className="chart-root relative overflow-visible flex-1 flex flex-col">
 
       {/* Legend */}
       <div className="flex items-center gap-4 mb-4">
@@ -104,7 +104,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
       </div>
 
       {/* Chart */}
-      <div className="flex items-end gap-[3px] h-36 overflow-hidden">
+      <div className="flex-1 flex items-end gap-[3px] min-h-36 overflow-hidden">
         {points.map((pt, i) => {
           const { hour, solar, load, grid } = pt;
           const isExport = grid < 0;

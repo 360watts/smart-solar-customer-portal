@@ -598,7 +598,7 @@ export default function OverviewPage() {
           <p className="text-sm text-white/55 uppercase tracking-[0.2em] font-medium mb-2">
             Solar Dashboard · {d?.siteName ?? "Loading…"}
           </p>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-none tracking-tight">
+          <h1 className="text-3xl font-bold text-white leading-none tracking-tight">
             <Greeting name={firstName} />
           </h1>
         </div>
@@ -870,12 +870,14 @@ export default function OverviewPage() {
         </GlassCard>
 
         {/* Hourly chart */}
-        <GlassCard className="md:col-span-2">
+        <GlassCard className="md:col-span-2 flex flex-col">
           <div className="flex items-center justify-between mb-5">
             <p className="text-sm text-white/60 uppercase tracking-widest font-medium">Energy Overview</p>
             <span className="text-sm text-white/55">Today</span>
           </div>
-          <HourlyGenerationChart points={d?.hourly ?? []} nowIndex={d?.nowIndex} />
+          <div className="flex-1 flex flex-col">
+            <HourlyGenerationChart points={d?.hourly ?? []} nowIndex={d?.nowIndex} />
+          </div>
         </GlassCard>
       </div>
 

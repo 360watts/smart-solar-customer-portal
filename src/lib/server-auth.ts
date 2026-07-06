@@ -11,6 +11,35 @@ import {
   type CustomerSession,
 } from "@/lib/session";
 
+/**
+ * Reject cross-origin state-changing requests to cookie-authenticated BFF
+ * routes. SameSite=Lax cookies already block most cross-site form/fetch
+ * submissions, but this is explicit defense-in-depth per the security review
+ * (NEXT-CSRF-001) rather than relying solely on cookie attributes.
+ *
+ * Modern browsers send `Origin` on every same-origin POST/PUT/PATCH/DELETE
+ * fetch, so an absent-or-mismatched Origin on a state-changing request is
+ * treated as untrusted. Falls back to `Referer` only if `Origin` is missing
+ * entirely (some non-fetch navigations omit it).
+ */
+export function isSameOriginRequest(request: Request): boolean {
+  const requestOrigin = new URL(request.url).origin;
+  const origin = request.headers.get("origin");
+  if (origin) return origin === requestOrigin;
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).origin === requestOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  // Neither header present — reject rather than assume same-origin.
+  return false;
+}
+
 export const ACCESS_COOKIE = "360w_portal_access";
 export const REFRESH_COOKIE = "360w_portal_refresh";
 // Caches the CustomerSession JSON for the lifetime of the access token.
