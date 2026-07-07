@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Sun, TrendingUp, Zap, CloudSun, Activity } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import DataChart from "@/components/ui/DataChart";
-import TrendChart from "@/components/ui/TrendChart";
+import TrendChart, { type ChartGapBand } from "@/components/ui/TrendChart";
 import { COLORS } from "@/lib/tokens";
 import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -223,6 +223,33 @@ export default function SolarPage() {
     { cacheKey: `solar:${user?.site_id}`, ttl: TTL.realtime, autoRefreshSec: 60 },
   );
 
+  // Gap bands for the 7-day generation chart — fetched in a parallel effect
+  // over the same weekAgoISO..todayISO window used by the daily-energy query
+  // above, rather than folded into that hook's fetcher (this data has its
+  // own independent failure mode — a missing gaps response shouldn't blank
+  // out the generation chart itself).
+  const [gapBands, setGapBands] = useState<ChartGapBand[]>([]);
+
+  useEffect(() => {
+    const siteId = user?.site_id;
+    if (!siteId) return;
+    let cancelled = false;
+
+    portalApi.getSiteDataQualityGaps(siteId, weekAgoISO, todayISO)
+      .then((gaps) => {
+        if (cancelled) return;
+        setGapBands(gaps.map((g) => ({
+          tsStart: g.tsStart, tsEnd: g.tsEnd, category: g.category,
+          incidentType: g.incidentType, severity: g.severity,
+        })));
+      })
+      .catch(() => {
+        if (!cancelled) setGapBands([]);
+      });
+
+    return () => { cancelled = true; };
+  }, [user?.site_id, weekAgoISO, todayISO]);
+
   // ── Derived chart data ───────────────────────────────────────────────────────
 
   const forecastChartData = useMemo(() => {
@@ -376,7 +403,7 @@ export default function SolarPage() {
         {loading ? (
           <SkeletonPulse className="h-64 w-full rounded-xl" />
         ) : weeklyTrendData ? (
-          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={260} />
+          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={260} gapBands={gapBands} />
         ) : (
           <div className="h-64 flex items-center justify-center text-white/30 text-base">
             No generation data available

@@ -6,6 +6,7 @@ import {
   formatTrendChartTooltipDelta,
   formatTrendChartTooltipLabel,
   formatTrendChartTooltipTitle,
+  mapGapsToChartIndices,
   normalizeSeriesLength,
   type TrendChartProps,
   type TrendChartSeries,
@@ -327,6 +328,24 @@ describe("formatTrendChartTooltipTitle", () => {
 
   it("leaves other labels unchanged", () => {
     expect(formatTrendChartTooltipTitle("Jul 2026")).toBe("Jul 2026");
+  });
+});
+
+describe("mapGapsToChartIndices", () => {
+  it("maps a gap interval to the closest label indices", () => {
+    const labels = ["2026-06-01T00:00", "2026-06-01T01:00", "2026-06-01T02:00", "2026-06-01T03:00"];
+    const gaps = [{ tsStart: "2026-06-01T00:30", tsEnd: "2026-06-01T01:30", category: "connectivity" as const, incidentType: "device_offline", severity: "warning" }];
+
+    const result = mapGapsToChartIndices(labels, gaps);
+
+    expect(result).toEqual([{ startIndex: 0, endIndex: 1, category: "connectivity", severity: "warning" }]);
+  });
+
+  it("returns an empty array when no gaps overlap the chart window", () => {
+    const labels = ["2026-06-01T00:00", "2026-06-01T01:00"];
+    const gaps = [{ tsStart: "2026-05-01T00:00", tsEnd: "2026-05-01T01:00", category: "connectivity" as const, incidentType: "device_offline", severity: "warning" }];
+
+    expect(mapGapsToChartIndices(labels, gaps)).toEqual([]);
   });
 });
 

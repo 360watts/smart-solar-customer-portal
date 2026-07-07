@@ -85,6 +85,94 @@ export interface TrendChartProps {
   unit?: "kWh" | "kW" | "₹" | "%";
   height?: number;
   disableZoom?: boolean;
+  gapBands?: ChartGapBand[];
+}
+
+export interface ChartGapBand {
+  tsStart: string;
+  tsEnd: string;
+  category:
+    | "hardware"
+    | "connectivity"
+    | "data_quality"
+    | "weather_environmental"
+    | "maintenance"
+    | "grid";
+  incidentType: string;
+  severity: string;
+}
+
+export interface MappedGapBand {
+  startIndex: number;
+  endIndex: number;
+  category: ChartGapBand["category"];
+  severity: string;
+}
+
+export function mapGapsToChartIndices(
+  labels: string[],
+  gaps: ChartGapBand[],
+): MappedGapBand[] {
+  const labelTimes = labels.map((label) => new Date(label).getTime());
+  const result: MappedGapBand[] = [];
+
+  if (labelTimes.length === 0) return result;
+
+  const chartMin = labelTimes[0];
+  const chartMax = labelTimes[labelTimes.length - 1];
+
+  for (const gap of gaps) {
+    const gapStart = new Date(gap.tsStart).getTime();
+    const gapEnd = new Date(gap.tsEnd).getTime();
+
+    // Skip gaps that don't overlap the chart's visible time window at all.
+    if (gapEnd < chartMin || gapStart > chartMax) continue;
+
+    // Map to the closest label indices bracketing the gap: the last label
+    // at-or-before the gap start, and the last label at-or-before the gap
+    // end (falling back to index 0 if the gap starts before every label).
+    let startIndex = 0;
+    let endIndex = -1;
+    for (let i = 0; i < labelTimes.length; i++) {
+      if (labelTimes[i] <= gapStart) startIndex = i;
+      if (labelTimes[i] <= gapEnd) endIndex = i;
+    }
+    if (endIndex === -1 || startIndex > endIndex) continue;
+
+    result.push({ startIndex, endIndex, category: gap.category, severity: gap.severity });
+  }
+
+  return result;
+}
+
+const GAP_BAND_COLORS: Record<ChartGapBand["category"], string> = {
+  hardware: "rgba(239,68,68,0.12)",
+  connectivity: "rgba(96,165,250,0.12)",
+  data_quality: "rgba(245,158,11,0.12)",
+  weather_environmental: "rgba(148,163,184,0.12)",
+  maintenance: "rgba(168,85,247,0.12)",
+  grid: "rgba(251,146,60,0.12)",
+};
+
+function createGapBandsPlugin(mappedGaps: MappedGapBand[]): Plugin<"bar" | "line"> {
+  return {
+    id: "gapBandsPlugin",
+    beforeDatasetsDraw(chart) {
+      if (mappedGaps.length === 0) return;
+      const { ctx, chartArea, scales } = chart;
+      if (!chartArea) return;
+      const xScale = scales.x;
+
+      ctx.save();
+      for (const gap of mappedGaps) {
+        const xStart = xScale.getPixelForValue(gap.startIndex);
+        const xEnd = xScale.getPixelForValue(gap.endIndex);
+        ctx.fillStyle = GAP_BAND_COLORS[gap.category] || "rgba(148,163,184,0.12)";
+        ctx.fillRect(xStart, chartArea.top, Math.max(xEnd - xStart, 2), chartArea.bottom - chartArea.top);
+      }
+      ctx.restore();
+    },
+  };
 }
 
 export function buildMovingAverage(
@@ -440,6 +528,7 @@ export default function TrendChart({
   unit,
   height = 200,
   disableZoom = false,
+  gapBands,
 }: TrendChartProps) {
   const chartRef = useRef<ChartJS<"bar" | "line">>(null);
   const [zoomReady, setZoomReady] = useState(() => zoomRegistered);
@@ -529,7 +618,11 @@ export default function TrendChart({
   const handleDoubleClick = () => {
     chartRef.current?.resetZoom?.();
   };
-  const plugins = bars.length === 1 ? [createPeakMinMarkersPlugin(unit)] : [];
+  const mappedGaps = gapBands ? mapGapsToChartIndices(labels, gapBands) : [];
+  const plugins = [
+    ...(bars.length === 1 ? [createPeakMinMarkersPlugin(unit)] : []),
+    ...(mappedGaps.length > 0 ? [createGapBandsPlugin(mappedGaps)] : []),
+  ];
   // react-chartjs-2's generic <Chart> doesn't reliably re-apply plugin or
   // scale changes to an already-mounted Chart.js instance — it primarily
   // reacts to data/option VALUE changes via chart.update(), not additions or
