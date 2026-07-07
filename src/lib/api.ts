@@ -61,6 +61,62 @@ function sig(signal?: AbortSignal) {
   return signal ? { signal } : {};
 }
 
+export interface IncidentItem {
+  id: number;
+  deviceId: number | null;
+  deviceSerial: string | null;
+  category: "hardware" | "connectivity" | "data_quality" | "weather_environmental" | "maintenance" | "grid";
+  incidentType: string;
+  incidentTypeTitle: string;
+  severity: "critical" | "warning" | "info";
+  status: "active" | "acknowledged" | "resolved";
+  tsStart: string;
+  tsEnd: string | null;
+  durationSeconds: number | null;
+  title: string;
+  summary: string;
+  detectedBy: string;
+  evidenceCount: number;
+}
+
+export interface SiteIncidentsResponse {
+  count: number;
+  limit: number;
+  offset: number;
+  results: IncidentItem[];
+}
+
+export interface DataQualityGap {
+  tsStart: string;
+  tsEnd: string;
+  category: IncidentItem["category"];
+  incidentType: string;
+  severity: string;
+}
+
+export interface UptimeDailyScore {
+  reportDate: string;
+  uptimePct: number;
+  totalExpectedSlots: number;
+  impactedSlots: number;
+  impactedSlotsByCategory: Record<string, number>;
+}
+
+export interface SiteUptimeResponse {
+  rollingAvgUptimePct: number | null;
+  dailyScores: UptimeDailyScore[];
+}
+
+function _mapIncidentDict(raw: any): IncidentItem {
+  return {
+    id: raw.id, deviceId: raw.device_id ?? null, deviceSerial: raw.device_serial ?? null,
+    category: raw.category, incidentType: raw.incident_type, incidentTypeTitle: raw.incident_type_title,
+    severity: raw.severity, status: raw.status, tsStart: raw.ts_start, tsEnd: raw.ts_end ?? null,
+    durationSeconds: raw.duration_seconds ?? null, title: raw.title, summary: raw.summary ?? "",
+    detectedBy: raw.detected_by, evidenceCount: raw.evidence_count ?? 0,
+  };
+}
+
 export const portalApi = {
   getPortalOverview: (siteId: string, params?: { date?: string }, signal?: AbortSignal) =>
     api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/backend/sites/${siteId}/portal-overview/`, { params, ...sig(signal) }),
@@ -91,6 +147,35 @@ export const portalApi = {
 
   acknowledgeAlert: (alertId: string) =>
     api.post(`/api/backend/alerts/${alertId}/acknowledge/`),
+
+  getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
+    const resp = await api.get(`/api/backend/sites/${siteId}/incidents/`, {
+      params: { limit: opts?.limit, offset: opts?.offset }, ...sig(signal),
+    });
+    const raw: any = resp.data;
+    return { count: raw.count, limit: raw.limit, offset: raw.offset, results: (raw.results || []).map(_mapIncidentDict) };
+  },
+
+  getSiteDataQualityGaps: async (siteId: string, start: string, end: string, signal?: AbortSignal): Promise<DataQualityGap[]> => {
+    const resp = await api.get(`/api/backend/sites/${siteId}/data-quality-gaps/`, {
+      params: { start, end }, ...sig(signal),
+    });
+    return (resp.data || []).map((g: any) => ({
+      tsStart: g.ts_start, tsEnd: g.ts_end, category: g.category, incidentType: g.incident_type, severity: g.severity,
+    }));
+  },
+
+  getSiteUptime: async (siteId: string, days = 30, signal?: AbortSignal): Promise<SiteUptimeResponse> => {
+    const resp = await api.get(`/api/backend/sites/${siteId}/uptime/`, { params: { days }, ...sig(signal) });
+    const raw: any = resp.data;
+    return {
+      rollingAvgUptimePct: raw.rolling_avg_uptime_pct,
+      dailyScores: (raw.daily_scores || []).map((s: any) => ({
+        reportDate: s.report_date, uptimePct: s.uptime_pct, totalExpectedSlots: s.total_expected_slots,
+        impactedSlots: s.impacted_slots, impactedSlotsByCategory: s.impacted_slots_by_category || {},
+      })),
+    };
+  },
 
   getGatewayStatus: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/gateway-status/`, sig(signal)),
