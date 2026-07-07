@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import GlassCard from "@/components/ui/GlassCard";
 import SkeletonPulse from "@/components/ui/SkeletonPulse";
 import { MiniArc, PulseDot, COMPONENT_META, healthStatusColor } from "@/components/care/InstrumentGauge";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSystemHealth } from "@/lib/care/useSystemHealth";
+import { useUptimeScore } from "@/lib/care/useUptimeScore";
 import { statusLabel, type ComponentHealth } from "@/lib/care/types";
 
 function timeAgo(iso: string): string {
@@ -95,8 +97,40 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
   );
 }
 
+function UptimeTile({ siteId }: { siteId: string }) {
+  const { loading, rollingAvgUptimePct } = useUptimeScore(siteId, 30);
+  const pct = rollingAvgUptimePct ?? 100;
+  const color = pct >= 99 ? "#2FBF71" : pct >= 95 ? "#E9B949" : "#EF4444";
+
+  if (loading) return <SkeletonPulse className="h-full" />;
+
+  return (
+    <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
+      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${color}cc, ${color}33)` }} />
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-4">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color }}>UPTIME (30D)</p>
+            <p className="text-white/40 text-xs mt-0.5">Rolling average</p>
+          </div>
+          <PulseDot color={color} />
+        </div>
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0" style={{ width: 72, height: 72 }}>
+            <MiniArc score={Math.round(pct)} color={color} size={72} />
+            <div className="absolute inset-0 flex items-center justify-center pb-1">
+              <span className="font-mono text-base font-bold" style={{ color }}>{pct.toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 export default function SystemHealthDetailsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: health, loading } = useSystemHealth();
 
   return (
@@ -130,6 +164,7 @@ export default function SystemHealthDetailsPage() {
             <InstrumentCard compKey="solar_panel" data={health.solar_panel} />
             <InstrumentCard compKey="inverter" data={health.inverter} />
             <InstrumentCard compKey="battery" data={health.battery} />
+            {user?.site_id && <UptimeTile siteId={user.site_id} />}
           </div>
 
           <GlassCard>
