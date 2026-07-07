@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Info, CheckCircle, Clock, WifiOff, Wifi } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
+import SkeletonPulse from "@/components/ui/SkeletonPulse";
 import { useAuth } from "@/contexts/AuthContext";
-import { portalApi } from "@/lib/api";
+import { portalApi, type IncidentItem } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 
@@ -88,6 +89,7 @@ const ALERTS_PER_PAGE = 8;
 
 export default function AlertsPage() {
   const { user } = useAuth();
+  const siteId = user?.site_id;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(1);
@@ -413,6 +415,96 @@ export default function AlertsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {siteId && <IncidentHistorySection siteId={siteId} />}
     </div>
+  );
+}
+
+// Maps an incident's lifecycle status to the visual vocabulary StatusPill already
+// uses elsewhere in the portal (active/inactive/warning/error).
+const INCIDENT_STATUS_PILL: Record<IncidentItem["status"], { status: "active" | "inactive" | "warning" | "error"; label: string }> = {
+  active: { status: "error", label: "Active" },
+  acknowledged: { status: "warning", label: "Acknowledged" },
+  resolved: { status: "active", label: "Resolved" },
+};
+
+const INCIDENT_CATEGORY_LABELS: Record<IncidentItem["category"], string> = {
+  hardware: "Hardware",
+  connectivity: "Connectivity",
+  data_quality: "Data Quality",
+  weather_environmental: "Weather / Environmental",
+  maintenance: "Maintenance",
+  grid: "Grid",
+};
+
+function IncidentHistorySection({ siteId }: { siteId: string }) {
+  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    portalApi
+      .getSiteIncidents(siteId, { limit: PAGE_SIZE, offset })
+      .then((res) => {
+        if (cancelled) return;
+        setIncidents(res.results);
+        setTotalCount(res.count);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId, offset]);
+
+  return (
+    <GlassCard className="p-5 mt-6">
+      <h3 className="text-sm font-semibold mb-4">Incident History</h3>
+      {loading ? (
+        <SkeletonPulse className="h-24" />
+      ) : incidents.length === 0 ? (
+        <p className="text-text-4 text-sm">No incidents recorded for this site.</p>
+      ) : (
+        <div className="space-y-2">
+          {incidents.map((inc) => (
+            <div key={inc.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div>
+                <p className="text-sm font-medium">{inc.title}</p>
+                <p className="text-xs text-text-4">
+                  {INCIDENT_CATEGORY_LABELS[inc.category] ?? inc.category} · {new Date(inc.tsStart).toLocaleString()}
+                  {inc.durationSeconds != null && ` · ${Math.round(inc.durationSeconds / 60)} min`}
+                </p>
+              </div>
+              <StatusPill status={INCIDENT_STATUS_PILL[inc.status].status} label={INCIDENT_STATUS_PILL[inc.status].label} />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex justify-between mt-4">
+        <button
+          disabled={offset === 0}
+          onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+          className="text-xs disabled:opacity-30"
+        >
+          Previous
+        </button>
+        <span className="text-xs text-text-4">
+          {totalCount === 0 ? 0 : offset + 1}-{Math.min(offset + PAGE_SIZE, totalCount)} of {totalCount}
+        </span>
+        <button
+          disabled={offset + PAGE_SIZE >= totalCount}
+          onClick={() => setOffset(offset + PAGE_SIZE)}
+          className="text-xs disabled:opacity-30"
+        >
+          Next
+        </button>
+      </div>
+    </GlassCard>
   );
 }
