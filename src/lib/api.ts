@@ -164,9 +164,6 @@ export const portalApi = {
   getWeather: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
 
-  acknowledgeIncident: (incidentId: number) =>
-    api.post(`/api/backend/incidents/${incidentId}/acknowledge/`),
-
   getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
     const resp = await api.get(`/api/backend/sites/${siteId}/incidents/`, {
       params: { limit: opts?.limit, offset: opts?.offset }, ...sig(signal),

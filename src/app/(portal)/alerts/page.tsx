@@ -42,6 +42,23 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+// Plain-language duration — customers shouldn't need to do minutes→hours math.
+function formatDuration(seconds: number): string {
+  const mins = Math.round(seconds / 60);
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return remMins === 0 ? `${hours}h` : `${hours}h ${remMins}m`;
+}
+
+// Plain-language lifecycle labels — "acknowledged" reads as jargon to a
+// customer; "Being Reviewed" says what's actually happening.
+const STATUS_LABELS: Record<IncidentItem["status"], string> = {
+  active: "Active",
+  acknowledged: "Being Reviewed",
+  resolved: "Resolved",
+};
+
 const SEVERITY_STYLES: Record<string, { color: string; bg: string; border: string }> = {
   critical: { color: "var(--destructive)", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)" },
   warning: { color: "var(--glow-amber)", bg: "rgba(233,185,73,0.1)", border: "rgba(233,185,73,0.25)" },
@@ -65,7 +82,6 @@ export default function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(1);
-  const [localOverrides, setLocalOverrides] = useState<Record<string, IncidentItem["status"]>>({});
 
   const { data, loading, error } = useSiteQuery<AlertsPageData>(
     user?.site_id,
@@ -90,16 +106,7 @@ export default function AlertsPage() {
   const devices: AlertsDevice[] = data?.devices ?? [];
   const loaded = !loading;
 
-  function acknowledgeAlert(incidentId: number) {
-    setLocalOverrides((prev) => ({ ...prev, [incidentId]: "acknowledged" }));
-    portalApi.acknowledgeIncident(incidentId).catch(() => {});
-  }
-
-  const displayIncidents = incidents.map((inc) =>
-    localOverrides[inc.id] ? { ...inc, status: localOverrides[inc.id]! } : inc
-  );
-
-  const filtered = displayIncidents
+  const filtered = incidents
     .filter((inc) => {
       const matchStatus =
         statusFilter === "all" ||
@@ -121,9 +128,9 @@ export default function AlertsPage() {
   const pageEnd = pageStart + ALERTS_PER_PAGE;
   const visibleAlerts = filtered.slice(pageStart, pageEnd);
 
-  const criticalCount = displayIncidents.filter((inc) => inc.severity === "critical").length;
-  const warningCount = displayIncidents.filter((inc) => inc.severity === "warning").length;
-  const infoCount = displayIncidents.filter((inc) => inc.severity === "info").length;
+  const criticalCount = incidents.filter((inc) => inc.severity === "critical").length;
+  const warningCount = incidents.filter((inc) => inc.severity === "warning").length;
+  const infoCount = incidents.filter((inc) => inc.severity === "info").length;
   const offlineDevices = devices.filter((d) => !d.is_online);
 
   // Map device_serial → offline flag so each incident card can show live device status,
@@ -340,41 +347,30 @@ export default function AlertsPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-text-3 mt-0.5">{incident.summary}</p>
+                        {incident.summary && (
+                          <p className="text-sm text-text-3 mt-0.5">{incident.summary}</p>
+                        )}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2 font-mono">
+                          <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2">
                             {INCIDENT_CATEGORY_LABELS[incident.category] ?? incident.category}
                           </span>
-                          {incident.deviceSerial && (
-                            <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2 font-mono">
-                              {incident.deviceSerial}
-                            </span>
-                          )}
                           <span className="flex items-center gap-1 text-sm text-text-4">
                             <Clock size={11} /> {timeAgo(incident.tsStart)}
                           </span>
                           {incident.durationSeconds != null && (
-                            <span className="text-sm px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300 font-mono">
-                              {Math.round(incident.durationSeconds / 60)} min
+                            <span className="text-sm px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300">
+                              Lasted {formatDuration(incident.durationSeconds)}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Right: status + ack */}
+                      {/* Right: status */}
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <StatusPill
                           status={incident.status === "resolved" ? "active" : "warning"}
-                          label={incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
+                          label={STATUS_LABELS[incident.status]}
                         />
-                        {incident.status === "active" && (
-                          <button
-                            onClick={() => acknowledgeAlert(incident.id)}
-                            className="text-sm px-3 py-1 rounded-full bg-surface-4 text-text-2 hover:bg-surface-5 hover:text-text-1 transition-all cursor-pointer"
-                          >
-                            Acknowledge
-                          </button>
-                        )}
                       </div>
                     </div>
                   </GlassCard>
