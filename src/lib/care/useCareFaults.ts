@@ -71,29 +71,20 @@ export function useCareFaults() {
   return useSiteQuery<CareFault[]>(
     user?.site_id,
     async (siteId, signal) => {
-      const res = await portalApi.getSiteAlerts(siteId, signal);
-      const raw = res.data as unknown;
-      const list = Array.isArray(raw)
-        ? raw
-        : Array.isArray((raw as { results?: unknown[] })?.results)
-          ? (raw as { results: unknown[] }).results
-          : [];
+      const res = await portalApi.getSiteIncidents(siteId, { limit: 200 }, signal);
 
       const faults: CareFault[] = [];
-      for (const item of list as Record<string, unknown>[]) {
-        const status = String(item.status ?? "active");
-        if (status === "resolved") continue;
-        const severity = (item.severity as string) === "critical" ? "critical" : "warning";
-        const alertType = String(item.alert_type ?? item.type ?? "");
-        const title = String(item.title ?? "");
-        const component = inferComponent(alertType, title);
+      for (const item of res.results) {
+        if (item.status === "resolved") continue;
+        const severity = item.severity === "critical" ? "critical" : "warning";
+        const component = inferComponent(item.incidentType, item.title);
         if (!component) continue; // not a 360Care-relevant component fault
         faults.push({
-          id: String(item.id ?? `${component}-${item.triggered_at ?? item.timestamp}`),
+          id: String(item.id),
           component,
           severity,
-          issue: title || "Issue detected",
-          details: String(item.message ?? ""),
+          issue: item.title || "Issue detected",
+          details: item.summary,
           action: actionFor(component),
         });
       }

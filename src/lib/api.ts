@@ -164,11 +164,8 @@ export const portalApi = {
   getWeather: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
 
-  getSiteAlerts: (siteId: string, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/alerts/`, sig(signal)),
-
-  acknowledgeAlert: (alertId: string) =>
-    api.post(`/api/backend/alerts/${alertId}/acknowledge/`),
+  acknowledgeIncident: (incidentId: number) =>
+    api.post(`/api/backend/incidents/${incidentId}/acknowledge/`),
 
   getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
     const resp = await api.get(`/api/backend/sites/${siteId}/incidents/`, {

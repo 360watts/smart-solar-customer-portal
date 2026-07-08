@@ -92,7 +92,7 @@ export default function AlertsPage() {
 
   function acknowledgeAlert(incidentId: number) {
     setLocalOverrides((prev) => ({ ...prev, [incidentId]: "acknowledged" }));
-    portalApi.acknowledgeAlert(String(incidentId)).catch(() => {});
+    portalApi.acknowledgeIncident(incidentId).catch(() => {});
   }
 
   const displayIncidents = incidents.map((inc) =>
