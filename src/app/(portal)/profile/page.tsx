@@ -64,7 +64,7 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 const inputClass =
-  "w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-base focus:outline-none focus:border-primary/50 placeholder:text-white/30";
+  "w-full bg-white/5 border border-border rounded-lg px-4 py-3 text-foreground text-base focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground";
 
 // ---------------------------------------------------------------------------
 // Page
@@ -282,7 +282,7 @@ export default function ProfilePage() {
               <img
                 src={profile.avatar_url}
                 alt={initials}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white/10"
+                className="w-16 h-16 rounded-full object-cover border-2 border-border"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-emerald-500/30 border border-emerald-500/40 flex items-center justify-center">
@@ -292,10 +292,10 @@ export default function ProfilePage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-xl font-bold text-white truncate">
+            <h2 className="font-display text-xl font-bold text-foreground truncate">
               {profile.first_name} {profile.last_name}
             </h2>
-            <p className="text-base text-white/50 mt-0.5 truncate">{profile.email}</p>
+            <p className="text-base text-muted-foreground mt-0.5 truncate">{profile.email}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusPill
                 status={profile.subscription_status === "active" ? "active" : profile.subscription_status === "trial" ? "warning" : "inactive"}
@@ -307,7 +307,7 @@ export default function ProfilePage() {
                   "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm font-medium",
                   tier.glow
                     ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
-                    : "bg-white/5 border-white/10 text-white/60",
+                    : "bg-white/5 border-border text-muted-foreground",
                 )}
               >
                 <BadgeCheck size={14} />
@@ -317,10 +317,10 @@ export default function ProfilePage() {
           </div>
 
           <div className="text-right shrink-0">
-            <p className="text-sm text-white/35 uppercase tracking-wide">Customer since</p>
-            <p className="text-base text-white/70 font-mono">{formatDate(profile.date_joined)}</p>
+            <p className="text-sm text-muted-foreground uppercase tracking-wide">Customer since</p>
+            <p className="text-base text-foreground font-mono">{formatDate(profile.date_joined)}</p>
             {profile.customer_id && (
-              <p className="text-sm text-white/35 font-mono mt-1">{profile.customer_id}</p>
+              <p className="text-sm text-muted-foreground font-mono mt-1">{profile.customer_id}</p>
             )}
           </div>
         </div>
@@ -328,12 +328,12 @@ export default function ProfilePage() {
 
       {/* ── 2. Plan & Usage ── */}
       <GlassCard>
-        <h3 className="font-semibold text-white mb-4">Plan &amp; Usage</h3>
+        <h3 className="font-semibold text-foreground mb-4">Plan &amp; Usage</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm text-white/40 uppercase tracking-wide">Devices</span>
-              <span className="font-mono text-sm text-white">{profile.total_devices_count} / {profile.device_limit}</span>
+              <span className="text-sm text-muted-foreground uppercase tracking-wide">Devices</span>
+              <span className="font-mono text-sm text-foreground">{profile.total_devices_count} / {profile.device_limit}</span>
             </div>
             <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
               <div
@@ -346,11 +346,11 @@ export default function ProfilePage() {
           <div className="flex flex-col justify-center gap-1.5">
             <div className="flex items-center gap-2 text-sm">
               <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_access_ai ? "bg-emerald-400" : "bg-white/20")} />
-              <span className={profile.plan_features.can_access_ai ? "text-white/75" : "text-white/35"}>AI insights &amp; recommendations</span>
+              <span className={profile.plan_features.can_access_ai ? "text-foreground" : "text-muted-foreground"}>AI insights &amp; recommendations</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_view_history_90d ? "bg-emerald-400" : "bg-white/20")} />
-              <span className={profile.plan_features.can_view_history_90d ? "text-white/75" : "text-white/35"}>90-day history &amp; trends</span>
+              <span className={profile.plan_features.can_view_history_90d ? "text-foreground" : "text-muted-foreground"}>90-day history &amp; trends</span>
             </div>
           </div>
         </div>
@@ -358,7 +358,7 @@ export default function ProfilePage() {
 
       {/* ── 3. Your System ── */}
       <GlassCard>
-        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <Wifi size={16} className="text-emerald-400" /> Your System
         </h3>
         <div className="space-y-3">
@@ -369,9 +369,9 @@ export default function ProfilePage() {
             { label: "Connectivity", value: site?.connectivity_type ?? "—" },
             { label: "Account ID", value: user?.site_id ?? "—" },
           ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-              <span className="text-sm text-white/40 uppercase tracking-wide">{label}</span>
-              <span className="font-mono text-base text-white">{value}</span>
+            <div key={label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <span className="text-sm text-muted-foreground uppercase tracking-wide">{label}</span>
+              <span className="font-mono text-base text-foreground">{value}</span>
             </div>
           ))}
         </div>
@@ -380,22 +380,22 @@ export default function ProfilePage() {
       {/* ── 4. Equipment ── */}
       {equipment.length > 0 && (
         <GlassCard>
-          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
             <Cpu size={16} className="text-emerald-400" /> Equipment
           </h3>
           <div className="space-y-3">
             {equipment.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 gap-3">
+              <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-3">
                 <div className="min-w-0">
-                  <p className="text-base text-white truncate">
+                  <p className="text-base text-foreground truncate">
                     {item.make} {item.model_name}
-                    <span className="ml-2 text-sm text-white/35 uppercase tracking-wide">{item.kind}</span>
+                    <span className="ml-2 text-sm text-muted-foreground uppercase tracking-wide">{item.kind}</span>
                   </p>
-                  <p className="text-sm text-white/40 font-mono truncate">{item.serial_number}</p>
+                  <p className="text-sm text-muted-foreground font-mono truncate">{item.serial_number}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm text-white/35">Warranty until</p>
-                  <p className="text-sm text-white/60 font-mono">{formatDate(item.warranty_expires_at)}</p>
+                  <p className="text-sm text-muted-foreground">Warranty until</p>
+                  <p className="text-sm text-muted-foreground font-mono">{formatDate(item.warranty_expires_at)}</p>
                 </div>
               </div>
             ))}
@@ -405,7 +405,7 @@ export default function ProfilePage() {
 
       {/* ── 5. Contact & Preferences ── */}
       <GlassCard>
-        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <ShieldCheck size={16} className="text-emerald-400" /> Contact &amp; Preferences
         </h3>
         <div className="space-y-3">
@@ -414,13 +414,13 @@ export default function ProfilePage() {
             { label: "Address", value: profile.address || "—" },
             { label: "Timezone", value: profile.timezone },
           ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between py-2 border-b border-white/5 gap-4">
-              <span className="text-sm text-white/40 uppercase tracking-wide shrink-0">{label}</span>
-              <span className="text-base text-white text-right truncate">{value}</span>
+            <div key={label} className="flex items-center justify-between py-2 border-b border-border gap-4">
+              <span className="text-sm text-muted-foreground uppercase tracking-wide shrink-0">{label}</span>
+              <span className="text-base text-foreground text-right truncate">{value}</span>
             </div>
           ))}
-          <div className="flex items-center justify-between py-2 border-b border-white/5">
-            <span className="text-sm text-white/40 uppercase tracking-wide flex items-center gap-1.5"><Mail size={13} /> Email Alerts</span>
+          <div className="flex items-center justify-between py-2 border-b border-border">
+            <span className="text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5"><Mail size={13} /> Email Alerts</span>
             <StatusPill
               status={profile.email_notifications_enabled ? "active" : "inactive"}
               label={profile.email_notifications_enabled ? "Enabled" : "Disabled"}
@@ -428,7 +428,7 @@ export default function ProfilePage() {
             />
           </div>
           <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-white/40 uppercase tracking-wide flex items-center gap-1.5"><MessageSquare size={13} /> SMS Alerts</span>
+            <span className="text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5"><MessageSquare size={13} /> SMS Alerts</span>
             <StatusPill
               status={profile.sms_notifications_enabled ? "active" : "inactive"}
               label={profile.sms_notifications_enabled ? "Enabled" : "Disabled"}
@@ -441,7 +441,7 @@ export default function ProfilePage() {
       {/* ── 6. Edit Profile ── */}
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Edit Profile</h3>
+          <h3 className="font-semibold text-foreground">Edit Profile</h3>
           <button
             onClick={handleSave}
             disabled={!isDirty || saveState === "saving"}
@@ -454,7 +454,7 @@ export default function ProfilePage() {
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-white/40 mb-1.5">First Name</label>
+              <label className="block text-sm text-muted-foreground mb-1.5">First Name</label>
               <input
                 type="text"
                 value={editFirst}
@@ -463,7 +463,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-white/40 mb-1.5">Last Name</label>
+              <label className="block text-sm text-muted-foreground mb-1.5">Last Name</label>
               <input
                 type="text"
                 value={editLast}
@@ -473,7 +473,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-white/40 mb-1.5">Phone</label>
+            <label className="block text-sm text-muted-foreground mb-1.5">Phone</label>
             <input
               type="tel"
               value={editPhone}
@@ -510,10 +510,10 @@ export default function ProfilePage() {
 
       {/* ── 7. Change Password ── */}
       <GlassCard>
-        <h3 className="font-semibold text-white mb-4">Change Password</h3>
+        <h3 className="font-semibold text-foreground mb-4">Change Password</h3>
         <form onSubmit={handleChangePassword} className="space-y-3">
           <div>
-            <label className="block text-sm text-white/40 mb-1.5">Current Password</label>
+            <label className="block text-sm text-muted-foreground mb-1.5">Current Password</label>
             <input
               type="password"
               value={currentPw}
@@ -523,7 +523,7 @@ export default function ProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-sm text-white/40 mb-1.5">New Password</label>
+            <label className="block text-sm text-muted-foreground mb-1.5">New Password</label>
             <input
               type="password"
               value={newPw}
@@ -533,7 +533,7 @@ export default function ProfilePage() {
             />
           </div>
           <div>
-            <label className="block text-sm text-white/40 mb-1.5">Confirm New Password</label>
+            <label className="block text-sm text-muted-foreground mb-1.5">Confirm New Password</label>
             <input
               type="password"
               value={confirmPw}

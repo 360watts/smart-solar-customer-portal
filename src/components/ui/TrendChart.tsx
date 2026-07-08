@@ -636,7 +636,7 @@ export default function TrendChart({
   return (
     <div style={{ position: "relative" }}>
       {!disableZoom && isZoomReady && (
-        <div className="absolute top-0 right-0 z-10 text-[11px] text-white/20 font-mono select-none pointer-events-none">
+        <div className="absolute top-0 right-0 z-10 text-[11px] text-muted-foreground font-mono select-none pointer-events-none">
           scroll to zoom · drag to pan · dbl-click to reset
         </div>
       )}

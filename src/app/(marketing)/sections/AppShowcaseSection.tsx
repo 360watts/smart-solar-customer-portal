@@ -99,7 +99,7 @@ export function AppShowcaseSection() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
           {/* Left: feature list — highlights the active slide, click to jump */}
-          <div className="text-white min-w-0">
+          <div className="text-foreground min-w-0">
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-['Urbanist'] mb-4 sm:mb-6">
               One App. For Everything.
             </h2>
@@ -119,7 +119,7 @@ export function AppShowcaseSection() {
                     <h3 className="font-extrabold text-black text-xl font-['Poppins']">
                       {feature.title}
                     </h3>
-                    <p className="text-white font-['Poppins']">{feature.description}</p>
+                    <p className="text-foreground font-['Poppins']">{feature.description}</p>
                   </div>
                 </button>
               ))}

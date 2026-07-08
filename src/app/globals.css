@@ -13,7 +13,10 @@
   --secondary: #E9B949;
   --secondary-foreground: #0A0E1A;
   --muted: #8B97B8;
-  --muted-foreground: #A8B8D8;
+  /* Brand-tinted secondary text — a warm sage cast toward the emerald accent,
+     not a flat desaturated grey. Every "muted" label/caption in the app
+     should read through this token instead of a bare white/NN opacity. */
+  --muted-foreground: color-mix(in srgb, #F0F6FF 70%, #2FBF71 14%);
   --accent: #E9B949;
   --accent-foreground: #0A0E1A;
   --border: rgba(255, 255, 255, 0.07);

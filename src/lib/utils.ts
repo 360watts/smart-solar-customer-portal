@@ -31,6 +31,6 @@ export function getPlanTierMeta(planType: string | null | undefined): PlanTierMe
       return { label: "Basic Plan", textClass: "text-sky-400", dotClass: "bg-sky-400", glow: false };
     case "free":
     default:
-      return { label: "Free Plan", textClass: "text-white/55", dotClass: "bg-white/40", glow: false };
+      return { label: "Free Plan", textClass: "text-muted-foreground", dotClass: "bg-white/40", glow: false };
   }
 }

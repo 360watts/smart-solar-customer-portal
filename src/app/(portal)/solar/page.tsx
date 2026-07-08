@@ -131,29 +131,29 @@ function KpiCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 26, delay: delay * 0.07 }}
-      className="glass border border-white/[0.07] rounded-2xl p-5"
+      className="glass border border-border rounded-2xl p-5"
     >
       <div className="flex items-start justify-between mb-4">
         <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
           <Icon size={17} className="text-emerald-400" />
         </div>
         {sub && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 text-white/45">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground">
             {sub}
           </span>
         )}
       </div>
-      <div className="stat-number text-3xl text-white mb-0.5">
+      <div className="stat-number text-3xl text-foreground mb-0.5">
         {value != null ? (
           <>
             {value % 1 === 0 ? value : value.toFixed(1)}
-            <span className="text-base font-normal text-white/50 ml-1">{unit}</span>
+            <span className="text-base font-normal text-muted-foreground ml-1">{unit}</span>
           </>
         ) : (
-          <span className="text-2xl text-white/25">—</span>
+          <span className="text-2xl text-muted-foreground">—</span>
         )}
       </div>
-      <p className="text-sm text-white/50 mt-1 font-medium uppercase tracking-wider">{label}</p>
+      <p className="text-sm text-muted-foreground mt-1 font-medium uppercase tracking-wider">{label}</p>
     </motion.div>
   );
 }
@@ -307,8 +307,8 @@ export default function SolarPage() {
         className="flex items-end justify-between"
       >
         <div>
-          <p className="text-sm text-white/50 uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
-          <h1 className="text-3xl font-extrabold text-white leading-none tracking-tight"
+          <p className="text-sm text-muted-foreground uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
+          <h1 className="text-3xl font-extrabold text-foreground leading-none tracking-tight"
             style={{ fontFamily: "var(--font-display)" }}>
             Today&apos;s Performance
           </h1>
@@ -342,10 +342,10 @@ export default function SolarPage() {
           <div className="flex items-center gap-3">
             <Activity size={16} className="text-emerald-400" />
             <div>
-              <h2 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+              <h2 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
                 Generation Forecast
               </h2>
-              <p className="text-sm text-white/45 mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-xl p-1">
@@ -354,7 +354,7 @@ export default function SolarPage() {
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize ${
                   forecastRange === r
                     ? "bg-emerald-500/20 text-emerald-400"
-                    : "text-white/40 hover:text-white/60"
+                    : "text-muted-foreground hover:text-muted-foreground"
                 }`}>
                 {r}
               </button>
@@ -376,7 +376,7 @@ export default function SolarPage() {
                 background: l.dash ? "transparent" : l.color,
                 borderTop: l.dash ? `1.5px dashed ${l.color}` : undefined,
               }} />
-              <span className="text-xs text-white/45">{l.label}</span>
+              <span className="text-xs text-muted-foreground">{l.label}</span>
             </div>
           ))}
         </div>
@@ -386,7 +386,7 @@ export default function SolarPage() {
         ) : forecastChartData ? (
           <DataChart type="line" data={forecastChartData} height={220} />
         ) : (
-          <div className="h-52 flex items-center justify-center text-white/30 text-base">
+          <div className="h-52 flex items-center justify-center text-muted-foreground text-base">
             No forecast data for {forecastRange}
           </div>
         )}
@@ -396,7 +396,7 @@ export default function SolarPage() {
       <GlassCard>
         <div className="flex items-center gap-3 mb-5">
           <TrendingUp size={16} className="text-emerald-400" />
-          <h2 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             7-Day Generation History
           </h2>
         </div>
@@ -405,7 +405,7 @@ export default function SolarPage() {
         ) : weeklyTrendData ? (
           <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={260} gapBands={gapBands} />
         ) : (
-          <div className="h-64 flex items-center justify-center text-white/30 text-base">
+          <div className="h-64 flex items-center justify-center text-muted-foreground text-base">
             No generation data available
           </div>
         )}

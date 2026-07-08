@@ -31,10 +31,21 @@ async function handleRequest(
       ? undefined
       : await request.text();
 
+  // Next.js's own router strips a trailing slash from `params.path` before this
+  // handler ever runs (a same-method 308 redirect from `/x/` to `/x` happens at
+  // the framework level, invisible here). Every Django URL this proxy talks to
+  // ends in `/`, so without re-adding it, Django's CommonMiddleware APPEND_SLASH
+  // 301-redirects — and per the fetch spec, a 301 response to a POST silently
+  // downgrades the retry to a bodyless GET. That turned booking creates (and any
+  // other POST through this proxy) into a no-op list fetch that looked like a
+  // 200 success but never persisted anything. Always forcing the trailing slash
+  // here avoids Django ever needing to redirect a state-changing request.
+  const backendPath = `${params.path.join("/")}/`;
+
   let proxyResult: Awaited<ReturnType<typeof buildBackendRequest>>;
   try {
     proxyResult = await buildBackendRequest({
-      path: params.path.join("/"),
+      path: backendPath,
       method: request.method,
       search: request.nextUrl.search,
       body,

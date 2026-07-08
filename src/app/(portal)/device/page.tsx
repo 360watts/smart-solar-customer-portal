@@ -491,7 +491,7 @@ export default function DevicePage() {
           {displayDevices.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
               <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="text-sm text-white/60 uppercase tracking-widest font-medium">
+                <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium">
                   {displayDevices.length} device{displayDevices.length !== 1 ? "s" : ""} on this site
                 </p>
                 {displayDevices.length > 1 && (
@@ -555,7 +555,7 @@ export default function DevicePage() {
                         <StatusPill status={d.is_online ? "active" : "error"} label={d.is_online ? "Online" : "Offline"} />
                       </div>
 
-                      <p className="text-sm text-white/50 mb-3 relative">{d.description}</p>
+                      <p className="text-sm text-muted-foreground mb-3 relative">{d.description}</p>
 
                       {/* Hero row for the gateway: signal gauge + data-source path side by side.
                           Same instrument-tile construction (accent bar, ambient glow, pulse dot,
@@ -564,7 +564,7 @@ export default function DevicePage() {
                       {d.isPrimary && d.signalPct != null ? (() => {
                         const sig = signalBars(d.signalPct);
                         return (
-                          <div className="relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
+                          <div className="relative overflow-hidden rounded-xl bg-white/[0.03] border border-border mb-4">
                             <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${sig.color}cc, ${sig.color}33)` }} />
                             <div
                               className="pointer-events-none absolute -top-4 left-6 w-20 h-10 rounded-full opacity-40"
@@ -584,7 +584,7 @@ export default function DevicePage() {
                                 </div>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-white/80">
+                                <p className="text-sm font-semibold text-foreground">
                                   Signal — {sig.label}
                                 </p>
                                 {d.dataSourceBadge && (
@@ -618,14 +618,14 @@ export default function DevicePage() {
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-3 relative">
+                      <div className="grid grid-cols-2 gap-3 border-t border-border pt-3 relative">
                         {d.details.map((detail) => (
                           <div key={`${d.key}-${detail.label}`} className="min-w-0 flex items-start gap-2">
-                            <detail.icon size={13} className="text-white/25 flex-shrink-0 mt-0.5" />
+                            <detail.icon size={13} className="text-muted-foreground flex-shrink-0 mt-0.5" />
                             <div className="min-w-0">
-                              <p className="text-xs uppercase tracking-wider text-white/35">{detail.label}</p>
+                              <p className="text-xs uppercase tracking-wider text-muted-foreground">{detail.label}</p>
                               <p
-                                className="mt-0.5 truncate text-sm font-semibold text-white/75"
+                                className="mt-0.5 truncate text-sm font-semibold text-foreground"
                                 style={detail.tone ? { color: detail.tone } : undefined}
                               >
                                 {detail.value}
@@ -692,7 +692,7 @@ export default function DevicePage() {
               </div>
 
               {faultCodes.length > 0 && (
-                <div className="flex flex-wrap gap-2 border-t border-white/5 pt-3">
+                <div className="flex flex-wrap gap-2 border-t border-border pt-3">
                   <span className="flex items-center gap-1.5 text-sm text-red-400">
                     <AlertTriangle size={13} />
                     Fault Codes:
@@ -720,14 +720,14 @@ export default function DevicePage() {
                   <h4 className="text-base font-semibold text-foreground">Inverter</h4>
                 </div>
                 {equipment.inverters.length === 0 ? (
-                  <p className="text-sm text-white/40">No inverter on record.</p>
+                  <p className="text-sm text-muted-foreground">No inverter on record.</p>
                 ) : equipment.inverters.map((inv, i) => (
                   <div key={i} className="space-y-1.5 text-base">
                     <p className="font-bold text-foreground">{inv.brand} {inv.model}</p>
                     <p className="text-muted-foreground">{inv.capacity_kva} kVA</p>
                     {inv.logger_serial && (
                       <p className="text-muted-foreground">
-                        WiFi logger stick <span className="font-mono text-white/70">{inv.logger_serial}</span>
+                        WiFi logger stick <span className="font-mono text-foreground">{inv.logger_serial}</span>
                       </p>
                     )}
                     <p className="text-muted-foreground">Installed {inv.installed_date}</p>
@@ -745,7 +745,7 @@ export default function DevicePage() {
                   <h4 className="text-base font-semibold text-foreground">Battery</h4>
                 </div>
                 {equipment.batteries.length === 0 ? (
-                  <p className="text-sm text-white/40">No battery installed — grid-tied system.</p>
+                  <p className="text-sm text-muted-foreground">No battery installed — grid-tied system.</p>
                 ) : equipment.batteries.map((bat, i) => (
                   <div key={i} className="space-y-1.5 text-base">
                     <p className="font-bold text-foreground">{bat.brand} {bat.model}</p>
@@ -765,7 +765,7 @@ export default function DevicePage() {
                   <h4 className="text-base font-semibold text-foreground">Solar Panels</h4>
                 </div>
                 {equipment.panels.length === 0 ? (
-                  <p className="text-sm text-white/40">No panels on record.</p>
+                  <p className="text-sm text-muted-foreground">No panels on record.</p>
                 ) : (() => {
                   // Group by brand+model key, sum count
                   const groups = new Map<string, { panel: typeof equipment.panels[0]; count: number }>();
@@ -820,7 +820,7 @@ export default function DevicePage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-semibold text-base text-foreground">Hardware Health</h3>
-                        <p className="text-sm text-white/40 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {overallPct != null ? `${overallPct}% overall` : "No data"} &bull; Solar, inverter &amp; battery
                         </p>
                       </div>

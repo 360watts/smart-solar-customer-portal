@@ -64,7 +64,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
               ? "border-red-500/50 hover:border-red-500/70 bg-gradient-to-br from-red-950/15 to-transparent"
               : hasCritical
                 ? "border-red-500/30 hover:border-red-500/50"
-                : "border-white/10 hover:border-white/20"
+                : "border-border hover:border-border"
           }
         `}
       >
@@ -82,7 +82,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
           >
             <AlertTriangle
               size={18}
-              className={hasCritical ? "text-red-400" : "text-white/40"}
+              className={hasCritical ? "text-red-400" : "text-muted-foreground"}
             />
           </div>
 
@@ -91,7 +91,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
             <motion.div
               animate={prefersReducedMotion ? {} : { opacity: [1, 0.7, 1] }}
               transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="px-3 py-1.5 rounded-full text-sm font-bold bg-red-500/90 text-white
+              className="px-3 py-1.5 rounded-full text-sm font-bold bg-red-500/90 text-foreground
                 shadow-lg shadow-red-500/30"
             >
               {counts.critical} Critical
@@ -100,10 +100,10 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         </div>
 
         <div className="mb-3">
-          <div className={`stat-number text-3xl mb-0.5 ${hasCritical ? "text-red-300" : "text-white"}`}>
+          <div className={`stat-number text-3xl mb-0.5 ${hasCritical ? "text-red-300" : "text-foreground"}`}>
             {loading ? "..." : total}
           </div>
-          <p className={`text-sm mt-1 font-medium uppercase tracking-wider ${hasCritical ? "text-red-200" : "text-white/60"}`}>
+          <p className={`text-sm mt-1 font-medium uppercase tracking-wider ${hasCritical ? "text-red-200" : "text-muted-foreground"}`}>
             {total === 0 ? "No Active Alerts" : `Active Alert${total !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -121,7 +121,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
                 />
               </div>
               <div className="flex justify-between mt-1.5">
-                <span className="text-xs text-white/45">Alert severity</span>
+                <span className="text-xs text-muted-foreground">Alert severity</span>
                 <span className={`text-xs font-semibold ${hasCritical ? "text-red-300" : counts.warning > 0 ? "text-amber-300" : "text-emerald-300"}`}>{severityLabel}</span>
               </div>
             </div>
@@ -135,20 +135,20 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
                 <span className="text-sm font-bold text-red-300 tabular-nums">{counts.critical}</span>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <div className="p-2.5 rounded-lg bg-white/[0.03] border border-border">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)] shrink-0" />
-                  <span className="text-xs text-white/50 truncate">Warn / Info</span>
+                  <span className="text-xs text-muted-foreground truncate">Warn / Info</span>
                 </div>
-                <span className="text-sm font-bold text-white/85 tabular-nums">{counts.warning} / {counts.info}</span>
+                <span className="text-sm font-bold text-foreground tabular-nums">{counts.warning} / {counts.info}</span>
               </div>
             </div>
           </>
         )}
 
         {/* CTA Footer */}
-        <div className={`mt-auto flex min-h-[48px] items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-white/[0.06] bg-white/[0.035]"}`}>
-          <span className={`text-xs font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-white/62"}`}>
+        <div className={`mt-auto flex min-h-[48px] items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-border bg-white/[0.035]"}`}>
+          <span className={`text-xs font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-muted-foreground"}`}>
             {footerText}
           </span>
           <motion.div
@@ -157,7 +157,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
           >
             <ArrowRight
               size={14}
-              className={hasCritical ? "text-red-400/70" : "text-white/40"}
+              className={hasCritical ? "text-red-400/70" : "text-muted-foreground"}
             />
           </motion.div>
         </div>

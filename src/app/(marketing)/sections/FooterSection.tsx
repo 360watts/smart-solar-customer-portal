@@ -171,7 +171,7 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -187,7 +187,7 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -203,7 +203,7 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >

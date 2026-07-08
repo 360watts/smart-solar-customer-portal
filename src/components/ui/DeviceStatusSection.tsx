@@ -68,14 +68,14 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
   };
 
   const getStatusColor = () => {
-    if (!hasData) return "text-white/40";
+    if (!hasData) return "text-muted-foreground";
     if (allOnline) return "text-emerald-400";
     if (allOffline) return "text-red-400";
     return "text-amber-400";
   };
 
   const getStatusBg = () => {
-    if (!hasData) return "bg-white/5 border-white/10";
+    if (!hasData) return "bg-white/5 border-border";
     if (allOnline) return "bg-emerald-500/10 border-emerald-500/20";
     if (allOffline) return "bg-red-500/10 border-red-500/25";
     return "bg-amber-500/10 border-amber-500/20";
@@ -102,7 +102,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
       <div className="flex-1 min-w-0 text-left">
         <p className={`text-base font-semibold ${getStatusColor()}`}>{getStatusLabel()}</p>
         {hasData && (
-          <p className="text-sm text-white/50 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {devices.length} device{devices.length !== 1 ? "s" : ""} monitored
           </p>
         )}
@@ -134,7 +134,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
               transition={prefersReducedMotion ? {} : { duration: 0.3, ease: "easeOut" }}
               className="flex-shrink-0"
             >
-              <ChevronDown size={14} className="text-white/40" strokeWidth={2.5} />
+              <ChevronDown size={14} className="text-muted-foreground" strokeWidth={2.5} />
             </motion.div>
           )}
         </button>
@@ -153,7 +153,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
         transition={prefersReducedMotion ? { duration: 0.2 } : { duration: 0.3, ease: "easeInOut" }}
         className="overflow-hidden"
       >
-        <div className="border-t border-white/10 pt-0">
+        <div className="border-t border-border pt-0">
           {devices.map((device, idx) => {
             const isOnline = device.status === "online";
             const bgColor = isOnline ? "bg-emerald-500/10" : "bg-red-500/10";
@@ -205,9 +205,9 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
 
                 {/* Alert indicator */}
                 {device.alert_count > 0 && (
-                  <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/20">
+                  <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-border">
                     <AlertTriangle size={12} className="text-amber-400" />
-                    <span className="text-sm font-semibold text-white/80">{device.alert_count}</span>
+                    <span className="text-sm font-semibold text-foreground">{device.alert_count}</span>
                   </div>
                 )}
               </motion.div>

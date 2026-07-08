@@ -198,7 +198,7 @@ export default function ConsumptionPage() {
     return (
       <GlassCard className="border-amber-500/20">
         <p className="text-base text-amber-300 font-medium">No site linked to your account.</p>
-        <p className="text-sm text-white/55 mt-1">Contact your 360Watts installer to link your solar site.</p>
+        <p className="text-sm text-muted-foreground mt-1">Contact your 360Watts installer to link your solar site.</p>
       </GlassCard>
     );
   }
@@ -274,7 +274,7 @@ export default function ConsumptionPage() {
           <div className="h-[280px] rounded-xl bg-white/[0.04] animate-pulse" />
         ) : view === "Week" ? (
           !data?.weekTrend || data.weekTrend.labels.length === 0 ? (
-            <div className="h-[280px] flex items-center justify-center text-base text-white/40">No data available for this period.</div>
+            <div className="h-[280px] flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
           ) : (
             <TrendChart
               labels={data.weekTrend.labels}
@@ -288,7 +288,7 @@ export default function ConsumptionPage() {
             />
           )
         ) : !chartData || chartData.labels.length === 0 ? (
-          <div className="h-[280px] flex items-center justify-center text-base text-white/40">No data available for this period.</div>
+          <div className="h-[280px] flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
         ) : (
           <DataChart type={chartType} data={chartData} height={280} />
         )}
@@ -296,7 +296,7 @@ export default function ConsumptionPage() {
         {view === "Day" && (
           <div className="mt-3">
             <p className="text-sm text-muted-foreground mb-2 font-medium">TANGEDCO Tariff Bands</p>
-            <div className="flex w-full rounded-lg overflow-hidden border border-white/5" style={{ height: 52 }}>
+            <div className="flex w-full rounded-lg overflow-hidden border border-border" style={{ height: 52 }}>
               {TARIFF_BANDS.map((band) => (
                 <div key={band.label}
                   className="flex flex-col items-center justify-center px-2 py-1.5 border-r last:border-r-0 transition-colors"
@@ -334,7 +334,7 @@ export default function ConsumptionPage() {
         {loading && !data ? (
           <div className="h-48 rounded-xl bg-white/[0.04] animate-pulse" />
         ) : !data?.forecastChart || data.forecastChart.labels.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-base text-white/40">No forecast data available.</div>
+          <div className="h-48 flex items-center justify-center text-base text-muted-foreground">No forecast data available.</div>
         ) : (
           <DataChart type="line" data={data.forecastChart} height={200} />
         )}

@@ -51,7 +51,7 @@ export function FAQSection() {
                 e.preventDefault();
                 document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="inline-flex items-center justify-center rounded-[10px] bg-gradient-to-r from-[#00a63e] to-[#007a55] text-white px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 text-[14px] sm:text-[15px] md:text-[16px] font-['Poppins'] shadow-[0_4px_12px_rgba(0,166,62,0.25)] hover:opacity-90 transition min-w-[160px] sm:min-w-[180px] md:min-w-[220px]"
+              className="inline-flex items-center justify-center rounded-[10px] bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 text-[14px] sm:text-[15px] md:text-[16px] font-['Poppins'] shadow-[0_4px_12px_rgba(0,166,62,0.25)] hover:opacity-90 transition min-w-[160px] sm:min-w-[180px] md:min-w-[220px]"
             >
               Chat with Us
             </a>

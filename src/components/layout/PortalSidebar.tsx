@@ -82,7 +82,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
-              className="ml-3 font-bold text-white text-base tracking-wide whitespace-nowrap"
+              className="ml-3 font-bold text-foreground text-base tracking-wide whitespace-nowrap"
               style={{ fontFamily: "var(--font-display)" }}
             >
               360watts
@@ -105,7 +105,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                   "relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors duration-150 group",
                   active
                     ? "bg-emerald-500/10 text-emerald-400"
-                    : "text-white/60 hover:text-white/70 hover:bg-white/4"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/4"
                 )}
               >
                 {active && (
@@ -147,7 +147,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
         {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-white/55 hover:text-white/50 hover:bg-white/4 transition-colors text-sm"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-white/4 transition-colors text-sm"
         >
           <motion.div animate={{ rotate: collapsed ? 180 : 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
             <ChevronLeft size={15} />
@@ -187,7 +187,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
                   transition={{ duration: 0.15 }}
                   className="min-w-0"
                 >
-                  <p className="text-sm font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">{displayName}</p>
+                  <p className="text-sm font-semibold text-foreground truncate group-hover:text-foreground transition-colors">{displayName}</p>
                   <p className={cn("text-sm truncate flex items-center gap-1.5", tier.textClass)}>
                     <span
                       className={cn("w-1.5 h-1.5 rounded-full shrink-0", tier.dotClass)}
@@ -203,7 +203,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
         <button
           onClick={() => void logout()}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white/80 hover:bg-white/4 transition-colors",
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/4 transition-colors",
             collapsed ? "justify-center" : "",
           )}
         >

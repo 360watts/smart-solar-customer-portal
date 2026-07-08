@@ -1,27 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Info, CheckCircle, Clock, WifiOff, Wifi } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
-import SkeletonPulse from "@/components/ui/SkeletonPulse";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi, type IncidentItem } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
-
-interface Alert {
-  id: string;
-  alert_type: string;
-  severity: "critical" | "warning" | "info";
-  title: string;
-  message: string;
-  device_serial: string;
-  triggered_at: string;
-  status: "active" | "resolved" | "acknowledged";
-  fault_code: string | null;
-}
 
 interface AlertsDevice {
   serial: string;
@@ -30,38 +17,19 @@ interface AlertsDevice {
 }
 
 interface AlertsPageData {
-  alerts: Alert[];
+  incidents: IncidentItem[];
+  totalCount: number;
   devices: AlertsDevice[];
 }
 
-// Human-readable fallback titles for alert types the backend doesn't label explicitly.
-const TYPE_LABELS: Record<string, string> = {
-  device_offline: "Device Offline",
-  low_battery: "Low Battery",
-  high_temperature: "High Temperature",
-  communication_error: "Communication Error",
-  threshold_exceeded: "Threshold Exceeded",
-  maintenance_due: "Maintenance Due",
-  fault: "Fault Detected",
-  custom: "Alert",
+const INCIDENT_CATEGORY_LABELS: Record<IncidentItem["category"], string> = {
+  hardware: "Hardware",
+  connectivity: "Connectivity",
+  data_quality: "Data Quality",
+  weather_environmental: "Weather / Environmental",
+  maintenance: "Maintenance",
+  grid: "Grid",
 };
-
-function normalizeAlert(raw: Record<string, unknown>): Alert {
-  const alertType = String(raw.alert_type ?? raw.type ?? "custom");
-  const severity = (raw.severity as Alert["severity"]) || "warning";
-  const deviceSerial = String(raw.device_serial ?? raw.device_id ?? "—");
-  return {
-    id: String(raw.id ?? `${deviceSerial}-${raw.timestamp ?? raw.triggered_at}`),
-    alert_type: alertType,
-    severity,
-    title: (raw.title as string) || TYPE_LABELS[alertType] || "Alert",
-    message: (raw.message as string) || "",
-    device_serial: deviceSerial,
-    triggered_at: String(raw.triggered_at ?? raw.timestamp ?? new Date().toISOString()),
-    status: (raw.status as Alert["status"]) || "active",
-    fault_code: (raw.fault_code as string) || null,
-  };
-}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -75,9 +43,9 @@ function timeAgo(iso: string): string {
 }
 
 const SEVERITY_STYLES: Record<string, { color: string; bg: string; border: string }> = {
-  critical: { color: "#EF4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)" },
-  warning: { color: "#E9B949", bg: "rgba(233,185,73,0.1)", border: "rgba(233,185,73,0.25)" },
-  info: { color: "#60a5fa", bg: "rgba(96,165,250,0.1)", border: "rgba(96,165,250,0.25)" },
+  critical: { color: "var(--destructive)", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)" },
+  warning: { color: "var(--glow-amber)", bg: "rgba(233,185,73,0.1)", border: "rgba(233,185,73,0.25)" },
+  info: { color: "var(--info)", bg: "rgba(96,165,250,0.1)", border: "rgba(96,165,250,0.25)" },
 };
 
 // Severity rank for sort — critical first, then warning, then info; ties broken by recency.
@@ -87,68 +55,64 @@ type StatusFilter = "all" | "active" | "resolved";
 type SeverityFilter = "all" | "critical" | "warning" | "info";
 const ALERTS_PER_PAGE = 8;
 
+// Fetched in one page-load-sized batch; the list is paginated client-side
+// (matches the previous unpaginated-shim behavior) rather than round-tripping
+// to the server per page — 200 comfortably covers a site's recent history.
+const INCIDENT_FETCH_LIMIT = 200;
+
 export default function AlertsPage() {
   const { user } = useAuth();
-  const siteId = user?.site_id;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(1);
-  const [localOverrides, setLocalOverrides] = useState<Record<string, Alert["status"]>>({});
+  const [localOverrides, setLocalOverrides] = useState<Record<string, IncidentItem["status"]>>({});
 
   const { data, loading, error } = useSiteQuery<AlertsPageData>(
     user?.site_id,
     async (siteId, signal) => {
-      const [alertsRes, overviewRes] = await Promise.all([
-        portalApi.getSiteAlerts(siteId, signal),
+      const [incidentsRes, overviewRes] = await Promise.all([
+        portalApi.getSiteIncidents(siteId, { limit: INCIDENT_FETCH_LIMIT }, signal),
         portalApi.getPortalOverview(siteId, undefined, signal).catch(() => null),
       ]);
       signal.throwIfAborted();
-
-      const rawAlerts = alertsRes.data as unknown;
-      const list = Array.isArray(rawAlerts)
-        ? rawAlerts
-        : Array.isArray((rawAlerts as { results?: unknown[] })?.results)
-          ? (rawAlerts as { results: unknown[] }).results
-          : [];
-      const alerts = (list as Record<string, unknown>[]).map(normalizeAlert);
 
       const realtime = (overviewRes?.data?.data?.realtime ?? {}) as Record<string, unknown>;
       const devices = (
         (realtime.devices ?? []) as Array<{ device_serial: string; device_type?: string; is_online?: boolean }>
       ).map((d) => ({ serial: d.device_serial, device_type: d.device_type ?? "gateway", is_online: Boolean(d.is_online) }));
 
-      return { alerts, devices };
+      return { incidents: incidentsRes.results, totalCount: incidentsRes.count, devices };
     },
     { cacheKey: `alerts:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 30 },
   );
 
-  const alerts: Alert[] = data?.alerts ?? [];
+  const incidents: IncidentItem[] = data?.incidents ?? [];
   const devices: AlertsDevice[] = data?.devices ?? [];
   const loaded = !loading;
 
-  function acknowledgeAlert(alertId: string) {
-    setLocalOverrides((prev) => ({ ...prev, [alertId]: "acknowledged" }));
-    portalApi.acknowledgeAlert(alertId).catch(() => {});
+  function acknowledgeAlert(incidentId: number) {
+    setLocalOverrides((prev) => ({ ...prev, [incidentId]: "acknowledged" }));
+    portalApi.acknowledgeAlert(String(incidentId)).catch(() => {});
   }
 
-  const displayAlerts = alerts.map((a) =>
-    localOverrides[a.id] ? { ...a, status: localOverrides[a.id]! } : a
+  const displayIncidents = incidents.map((inc) =>
+    localOverrides[inc.id] ? { ...inc, status: localOverrides[inc.id]! } : inc
   );
 
-  const filtered = displayAlerts
-    .filter((a) => {
+  const filtered = displayIncidents
+    .filter((inc) => {
       const matchStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && (a.status === "active" || a.status === "acknowledged")) ||
-        (statusFilter === "resolved" && a.status === "resolved");
+        (statusFilter === "active" && (inc.status === "active" || inc.status === "acknowledged")) ||
+        (statusFilter === "resolved" && inc.status === "resolved");
       const matchSeverity =
-        severityFilter === "all" || a.severity === severityFilter;
+        severityFilter === "all" || inc.severity === severityFilter;
       return matchStatus && matchSeverity;
     })
     .sort((a, b) => {
       const rankDiff = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
       if (rankDiff !== 0) return rankDiff;
-      return new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime();
+      return new Date(b.tsStart).getTime() - new Date(a.tsStart).getTime();
     });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ALERTS_PER_PAGE));
@@ -157,20 +121,20 @@ export default function AlertsPage() {
   const pageEnd = pageStart + ALERTS_PER_PAGE;
   const visibleAlerts = filtered.slice(pageStart, pageEnd);
 
-  const criticalCount = displayAlerts.filter((a) => a.severity === "critical").length;
-  const warningCount = displayAlerts.filter((a) => a.severity === "warning").length;
-  const infoCount = displayAlerts.filter((a) => a.severity === "info").length;
+  const criticalCount = displayIncidents.filter((inc) => inc.severity === "critical").length;
+  const warningCount = displayIncidents.filter((inc) => inc.severity === "warning").length;
+  const infoCount = displayIncidents.filter((inc) => inc.severity === "info").length;
   const offlineDevices = devices.filter((d) => !d.is_online);
 
-  // Map device_serial → offline flag so each alert card can show live device status,
-  // not just the alert's own severity — the device may have recovered since triggering.
+  // Map device_serial → offline flag so each incident card can show live device status,
+  // not just the incident's own severity — the device may have recovered since triggering.
   const offlineSerials = new Set(offlineDevices.map((d) => d.serial));
 
   const pillBtn = (active: boolean) =>
     `px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
       active
-        ? "bg-white/20 text-white"
-        : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80"
+        ? "bg-surface-5 text-text-1"
+        : "bg-surface-2 text-text-4 hover:bg-surface-4 hover:text-text-1"
     }`;
 
   return (
@@ -193,9 +157,9 @@ export default function AlertsPage() {
 
       {/* Device status strip — offline devices surfaced here too, not just in alert text */}
       {devices.length > 0 && (
-        <GlassCard className={offlineDevices.length > 0 ? "border-red-500/30" : "border-white/10"}>
+        <GlassCard className={offlineDevices.length > 0 ? "border-red-500/30" : "border-border-2"}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-white/60 uppercase tracking-widest font-medium">Device Connectivity</p>
+            <p className="text-sm text-text-3 uppercase tracking-label font-medium">Device Connectivity</p>
             <span className={`text-sm font-semibold ${offlineDevices.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
               {offlineDevices.length > 0
                 ? `${offlineDevices.length}/${devices.length} offline`
@@ -215,7 +179,7 @@ export default function AlertsPage() {
               >
                 {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}
                 <span className="font-semibold">{d.device_type === "energy_meter" ? "Energy Meter IoT Gateway" : "Inverter IoT Gateway"}</span>
-                <span className="font-mono text-white/45">{d.serial}</span>
+                <span className="font-mono text-text-4">{d.serial}</span>
               </span>
             ))}
           </div>
@@ -226,21 +190,21 @@ export default function AlertsPage() {
       <div className="flex flex-wrap gap-3">
         <span
           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-          style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444" }}
+          style={{ background: "rgba(239,68,68,0.15)", color: "var(--destructive)" }}
         >
           <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
           {criticalCount} Critical
         </span>
         <span
           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-          style={{ background: "rgba(233,185,73,0.15)", color: "#E9B949" }}
+          style={{ background: "rgba(233,185,73,0.15)", color: "var(--glow-amber)" }}
         >
           <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
           {warningCount} Warning
         </span>
         <span
           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
-          style={{ background: "rgba(96,165,250,0.15)", color: "#60a5fa" }}
+          style={{ background: "rgba(96,165,250,0.15)", color: "var(--info)" }}
         >
           <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
           {infoCount} Info
@@ -250,7 +214,7 @@ export default function AlertsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-white/40 uppercase tracking-wider">Status</span>
+          <span className="text-sm text-text-4 uppercase tracking-label">Status</span>
           <div className="flex gap-1">
             {(["all", "active", "resolved"] as StatusFilter[]).map((s) => (
               <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} className={pillBtn(statusFilter === s)}>
@@ -260,7 +224,7 @@ export default function AlertsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-white/40 uppercase tracking-wider">Severity</span>
+          <span className="text-sm text-text-4 uppercase tracking-label">Severity</span>
           <div className="flex gap-1">
             {(["all", "critical", "warning", "info"] as SeverityFilter[]).map((s) => (
               <button key={s} onClick={() => { setSeverityFilter(s); setPage(1); }} className={pillBtn(severityFilter === s)}>
@@ -284,13 +248,13 @@ export default function AlertsPage() {
             <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
               <CheckCircle className="w-8 h-8 text-emerald-400" />
             </div>
-            <p className="text-xl font-semibold text-white">All Clear</p>
-            <p className="text-base text-white/50">No alerts matching your filters</p>
+            <p className="text-xl font-semibold text-text-1">All Clear</p>
+            <p className="text-base text-text-4">No alerts matching your filters</p>
           </motion.div>
         ) : (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-3">
-              <span className="text-sm text-white/55">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-1 bg-surface-1 px-4 py-3">
+              <span className="text-sm text-text-3">
                 Showing {filtered.length === 0 ? 0 : pageStart + 1}-{Math.min(pageEnd, filtered.length)} of {filtered.length} alerts
               </span>
               {totalPages > 1 && (
@@ -299,7 +263,7 @@ export default function AlertsPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="rounded-lg border border-border-2 bg-surface-2 px-3 py-1.5 text-sm text-text-2 transition hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     Prev
                   </button>
@@ -311,7 +275,7 @@ export default function AlertsPage() {
                       className={`h-8 min-w-8 rounded-lg px-2 text-sm font-semibold transition ${
                         p === currentPage
                           ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/25"
-                          : "bg-white/[0.04] text-white/55 border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/80"
+                          : "bg-surface-2 text-text-3 border border-border-1 hover:bg-surface-3 hover:text-text-1"
                       }`}
                     >
                       {p}
@@ -321,7 +285,7 @@ export default function AlertsPage() {
                     type="button"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-sm text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-35"
+                    className="rounded-lg border border-border-2 bg-surface-2 px-3 py-1.5 text-sm text-text-2 transition hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     Next
                   </button>
@@ -329,14 +293,14 @@ export default function AlertsPage() {
               )}
             </div>
 
-            {visibleAlerts.map((alert) => {
-              const sev = SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.info;
-              const Icon = alert.severity === "info" ? Info : AlertTriangle;
-              const deviceOffline = offlineSerials.has(alert.device_serial);
-              const isCritical = alert.severity === "critical";
+            {visibleAlerts.map((incident) => {
+              const sev = SEVERITY_STYLES[incident.severity] ?? SEVERITY_STYLES.info;
+              const Icon = incident.severity === "info" ? Info : AlertTriangle;
+              const deviceOffline = incident.deviceSerial != null && offlineSerials.has(incident.deviceSerial);
+              const isCritical = incident.severity === "critical";
               return (
                 <motion.div
-                  key={alert.id}
+                  key={incident.id}
                   layout
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -344,14 +308,14 @@ export default function AlertsPage() {
                   transition={{ duration: 0.2 }}
                 >
                   <GlassCard
-                    className={isCritical ? "border-red-500/30 bg-gradient-to-br from-red-950/15 to-transparent" : undefined}
+                    className={isCritical ? "border-red-500/30 bg-linear-to-br from-red-950/15 to-transparent" : undefined}
                   >
                     <div className="flex items-start gap-4">
-                      {/* Severity icon — critical alerts pulse, matching the overview's critical card */}
+                      {/* Severity icon — critical incidents pulse, matching the overview's critical card */}
                       <motion.div
                         animate={isCritical ? { scale: [1, 1.08, 1] } : {}}
                         transition={isCritical ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : undefined}
-                        className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5"
+                        className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5"
                         style={{ background: sev.bg, border: `1px solid ${sev.border}` }}
                       >
                         <Icon className="w-5 h-5" style={{ color: sev.color }} />
@@ -360,48 +324,53 @@ export default function AlertsPage() {
                       {/* Body */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-white text-base">{alert.title}</p>
+                          <p className="font-semibold text-text-1 text-base">{incident.title}</p>
                           {isCritical && (
                             <motion.span
                               animate={{ opacity: [1, 0.7, 1] }}
                               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                              className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/90 text-white shadow-lg shadow-red-500/30"
+                              className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/90 text-foreground shadow-lg shadow-red-500/30"
                             >
                               CRITICAL
                             </motion.span>
                           )}
                           {deviceOffline && (
-                            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-label px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
                               <WifiOff size={10} /> Device Offline
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-white/60 mt-0.5">{alert.message}</p>
+                        <p className="text-sm text-text-3 mt-0.5">{incident.summary}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="text-sm px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
-                            {alert.device_serial}
+                          <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2 font-mono">
+                            {INCIDENT_CATEGORY_LABELS[incident.category] ?? incident.category}
                           </span>
-                          <span className="flex items-center gap-1 text-sm text-white/40">
-                            <Clock size={11} /> {timeAgo(alert.triggered_at)}
+                          {incident.deviceSerial && (
+                            <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2 font-mono">
+                              {incident.deviceSerial}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-sm text-text-4">
+                            <Clock size={11} /> {timeAgo(incident.tsStart)}
                           </span>
-                          {alert.fault_code && (
+                          {incident.durationSeconds != null && (
                             <span className="text-sm px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-amber-300 font-mono">
-                              {alert.fault_code}
+                              {Math.round(incident.durationSeconds / 60)} min
                             </span>
                           )}
                         </div>
                       </div>
 
                       {/* Right: status + ack */}
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <div className="flex flex-col items-end gap-2 shrink-0">
                         <StatusPill
-                          status={alert.status === "resolved" ? "active" : "warning"}
-                          label={alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                          status={incident.status === "resolved" ? "active" : "warning"}
+                          label={incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
                         />
-                        {alert.status === "active" && (
+                        {incident.status === "active" && (
                           <button
-                            onClick={() => acknowledgeAlert(alert.id)}
-                            className="text-sm px-3 py-1 rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all cursor-pointer"
+                            onClick={() => acknowledgeAlert(incident.id)}
+                            className="text-sm px-3 py-1 rounded-full bg-surface-4 text-text-2 hover:bg-surface-5 hover:text-text-1 transition-all cursor-pointer"
                           >
                             Acknowledge
                           </button>
@@ -415,96 +384,6 @@ export default function AlertsPage() {
           </div>
         )}
       </AnimatePresence>
-
-      {siteId && <IncidentHistorySection siteId={siteId} />}
     </div>
-  );
-}
-
-// Maps an incident's lifecycle status to the visual vocabulary StatusPill already
-// uses elsewhere in the portal (active/inactive/warning/error).
-const INCIDENT_STATUS_PILL: Record<IncidentItem["status"], { status: "active" | "inactive" | "warning" | "error"; label: string }> = {
-  active: { status: "error", label: "Active" },
-  acknowledged: { status: "warning", label: "Acknowledged" },
-  resolved: { status: "active", label: "Resolved" },
-};
-
-const INCIDENT_CATEGORY_LABELS: Record<IncidentItem["category"], string> = {
-  hardware: "Hardware",
-  connectivity: "Connectivity",
-  data_quality: "Data Quality",
-  weather_environmental: "Weather / Environmental",
-  maintenance: "Maintenance",
-  grid: "Grid",
-};
-
-function IncidentHistorySection({ siteId }: { siteId: string }) {
-  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
-  const [offset, setOffset] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const PAGE_SIZE = 20;
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    portalApi
-      .getSiteIncidents(siteId, { limit: PAGE_SIZE, offset })
-      .then((res) => {
-        if (cancelled) return;
-        setIncidents(res.results);
-        setTotalCount(res.count);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [siteId, offset]);
-
-  return (
-    <GlassCard className="p-5 mt-6">
-      <h3 className="text-sm font-semibold mb-4">Incident History</h3>
-      {loading ? (
-        <SkeletonPulse className="h-24" />
-      ) : incidents.length === 0 ? (
-        <p className="text-text-4 text-sm">No incidents recorded for this site.</p>
-      ) : (
-        <div className="space-y-2">
-          {incidents.map((inc) => (
-            <div key={inc.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-              <div>
-                <p className="text-sm font-medium">{inc.title}</p>
-                <p className="text-xs text-text-4">
-                  {INCIDENT_CATEGORY_LABELS[inc.category] ?? inc.category} · {new Date(inc.tsStart).toLocaleString()}
-                  {inc.durationSeconds != null && ` · ${Math.round(inc.durationSeconds / 60)} min`}
-                </p>
-              </div>
-              <StatusPill status={INCIDENT_STATUS_PILL[inc.status].status} label={INCIDENT_STATUS_PILL[inc.status].label} />
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="flex justify-between mt-4">
-        <button
-          disabled={offset === 0}
-          onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-          className="text-xs disabled:opacity-30"
-        >
-          Previous
-        </button>
-        <span className="text-xs text-text-4">
-          {totalCount === 0 ? 0 : offset + 1}-{Math.min(offset + PAGE_SIZE, totalCount)} of {totalCount}
-        </span>
-        <button
-          disabled={offset + PAGE_SIZE >= totalCount}
-          onClick={() => setOffset(offset + PAGE_SIZE)}
-          className="text-xs disabled:opacity-30"
-        >
-          Next
-        </button>
-      </div>
-    </GlassCard>
   );
 }

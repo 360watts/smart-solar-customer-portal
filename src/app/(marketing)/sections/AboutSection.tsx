@@ -43,12 +43,12 @@ export function AboutSection() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-black/50" />
         <div className="relative z-10 w-full max-w-5xl mx-auto min-w-0 px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 lg:pt-36 flex items-start">
-          <motion.div className="text-white space-y-2 sm:space-y-3 max-w-xl" variants={revealVariant}>
+          <motion.div className="text-foreground space-y-2 sm:space-y-3 max-w-xl" variants={revealVariant}>
             <p className="text-sm sm:text-base md:text-lg font-['Poppins']">360watts.com | solar + smart home solutions</p>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-['Urbanist'] leading-tight">
               We're on a mission.
             </h1>
-            <p className="text-sm sm:text-base md:text-lg font-['Poppins'] text-white/90">
+            <p className="text-sm sm:text-base md:text-lg font-['Poppins'] text-foreground">
               To revolutionize how homes consume and manage energy.
             </p>
           </motion.div>
@@ -146,7 +146,7 @@ export function AboutSection() {
               e.preventDefault();
               document.getElementById("partnership")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] bg-gradient-to-r from-[#00a63e] to-[#007a55] text-white font-semibold hover:opacity-90 transition"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground font-semibold hover:opacity-90 transition"
           >
             Get in Touch <ArrowRight className="w-5 h-5" />
           </a>

@@ -74,7 +74,7 @@ export function PulseDot({ color }: { color: string }) {
         animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="absolute inset-[1px] rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+      <div className="absolute .inset-\[1px\] rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
     </div>
   );
 }

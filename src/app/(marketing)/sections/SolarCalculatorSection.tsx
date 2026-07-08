@@ -357,7 +357,7 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
       <section id="solar-calculator" className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-16 md:py-20 min-w-0 overflow-x-hidden">
         <div
           ref={calculatorRef}
-          className="relative overflow-hidden rounded-[20px] sm:rounded-[28px] bg-gradient-to-br from-[#0f2418] via-[#0c1e14] to-[#0f2f1e] text-white shadow-[0_24px_70px_rgba(0,0,0,0.22)] border border-white/10"
+          className="relative overflow-hidden rounded-[20px] sm:rounded-[28px] bg-gradient-to-br from-[#0f2418] via-[#0c1e14] to-[#0f2f1e] text-foreground shadow-[0_24px_70px_rgba(0,0,0,0.22)] border border-border"
           style={{ opacity: 1, transform: "none" }}
           onMouseMove={handleCalcMouseMove}
         >
@@ -373,19 +373,19 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
           />
           <div className="relative grid lg:grid-cols-[1.05fr_1fr] min-w-0 gap-4 sm:gap-0">
             <div className="p-4 sm:p-6 md:p-10 lg:p-12 flex flex-col gap-3 sm:gap-6">
-              <span className="inline-flex items-center gap-2 w-fit px-2 sm:px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] sm:text-sm font-semibold tracking-[0.12em] uppercase">
+              <span className="inline-flex items-center gap-2 w-fit px-2 sm:px-3 py-1 rounded-full bg-white/10 border border-border text-[10px] sm:text-sm font-semibold tracking-[0.12em] uppercase">
                 <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
                 Solar Calculator
               </span>
               <div className="space-y-1.5 sm:space-y-3">
-                <h2 className="font-['Urbanist'] font-bold text-[17px] sm:text-3xl md:text-[34px] leading-tight text-white">
+                <h2 className="font-['Urbanist'] font-bold text-[17px] sm:text-3xl md:text-[34px] leading-tight text-foreground">
                   Curious? Calculate your home's solar potential
                 </h2>
-                <p className="font-['Poppins'] text-[12px] sm:text-lg text-white/80 max-w-xl">
+                <p className="font-['Poppins'] text-[12px] sm:text-lg text-foreground max-w-xl">
                   Drop in a few details to preview system size, energy generation, and savings before a site survey.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-[11px] sm:text-base text-white/90">
+              <div className="flex items-center gap-2 text-[11px] sm:text-base text-foreground">
                 <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>We respond with a refined quote within one business day.</span>
               </div>
@@ -443,7 +443,7 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <button
                   type="submit"
-                  className="w-full sm:w-auto min-h-[44px] bg-gradient-to-r from-[#ffd166] via-[#ffb347] to-[#ff6b00] text-white font-semibold text-[14px] sm:text-base px-5 sm:px-8 py-3 rounded-lg sm:rounded-xl shadow-[0_10px_30px_rgba(255,107,0,0.25)] hover:opacity-95 active:scale-95 transition order-2 sm:order-1"
+                  className="w-full sm:w-auto min-h-[44px] bg-gradient-to-r from-[#ffd166] via-[#ffb347] to-[#ff6b00] text-foreground font-semibold text-[14px] sm:text-base px-5 sm:px-8 py-3 rounded-lg sm:rounded-xl shadow-[0_10px_30px_rgba(255,107,0,0.25)] hover:opacity-95 active:scale-95 transition order-2 sm:order-1"
                 >
                   Calculate
                 </button>
@@ -711,7 +711,7 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
                     onClick={() => {
                       document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="w-full sm:w-auto min-h-[44px] bg-gradient-to-r from-[#ffd166] via-[#ffb347] to-[#ff6b00] text-white font-semibold text-[14px] sm:text-base px-5 sm:px-8 py-3 rounded-xl shadow-[0_10px_30px_rgba(255,107,0,0.25)] hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2 flex-shrink-0"
+                    className="w-full sm:w-auto min-h-[44px] bg-gradient-to-r from-[#ffd166] via-[#ffb347] to-[#ff6b00] text-foreground font-semibold text-[14px] sm:text-base px-5 sm:px-8 py-3 rounded-xl shadow-[0_10px_30px_rgba(255,107,0,0.25)] hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2 flex-shrink-0"
                     aria-label="Get free consultation"
                   >
                     <MessageCircle className="w-4 h-4" aria-hidden />

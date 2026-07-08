@@ -104,7 +104,7 @@ function MainRing({ score, status, size }: { score: number; status: 0 | 1 | 2; s
         <span className="font-mono text-2xl font-extrabold" style={{ color, textShadow: `0 0 12px ${color}66` }}>
           <AnimatedNumber value={score} decimals={0} suffix="%" />
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45 mt-1">Health</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1">Health</span>
       </div>
     </div>
   );
@@ -117,7 +117,7 @@ function ComponentDial({ compKey, data }: { compKey: keyof typeof COMPONENT_META
   const [highlightKey, highlightValue] = Object.entries(data.details)[0] ?? [];
 
   return (
-    <div className="flex flex-col items-center gap-2 px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+    <div className="flex flex-col items-center gap-2 px-3 py-3 rounded-xl border border-border .bg-white\/\[0\.02\] hover:.bg-white\/\[0\.04\] transition-colors">
       <div className="relative" style={{ width: 52, height: 52 }}>
         <MiniArc score={data.health_score} color={meta.color} size={52} />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -126,12 +126,12 @@ function ComponentDial({ compKey, data }: { compKey: keyof typeof COMPONENT_META
       </div>
       <div className="flex items-center gap-1.5">
         <PulseDot color={sc} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-white/50 whitespace-nowrap">{meta.label}</span>
+        <span className="font-mono text-[10px] uppercase .tracking-\[0\.1em\] text-muted-foreground whitespace-nowrap">{meta.label}</span>
       </div>
       <span className="font-mono text-sm font-bold" style={{ color: meta.color }}>{data.health_score}%</span>
       {highlightKey && (
-        <p className="text-[10px] text-white/40 text-center leading-tight truncate w-full" title={highlightKey}>
-          {highlightKey}: <span className="text-white/60">{highlightValue}</span>
+        <p className="text-[10px] text-muted-foreground text-center leading-tight truncate w-full" title={highlightKey}>
+          {highlightKey}: <span className="text-muted-foreground">{highlightValue}</span>
         </p>
       )}
     </div>
@@ -149,11 +149,11 @@ export default function HealthGaugeCard({
     <GlassCard className="h-full">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h3 className="text-white font-semibold text-base" style={{ fontFamily: "var(--font-display)" }}>
+          <h3 className="text-foreground font-semibold text-base" style={{ fontFamily: "var(--font-display)" }}>
             System Health
           </h3>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/45 mt-1">
-            Overall <span className="text-white/25">|</span>{" "}
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-1">
+            Overall <span className="text-muted-foreground">|</span>{" "}
             <span style={{ color: healthStatusColor(health.overall_status) }}>{statusLabel(health.overall_status)}</span>
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function HealthGaugeCard({
           >
             View Details <ChevronRight size={14} />
           </button>
-          <span className="flex items-center gap-1 font-mono text-[10px] text-white/35 whitespace-nowrap">
+          <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
             <RadioTower size={11} /> Synced {timeAgo(health.last_updated)}
           </span>
         </div>
@@ -181,22 +181,22 @@ export default function HealthGaugeCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-white/5">
-        <div className="rounded-[10px] bg-white/[0.04] p-3">
-          <p className="text-white/50 text-xs mb-1">System Size</p>
-          <p className="text-white text-base font-semibold">{health.installation.system_size}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-border">
+        <div className="rounded-[10px] .bg-white\/\[0\.04\] p-3">
+          <p className="text-muted-foreground text-xs mb-1">System Size</p>
+          <p className="text-foreground text-base font-semibold">{health.installation.system_size}</p>
         </div>
-        <div className="rounded-[10px] bg-white/[0.04] p-3">
-          <p className="text-white/50 text-xs mb-1">Installed On</p>
-          <p className="text-white text-base font-semibold">{health.installation.installed_date}</p>
+        <div className="rounded-[10px] .bg-white\/\[0\.04\] p-3">
+          <p className="text-muted-foreground text-xs mb-1">Installed On</p>
+          <p className="text-foreground text-base font-semibold">{health.installation.installed_date}</p>
         </div>
-        <div className="rounded-[10px] bg-white/[0.04] p-3">
-          <p className="text-white/50 text-xs mb-1">Panel Warranty</p>
-          <p className="text-white text-base font-semibold">{health.solar_panel.warranty || "—"}</p>
+        <div className="rounded-[10px] .bg-white\/\[0\.04\] p-3">
+          <p className="text-muted-foreground text-xs mb-1">Panel Warranty</p>
+          <p className="text-foreground text-base font-semibold">{health.solar_panel.warranty || "—"}</p>
         </div>
-        <div className="rounded-[10px] bg-white/[0.04] p-3">
-          <p className="text-white/50 text-xs mb-1">Inverter Warranty</p>
-          <p className="text-white text-base font-semibold">{health.inverter.warranty || "—"}</p>
+        <div className="rounded-[10px] .bg-white\/\[0\.04\] p-3">
+          <p className="text-muted-foreground text-xs mb-1">Inverter Warranty</p>
+          <p className="text-foreground text-base font-semibold">{health.inverter.warranty || "—"}</p>
         </div>
       </div>
     </GlassCard>

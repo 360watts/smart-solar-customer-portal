@@ -144,7 +144,7 @@ export function HeroSection() {
               <h1 className="text-[18px] sm:text-3xl md:text-4xl lg:text-6xl xl:text-[99px] font-bold text-[rgba(247,255,249,0.8)] font-['Urbanist'] mb-1.5 sm:mb-4 md:mb-6 leading-[1.1] tracking-tight sm:tracking-[-2px] md:tracking-[-3.96px] whitespace-pre-line">
                 {heroSlides[currentSlide].title}
               </h1>
-              <p className="text-[13px] sm:text-base md:text-lg lg:text-xl xl:text-[23px] text-white font-['Poppins'] max-w-xl mb-2 sm:mb-6 md:mb-10 leading-relaxed">
+              <p className="text-[13px] sm:text-base md:text-lg lg:text-xl xl:text-[23px] text-foreground font-['Poppins'] max-w-xl mb-2 sm:mb-6 md:mb-10 leading-relaxed">
                 {heroSlides[currentSlide].subtitle}
               </p>
               <motion.div
@@ -153,7 +153,7 @@ export function HeroSection() {
               >
                 <Link
                   href="/#contact-section"
-                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2.5 md:py-3 lg:py-4 min-h-[40px] sm:min-h-[44px] text-[11px] sm:text-xs md:text-sm lg:text-base font-semibold bg-gradient-to-r from-[#00a63e] to-[#007a55] text-white rounded-md sm:rounded-lg md:rounded-xl hover:opacity-90 active:scale-95 transition-all"
+                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2.5 md:py-3 lg:py-4 min-h-[40px] sm:min-h-[44px] text-[11px] sm:text-xs md:text-sm lg:text-base font-semibold bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground rounded-md sm:rounded-lg md:rounded-xl hover:opacity-90 active:scale-95 transition-all"
                 >
                   Get Free Consultation
                   <ArrowRight className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
@@ -167,14 +167,14 @@ export function HeroSection() {
 
       <button
         onClick={prevSlide}
-        className="hidden sm:hidden absolute left-2 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 sm:w-12 sm:h-12 bg-white/30 backdrop-blur-md rounded-full items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-white/20"
+        className="hidden sm:hidden absolute left-2 sm:left-4 md:left-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 sm:w-12 sm:h-12 bg-white/30 backdrop-blur-md rounded-full items-center justify-center text-foreground hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-border"
         aria-label="Previous slide"
       >
         <ChevronLeft className="w-7 h-7 sm:w-6 sm:h-6" />
       </button>
       <button
         onClick={nextSlide}
-        className="hidden sm:hidden absolute right-2 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 sm:w-12 sm:h-12 bg-white/30 backdrop-blur-md rounded-full items-center justify-center text-white hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-white/20"
+        className="hidden sm:hidden absolute right-2 sm:right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 sm:w-12 sm:h-12 bg-white/30 backdrop-blur-md rounded-full items-center justify-center text-foreground hover:bg-white/40 active:scale-95 transition-all shadow-lg border border-border"
         aria-label="Next slide"
       >
         <ChevronRight className="w-7 h-7 sm:w-6 sm:h-6" />

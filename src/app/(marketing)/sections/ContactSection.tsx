@@ -115,7 +115,7 @@ export function ContactSection() {
               <div className="space-y-4 max-w-2xl mx-auto mb-8">
                 <button
                   onClick={sendViaWhatsApp}
-                  className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-white font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
+                  className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-foreground font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Send via WhatsApp Too
@@ -233,7 +233,7 @@ export function ContactSection() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 sm:py-3 md:py-3.5 lg:py-4 bg-gradient-to-r from-[#00a63e] to-[#007a55] text-white font-medium rounded-[8px] sm:rounded-[10px] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] hover:opacity-90 transition-opacity disabled:opacity-70 font-['Poppins']"
+                className="w-full py-2.5 sm:py-3 md:py-3.5 lg:py-4 bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground font-medium rounded-[8px] sm:rounded-[10px] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] hover:opacity-90 transition-opacity disabled:opacity-70 font-['Poppins']"
               >
                 {isSubmitting ? "Sending..." : "Send Message"}
               </button>
@@ -264,7 +264,7 @@ export function ContactSection() {
                 <div className="space-y-4 max-w-2xl mx-auto mb-8">
                   <button
                     onClick={sendPartnershipViaWhatsApp}
-                    className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-white font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
+                    className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-foreground font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
                   >
                     <MessageCircle className="w-5 h-5" />
                     Connect via WhatsApp
@@ -385,7 +385,7 @@ export function ContactSection() {
                 <button
                   type="submit"
                   disabled={isPartnershipSubmitting}
-                  className="w-full py-3 sm:py-3.5 md:py-4 text-white font-medium rounded-[10px] text-[15px] sm:text-[17px] md:text-[19px] hover:opacity-90 transition-opacity disabled:opacity-70"
+                  className="w-full py-3 sm:py-3.5 md:py-4 text-foreground font-medium rounded-[10px] text-[15px] sm:text-[17px] md:text-[19px] hover:opacity-90 transition-opacity disabled:opacity-70"
                   style={{ backgroundImage: "linear-gradient(170deg, #fdc700 0%, #ff6900 100%)" }}
                 >
                   {isPartnershipSubmitting ? "Sending..." : "Submit Partnership Inquiry"}
@@ -465,7 +465,7 @@ export function ContactSection() {
               href="https://www.google.com/maps/search/?api=1&query=11.037530,77.029499"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 sm:px-6 md:px-8 py-3 sm:py-3.5 md:py-4 bg-gradient-to-r from-[#00a63e] to-[#007a55] text-white font-semibold rounded-[12px] sm:rounded-[14px] text-[14px] sm:text-[15px] md:text-base hover:shadow-[0_8px_30px_rgba(0,166,62,0.3)] transition-all hover:scale-105 shadow-[0_4px_15px_rgba(0,166,62,0.2)] font-['Poppins']"
+              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 sm:px-6 md:px-8 py-3 sm:py-3.5 md:py-4 bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground font-semibold rounded-[12px] sm:rounded-[14px] text-[14px] sm:text-[15px] md:text-base hover:shadow-[0_8px_30px_rgba(0,166,62,0.3)] transition-all hover:scale-105 shadow-[0_4px_15px_rgba(0,166,62,0.2)] font-['Poppins']"
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19l-7-7m0 0l7-7m-7 7h16" />

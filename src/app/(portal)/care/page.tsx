@@ -1,31 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import MembershipCard from "@/components/care/MembershipCard";
 import HealthGaugeCard from "@/components/care/HealthGaugeCard";
-import MaintenanceTipsCard from "@/components/care/MaintenanceTipsCard";
-import FaultCard from "@/components/care/FaultCard";
-import GeneralServiceCard from "@/components/care/GeneralServiceCard";
-import ServiceBookedStatusCard from "@/components/care/ServiceBookedStatusCard";
+import DiagnosticsPanel from "@/components/care/DiagnosticsPanel";
 import BookServiceDialog from "@/components/care/BookServiceDialog";
 import SkeletonPulse from "@/components/ui/SkeletonPulse";
+import { useAuth } from "@/contexts/AuthContext";
+import { portalApi } from "@/lib/api";
 import { useSystemHealth } from "@/lib/care/useSystemHealth";
 import { useCareFaults, deriveMaintenanceFaults } from "@/lib/care/useCareFaults";
-import { getBooking, cancelBooking, type CareBooking } from "@/lib/careBooking";
+import { useMyBooking } from "@/lib/care/useMyBooking";
 
 export default function CarePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: health, loading: healthLoading } = useSystemHealth();
   const { data: alertFaults, loading: faultsLoading } = useCareFaults();
-  const [booking, setBooking] = useState<CareBooking | null>(null);
+  const { data: booking, loading: bookingLoading, refresh: refreshBooking } = useMyBooking();
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // localStorage is unavailable during SSR; hydrate booking state after mount.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setBooking(getBooking());
-  }, []);
 
   // Active alerts are the primary source; components whose health score has
   // degraded but haven't tripped an alert yet are added from the real
@@ -37,11 +31,15 @@ export default function CarePage() {
     return [...base, ...maintenance];
   }, [alertFaults, health]);
 
-  const hasFaults = faults.length > 0;
+  async function handleCancel() {
+    if (!booking) return;
+    await portalApi.cancelServiceBooking(booking.id);
+    refreshBooking();
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>360care</h1>
+      <h1 className="text-3xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>360care</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
@@ -52,37 +50,26 @@ export default function CarePage() {
           )}
         </div>
         <div className="lg:col-span-1">
-          <MembershipCard onScheduleService={() => (booking ? undefined : setDialogOpen(true))} bookingActive={Boolean(booking)} />
+          <MembershipCard booking={booking} onScheduleService={() => setDialogOpen(true)} onCancel={handleCancel} />
         </div>
       </div>
 
-      {health && <MaintenanceTipsCard tips={health.maintenance_tips} />}
+      {faultsLoading || bookingLoading || healthLoading ? (
+        <SkeletonPulse className="h-40" />
+      ) : (
+        <DiagnosticsPanel
+          faults={faults}
+          tips={health?.maintenance_tips ?? []}
+          hasActiveBooking={Boolean(booking)}
+          onSchedule={() => setDialogOpen(true)}
+        />
+      )}
 
-      <div>
-        <h2 className="font-mono text-xs uppercase tracking-[0.14em] text-white/50 mb-3">Fault &amp; Diagnostics</h2>
-
-        {faultsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SkeletonPulse className="h-28" />
-            <SkeletonPulse className="h-28" />
-          </div>
-        ) : hasFaults ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {faults.map((fault) => (
-              <FaultCard key={fault.id} fault={fault} />
-            ))}
-          </div>
-        ) : booking ? (
-          <ServiceBookedStatusCard booking={booking} onCancel={() => { cancelBooking(); setBooking(null); }} />
-        ) : (
-          <GeneralServiceCard onSchedule={() => setDialogOpen(true)} />
-        )}
-      </div>
-
-      {dialogOpen && (
+      {dialogOpen && user?.site_id && (
         <BookServiceDialog
+          siteId={user.site_id}
           onClose={() => setDialogOpen(false)}
-          onBooked={(b) => { setBooking(b); setDialogOpen(false); }}
+          onBooked={() => { setDialogOpen(false); refreshBooking(); }}
         />
       )}
     </div>

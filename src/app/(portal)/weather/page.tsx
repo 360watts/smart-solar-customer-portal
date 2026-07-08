@@ -186,7 +186,7 @@ export default function WeatherPage() {
               { icon: Thermometer, label: "Feels Like", value: feelsLike != null ? `${feelsLike}°C` : "—" },
               { icon: Cloud, label: "Cloud Cover", value: cloudPct != null ? `${cloudPct}%` : "—" },
             ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/4 border border-white/6">
+              <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/4 border border-border">
                 <s.icon size={13} className="text-amber-400 shrink-0" />
                 <div>
                   <p className="text-sm text-muted-foreground leading-tight">{s.label}</p>
@@ -194,7 +194,7 @@ export default function WeatherPage() {
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-center px-3 py-1 rounded-xl bg-white/4 border border-white/6">
+            <div className="flex items-center justify-center px-3 py-1 rounded-xl bg-white/4 border border-border">
               <SolarQualityArc score={solarScore} />
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function WeatherPage() {
           {(data?.forecast ?? []).map((f, i) => {
             const scoreColor = f.solarScore > 75 ? COLORS.primary : f.solarScore > 40 ? COLORS.amber : COLORS.muted;
             return (
-              <div key={i} className="shrink-0 w-36 rounded-2xl p-4 flex flex-col gap-2 border border-white/6" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <div key={i} className="shrink-0 w-36 rounded-2xl p-4 flex flex-col gap-2 border border-border" style={{ background: "rgba(255,255,255,0.03)" }}>
                 <p className="text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>{f.day}</p>
                 <f.Icon size={28} className="my-1" style={{ color: i === 0 ? COLORS.amber : COLORS.muted }} />
                 <p className="text-sm text-muted-foreground leading-tight">{f.condition}</p>

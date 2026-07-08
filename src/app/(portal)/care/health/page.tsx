@@ -38,8 +38,8 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
               <Icon size={15} style={{ color: meta.color }} />
             </div>
             <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50 truncate">{meta.label}</p>
-              <p className="text-white/40 text-xs mt-0.5 truncate">{data.age}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground truncate">{meta.label}</p>
+              <p className="text-muted-foreground text-xs mt-0.5 truncate">{data.age}</p>
             </div>
           </div>
           <PulseDot color={sc} />
@@ -62,7 +62,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
           </span>
         </div>
 
-        <ul className="space-y-1 text-sm text-white/70 mt-4">
+        <ul className="space-y-1 text-sm text-foreground mt-4">
           {data.specs.map((spec) => (
             <li key={spec} className="truncate">{spec}</li>
           ))}
@@ -70,12 +70,12 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
 
         <div className="h-px bg-white/8 my-4" />
 
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/35 mb-2">Live Metrics (7d)</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-2">Live Metrics (7d)</p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
           {Object.entries(data.details).map(([key, value]) => (
             <div key={key} className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-white/40 truncate">{key}</p>
-              <p className="font-mono text-xs font-semibold text-white/80 truncate">{value}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground truncate">{key}</p>
+              <p className="font-mono text-xs font-semibold text-foreground truncate">{value}</p>
             </div>
           ))}
         </div>
@@ -88,7 +88,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
           </p>
         )}
         {data.warranty && (
-          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-white/35">
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
             Warranty: {data.warranty}
           </p>
         )}
@@ -111,7 +111,7 @@ function UptimeTile({ siteId }: { siteId: string }) {
         <div className="flex items-center justify-between mb-4">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color }}>UPTIME (30D)</p>
-            <p className="text-white/40 text-xs mt-0.5">Rolling average</p>
+            <p className="text-muted-foreground text-xs mt-0.5">Rolling average</p>
           </div>
           <PulseDot color={color} />
         </div>
@@ -137,16 +137,16 @@ export default function SystemHealthDetailsPage() {
     <div className="space-y-6">
       <button
         onClick={() => router.push("/care")}
-        className="flex items-center gap-2 text-white/60 hover:text-white/90 text-sm"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm"
       >
         <ArrowLeft size={16} /> Back to 360Care
       </button>
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
           System Health Details
         </h1>
         {health && (
-          <span className="flex items-center gap-1 font-mono text-[10px] text-white/35 whitespace-nowrap">
+          <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
             <RadioTower size={11} /> Synced {timeAgo(health.last_updated)}
           </span>
         )}
@@ -168,21 +168,21 @@ export default function SystemHealthDetailsPage() {
           </div>
 
           <GlassCard>
-            <h3 className="text-white font-semibold text-base mb-4" style={{ fontFamily: "var(--font-display)" }}>
+            <h3 className="text-foreground font-semibold text-base mb-4" style={{ fontFamily: "var(--font-display)" }}>
               Installation Details
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">System Size</p>
-                <p className="text-white text-base font-semibold mt-1">{health.installation.system_size}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">System Size</p>
+                <p className="text-foreground text-base font-semibold mt-1">{health.installation.system_size}</p>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Installed On</p>
-                <p className="text-white text-base font-semibold mt-1">{health.installation.installed_date}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Installed On</p>
+                <p className="text-foreground text-base font-semibold mt-1">{health.installation.installed_date}</p>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">Installer</p>
-                <p className="text-white text-base font-semibold mt-1">{health.installation.installer_name}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Installer</p>
+                <p className="text-foreground text-base font-semibold mt-1">{health.installation.installer_name}</p>
               </div>
             </div>
           </GlassCard>

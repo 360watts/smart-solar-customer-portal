@@ -39,6 +39,28 @@ export interface SavingsData {
   };
 }
 
+export interface ServiceBooking {
+  id: number;
+  booking_number: string;
+  site: number;
+  site_id: string;
+  site_name?: string;
+  issue_category: "panel" | "inverter" | "battery" | "monitoring" | "cleaning" | "other";
+  issue_description: string;
+  status: "pending" | "scheduled" | "completed" | "closed" | "cancelled";
+  preferred_date: string | null;
+  preferred_slot: "morning" | "afternoon" | "";
+  vendor: number | null;
+  vendor_company?: string | null;
+  vendor_name?: string | null;
+  vendor_phone?: string | null;
+  service_date: string | null;
+  service_time: string | null;
+  technician_notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PortalSummaryMeta<TData> {
   version: 1;
   site_id: string;
@@ -200,4 +222,20 @@ export const portalApi = {
 
   getSite: (siteId: string) =>
     api.get(`/api/backend/sites/${siteId}/profile/`),
+
+  getMyBookings: (signal?: AbortSignal) =>
+    api.get<ServiceBooking[]>(`/api/backend/bookings/`, sig(signal)),
+
+  createServiceBooking: (
+    data: {
+      site_id: string;
+      issue_category: ServiceBooking["issue_category"];
+      issue_description?: string;
+      preferred_date?: string;
+      preferred_slot?: ServiceBooking["preferred_slot"];
+    },
+  ) => api.post<ServiceBooking>(`/api/backend/bookings/`, data),
+
+  cancelServiceBooking: (bookingId: number) =>
+    api.post<ServiceBooking>(`/api/backend/bookings/${bookingId}/cancel/`),
 };

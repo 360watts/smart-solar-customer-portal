@@ -120,7 +120,7 @@ export default function LoginForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full bg-white/4 border border-border rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </motion.div>
@@ -137,7 +137,7 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/4 border border-white/7 rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full bg-white/4 border border-border rounded-lg pl-9 pr-4 py-3 text-foreground placeholder:text-muted-foreground text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
                 />
               </div>
             </motion.div>

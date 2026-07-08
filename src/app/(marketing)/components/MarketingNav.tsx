@@ -85,7 +85,7 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
                 onClick={(e: React.MouseEvent) => handleNavClick(e, item.sectionId)}
                 className={`font-medium font-['Poppins'] transition-colors text-sm xl:text-base cursor-pointer ${
                   showTransparent
-                    ? "text-white hover:text-white/80"
+                    ? "text-foreground hover:text-foreground"
                     : "text-neutral-700 hover:text-[#017c54]"
                 }`}
               >
@@ -99,14 +99,14 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
         <div className="hidden lg:flex items-center gap-3">
           <Link
             href="/auth/login"
-            className="px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 border border-[#F07522]/50 bg-gradient-to-r from-[#F07522] to-[#d9631a] text-white font-medium rounded-lg transition-all font-['Poppins'] text-sm xl:text-base hover:opacity-90"
+            className="px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 border border-[#F07522]/50 bg-gradient-to-r from-[#F07522] to-[#d9631a] text-foreground font-medium rounded-lg transition-all font-['Poppins'] text-sm xl:text-base hover:opacity-90"
           >
             360watts Login
           </Link>
           <a
             href="#solar-calculator"
             onClick={(e: React.MouseEvent) => handleNavClick(e, "solar-calculator")}
-            className="inline-flex items-center gap-2 px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 bg-gradient-to-r from-[#00a63e] to-[#017c54] text-white font-medium rounded-lg hover:opacity-90 transition-all font-['Poppins'] text-sm xl:text-base cursor-pointer"
+            className="inline-flex items-center gap-2 px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 bg-gradient-to-r from-[#00a63e] to-[#017c54] text-foreground font-medium rounded-lg hover:opacity-90 transition-all font-['Poppins'] text-sm xl:text-base cursor-pointer"
             aria-label="Calculate your solar savings"
           >
             Calculate Savings <ArrowRight className="w-4 h-4" />
@@ -120,9 +120,9 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
-            <X className={`w-5 h-5 ${showTransparent ? "text-white" : "text-neutral-950"}`} />
+            <X className={`w-5 h-5 ${showTransparent ? "text-foreground" : "text-neutral-950"}`} />
           ) : (
-            <Menu className={`w-5 h-5 ${showTransparent ? "text-white" : "text-neutral-950"}`} />
+            <Menu className={`w-5 h-5 ${showTransparent ? "text-foreground" : "text-neutral-950"}`} />
           )}
         </button>
       </div>
@@ -154,7 +154,7 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
             <a
               href="#solar-calculator"
               onClick={(e: React.MouseEvent) => handleNavClick(e, "solar-calculator")}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-[#00a63e] to-[#017c54] text-white font-semibold rounded-xl font-['Poppins'] cursor-pointer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-[#00a63e] to-[#017c54] text-foreground font-semibold rounded-xl font-['Poppins'] cursor-pointer"
               aria-label="Calculate your solar savings"
             >
               Calculate Savings <ArrowRight className="w-5 h-5" />

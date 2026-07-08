@@ -109,7 +109,7 @@ export function SolutionsSection() {
                 <button
                   type="button"
                   onClick={togglePlayPause}
-                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-white p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-foreground p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
@@ -117,7 +117,7 @@ export function SolutionsSection() {
                 <button
                   type="button"
                   onClick={toggleMute}
-                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-white p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-foreground p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label={isMuted ? "Unmute video" : "Mute video"}
                 >
                   {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -240,7 +240,7 @@ export function SolutionsSection() {
                 e.preventDefault();
                 document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-[rgba(0,0,0,0.75)] text-white font-['Urbanist'] font-bold text-[19px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
+              className="bg-[rgba(0,0,0,0.75)] text-foreground font-['Urbanist'] font-bold text-[19px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
             >
               Enquire Solar Plans
             </a>
@@ -268,7 +268,7 @@ export function SolutionsSection() {
                 variants={revealVariant}
                 className="bg-white rounded-[16px] md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#fdc700] to-[#ff6900] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#fdc700] to-[#ff6900] flex items-center justify-center text-foreground font-bold text-base sm:text-lg md:text-xl">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
@@ -337,7 +337,7 @@ export function SolutionsSection() {
                 e.preventDefault();
                 document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-[#0a0a0a] text-white font-['Urbanist'] font-bold text-[17px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
+              className="bg-[#0a0a0a] text-foreground font-['Urbanist'] font-bold text-[17px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
             >
               Enquire Smart Home
             </a>
@@ -367,7 +367,7 @@ export function SolutionsSection() {
                 variants={revealVariant}
                 className="bg-white rounded-[16px] md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#51a2ff] to-[#615fff] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#51a2ff] to-[#615fff] flex items-center justify-center text-foreground font-bold text-base sm:text-lg md:text-xl">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
@@ -478,7 +478,7 @@ export function SolutionsSection() {
                   e.preventDefault();
                   document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold px-5 sm:px-6 md:px-8 py-3 sm:py-4 rounded-[10px] hover:opacity-90 transition-opacity text-[14px] sm:text-[15px] md:text-base"
+                className="bg-gradient-to-r from-orange-400 to-orange-600 text-foreground font-bold px-5 sm:px-6 md:px-8 py-3 sm:py-4 rounded-[10px] hover:opacity-90 transition-opacity text-[14px] sm:text-[15px] md:text-base"
               >
                 Chat with us
               </a>

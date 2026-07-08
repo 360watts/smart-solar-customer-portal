@@ -13,8 +13,8 @@ export default function Error({
         <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
           <span className="text-red-400 text-xl">!</span>
         </div>
-        <h2 className="text-lg font-semibold text-white mb-2">Something went wrong</h2>
-        <p className="text-base text-white/50 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-2">Something went wrong</h2>
+        <p className="text-base text-muted-foreground mb-6">
           {error.message || "An unexpected error occurred loading this page."}
         </p>
         <button
