@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
   return (
     <main
       id="main-content"
-      className="bg-linear-to-b from-[#f7fff9] via-white to-[#f7fff9] min-h-screen overflow-x-hidden w-full min-w-0"
+      className="bg-linear-to-b from-[#f7fff9] via-white to-[#f7fff9] min-h-screen overflow-x-clip w-full min-w-0"
     >
       <PrivacyContent />
       <FooterSection />
