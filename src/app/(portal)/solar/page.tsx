@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Sun, TrendingUp, Zap, CloudSun, Activity } from "lucide-react";
+import { Sun, TrendingUp, Zap, CloudSun, Activity, type LucideIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import DataChart from "@/components/ui/DataChart";
 import TrendChart, { type ChartGapBand } from "@/components/ui/TrendChart";
@@ -124,8 +124,19 @@ function KpiCard({
   label, value, unit, icon: Icon, sub, delay = 0,
 }: {
   label: string; value: number | null; unit: string;
-  icon: React.ElementType; sub?: string; delay?: number;
+  icon: LucideIcon; sub?: string; delay?: number;
 }) {
+  // "fresh reading" pulse — flares once per value change, not on first mount
+  const [pulseKey, setPulseKey] = useState(0);
+  const mounted = React.useRef(false);
+  useEffect(() => {
+    if (mounted.current) {
+      setPulseKey((k) => k + 1);
+    } else {
+      mounted.current = true;
+    }
+  }, [value]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -143,7 +154,13 @@ function KpiCard({
           </span>
         )}
       </div>
-      <div className="stat-number text-3xl text-foreground mb-0.5">
+      <motion.div
+        key={pulseKey}
+        initial={{ color: "#2FBF71" }}
+        animate={{ color: "var(--foreground)" }}
+        transition={{ duration: 1.1, ease: "easeOut" }}
+        className="stat-number text-3xl mb-0.5"
+      >
         {value != null ? (
           <>
             {value % 1 === 0 ? value : value.toFixed(1)}
@@ -152,8 +169,20 @@ function KpiCard({
         ) : (
           <span className="text-2xl text-muted-foreground">—</span>
         )}
-      </div>
-      <p className="text-sm text-muted-foreground mt-1 font-medium uppercase tracking-wider">{label}</p>
+      </motion.div>
+      <p className="text-sm text-muted-foreground mt-1 font-medium uppercase tracking-wider flex items-center gap-1.5">
+        {label}
+        <span className="relative inline-flex w-1.5 h-1.5">
+          <motion.span
+            key={pulseKey}
+            className="absolute inline-flex w-full h-full rounded-full bg-emerald-400"
+            initial={{ opacity: 0.7, scale: 1 }}
+            animate={{ opacity: 0, scale: 2.6 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+          <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400/70" />
+        </span>
+      </p>
     </motion.div>
   );
 }
@@ -308,8 +337,7 @@ export default function SolarPage() {
       >
         <div>
           <p className="text-sm text-muted-foreground uppercase tracking-[0.18em] font-medium mb-1.5">Solar Generation</p>
-          <h1 className="text-3xl font-extrabold text-foreground leading-none tracking-tight"
-            style={{ fontFamily: "var(--font-display)" }}>
+          <h1 className="page-title leading-none">
             Today&apos;s Performance
           </h1>
         </div>

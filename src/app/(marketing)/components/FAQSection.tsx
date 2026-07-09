@@ -36,7 +36,7 @@ export function FAQSectionComponent({ section }: { section: FaqSectionType }) {
             >
               <button
                 onClick={() => hasAnswer && toggleItem(item.id)}
-                className="w-full min-h-[44px] flex items-center justify-between text-left gap-4 pt-1 py-2"
+                className="w-full min-h-11 flex items-center justify-between text-left gap-4 pt-1 py-2"
                 aria-expanded={isOpen}
               >
                 <span className="text-[16px] md:text-[17px] font-['Poppins'] tracking-[-0.02em] leading-tight text-[#0a0a0a]">

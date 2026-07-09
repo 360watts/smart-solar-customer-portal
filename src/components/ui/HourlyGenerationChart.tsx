@@ -69,7 +69,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
         {SKELETON_HEIGHTS.map((heights, i) => (
           <div key={i} className="flex-1 flex items-end gap-px" style={{ height: "100%" }}>
             {heights.map((h, j) => (
-              <div key={j} className="flex-1 rounded-t-[2px] bg-white/20" style={{ height: `${h}%` }} />
+              <div key={j} className="flex-1 rounded-t-xs bg-white/20" style={{ height: `${h}%` }} />
             ))}
           </div>
         ))}
@@ -104,7 +104,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
       </div>
 
       {/* Chart */}
-      <div className="flex-1 flex items-end gap-[3px] min-h-36 overflow-hidden">
+      <div className="flex-1 flex items-end gap-0.75 min-h-36 overflow-hidden">
         {points.map((pt, i) => {
           const { hour, solar, load, grid } = pt;
           const isExport = grid < 0;
@@ -116,7 +116,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
           return (
             <div
               key={i}
-              className="flex-1 flex items-end gap-[2px] cursor-crosshair min-w-0"
+              className="flex-1 flex items-end gap-0.5 cursor-crosshair min-w-0"
               style={{ height: "100%" }}
               onMouseEnter={(e) => handleHover(i, e)}
               onMouseMove={(e) => handleHover(i, e)}

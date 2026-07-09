@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useSpring, useTransform } from "framer-motion";
+import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import {
   IndianRupee, TrendingUp, Zap, Calendar, ChevronRight,
   Sun, PlugZap, ArrowDownToLine, ArrowUpFromLine,
+  type LucideIcon,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import { portalApi, SavingsData } from "@/lib/api";
@@ -78,7 +79,7 @@ function PaybackRing({ pct }: { pct: number }) {
 
 // ── Consumption bar ───────────────────────────────────────────────────────────
 function ConsumptionBar({ label, value, total, color, icon: Icon }: {
-  label: string; value: number; total: number; color: string; icon: React.ElementType;
+  label: string; value: number; total: number; color: string; icon: LucideIcon;
 }) {
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
@@ -189,20 +190,22 @@ export default function SavingsPage() {
 
   const totalUnits = savings?.consumption.totalUnitsWithoutSolar ?? 0;
 
-  if (loading) return <SavingsSkeleton />;
-
-  if (error || !savings) {
-    return (
-      <GlassCard>
-        <p className="text-base text-red-400">{error ?? "Failed to load savings data."}</p>
-      </GlassCard>
-    );
-  }
-
-  const { electricityBill, consumption, savings: sav, investment } = savings;
-
   return (
-    <div className="space-y-8">
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div key="skeleton" exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+          <SavingsSkeleton />
+        </motion.div>
+      ) : error || !savings ? (
+        <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <GlassCard>
+            <p className="text-base text-red-400">{error ?? "Failed to load savings data."}</p>
+          </GlassCard>
+        </motion.div>
+      ) : (() => {
+        const { electricityBill, consumption, savings: sav, investment } = savings;
+        return (
+    <motion.div key="content" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="space-y-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
@@ -211,10 +214,7 @@ export default function SavingsPage() {
         className="flex items-start justify-between"
       >
         <div>
-          <h1
-            className="text-3xl font-bold text-foreground mb-1"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
+          <h1 className="page-title mb-1">
             Savings & ROI
           </h1>
           <p className="text-base text-muted-foreground">
@@ -415,7 +415,7 @@ export default function SavingsPage() {
               { label: "Grid Import", value: consumption.ebImportUnits, color: COLORS.amber },
               { label: "Grid Export", value: consumption.ebExportUnits, color: "#60a5fa" },
             ].map(({ label, value, color }) => (
-              <div key={label} className="flex-1 min-w-[100px]">
+              <div key={label} className="flex-1 min-w-25">
                 <p className="text-sm text-muted-foreground mb-1">{label}</p>
                 <p className="text-lg font-semibold" style={{ fontFamily: "JetBrains Mono, monospace", color }}>
                   {value.toFixed(1)}
@@ -426,6 +426,9 @@ export default function SavingsPage() {
           </div>
         </GlassCard>
       </motion.div>
-    </div>
+    </motion.div>
+        );
+      })()}
+    </AnimatePresence>
   );
 }

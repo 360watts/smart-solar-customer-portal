@@ -1,8 +1,8 @@
 "use client";
 
-import { useId, type ElementType } from "react";
+import { useId } from "react";
 import { motion } from "framer-motion";
-import { Cpu, Zap, Battery, Sun, Wifi, AlertTriangle, Clock, Radio, Globe, Activity } from "lucide-react";
+import { Cpu, Zap, Battery, Sun, Wifi, AlertTriangle, Clock, Radio, Globe, Activity, type LucideIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import AnimatedNumber from "@/components/ui/AnimatedNumber";
@@ -95,7 +95,7 @@ interface DisplayDevice {
   label: string;
   is_online: boolean;
   description: string;
-  details: Array<{ label: string; icon: ElementType; value: string; tone?: string }>;
+  details: Array<{ label: string; icon: LucideIcon; value: string; tone?: string }>;
   /** Only set for the device matching the inverter gateway — communication-path info that has nowhere else to live. */
   commsBanner?: { text: string; tone: "warn" | "info" };
   dataSourceBadge?: { label: string; tone: "good" | "warn" };
@@ -376,7 +376,7 @@ function PulseDot({ color }: { color: string }) {
         animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="absolute inset-[1px] rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+      <div className="absolute inset-0.25 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
     </div>
   );
 }
@@ -523,7 +523,7 @@ export default function DevicePage() {
 
                       <div className="flex items-start justify-between gap-3 mb-3 relative">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="relative flex-shrink-0">
+                          <div className="relative shrink-0">
                             {d.isPrimary && d.is_online && (
                               <motion.div
                                 className="absolute inset-0 rounded-xl"
@@ -565,14 +565,14 @@ export default function DevicePage() {
                         const sig = signalBars(d.signalPct);
                         return (
                           <div className="relative overflow-hidden rounded-xl bg-white/[0.03] border border-border mb-4">
-                            <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${sig.color}cc, ${sig.color}33)` }} />
+                            <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${sig.color}cc, ${sig.color}33)` }} />
                             <div
                               className="pointer-events-none absolute -top-4 left-6 w-20 h-10 rounded-full opacity-40"
                               style={{ background: sig.color, filter: "blur(20px)" }}
                             />
                             <div className="absolute top-2.5 right-2.5"><PulseDot color={sig.color} /></div>
                             <div className="flex items-center gap-4 p-3.5 relative">
-                              <div className="relative w-16 h-16 flex-shrink-0">
+                              <div className="relative w-16 h-16 shrink-0">
                                 <MiniArc pct={d.signalPct} color={sig.color} size={64} strokeWidth={6} />
                                 <div className="absolute inset-0 flex items-center justify-center pb-1.5">
                                   <span
@@ -621,7 +621,7 @@ export default function DevicePage() {
                       <div className="grid grid-cols-2 gap-3 border-t border-border pt-3 relative">
                         {d.details.map((detail) => (
                           <div key={`${d.key}-${detail.label}`} className="min-w-0 flex items-start gap-2">
-                            <detail.icon size={13} className="text-muted-foreground flex-shrink-0 mt-0.5" />
+                            <detail.icon size={13} className="text-muted-foreground shrink-0 mt-0.5" />
                             <div className="min-w-0">
                               <p className="text-xs uppercase tracking-wider text-muted-foreground">{detail.label}</p>
                               <p
@@ -641,7 +641,7 @@ export default function DevicePage() {
                             className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
                             style={{ background: "rgba(233,185,73,0.08)", border: "1px solid rgba(233,185,73,0.2)", color: "#E9B949" }}
                           >
-                            <AlertTriangle size={13} className="flex-shrink-0" />
+                            <AlertTriangle size={13} className="shrink-0" />
                             <span>{d.commsBanner.text}</span>
                           </div>
                         </div>

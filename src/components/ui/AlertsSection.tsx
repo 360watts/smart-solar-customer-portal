@@ -58,10 +58,10 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         transition={{ type: "spring", stiffness: 280, damping: 28, delay: delay * 0.08 }}
         whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
         className={`
-          glass rounded-2xl p-5 cursor-pointer transition-all duration-300 h-full min-h-[248px] flex flex-col
+          glass rounded-2xl p-5 cursor-pointer transition-all duration-300 h-full min-h-62 flex flex-col
           ${
             hasMultipleCritical
-              ? "border-red-500/50 hover:border-red-500/70 bg-gradient-to-br from-red-950/15 to-transparent"
+              ? "border-red-500/50 hover:border-red-500/70 bg-linear-to-br from-red-950/15 to-transparent"
               : hasCritical
                 ? "border-red-500/30 hover:border-red-500/50"
                 : "border-border hover:border-border"
@@ -72,7 +72,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         <div className="flex items-start justify-between mb-4">
           <div
             className={`
-              w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+              w-10 h-10 rounded-xl flex items-center justify-center shrink-0
               ${
                 hasCritical
                   ? "bg-red-500/20"
@@ -147,7 +147,7 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         )}
 
         {/* CTA Footer */}
-        <div className={`mt-auto flex min-h-[48px] items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-border bg-white/[0.035]"}`}>
+        <div className={`mt-auto flex min-h-12 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-border bg-white/[0.035]"}`}>
           <span className={`text-xs font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-muted-foreground"}`}>
             {footerText}
           </span>

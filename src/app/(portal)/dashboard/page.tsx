@@ -5,7 +5,7 @@ import { formatHourLabel } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, RefreshCw } from "lucide-react";
+import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, RefreshCw, type LucideIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import AlertsSection from "@/components/ui/AlertsSection";
 import CriticalAlertsBanner from "@/components/ui/CriticalAlertsBanner";
@@ -85,7 +85,7 @@ function LiveClock() {
 interface KpiStatRow { label: string; value: string; dot: string; glow: string }
 interface DetailedKpiCardProps {
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   color: "green" | "amber" | "blue";
   badge?: string;
   badgeTone?: "neutral" | "good" | "warn";
@@ -124,11 +124,11 @@ function DetailedKpiCard({
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 28, delay: delay * 0.08 }}
       whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
-      className={`glass border ${cm.border} rounded-2xl p-5 cursor-default h-full min-h-[248px] flex flex-col`}
+      className={`glass border ${cm.border} rounded-2xl p-5 cursor-default h-full min-h-62 flex flex-col`}
     >
       {/* Header: icon + badge */}
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl ${cm.bg} flex items-center justify-center flex-shrink-0`}>
+        <div className={`w-10 h-10 rounded-xl ${cm.bg} flex items-center justify-center shrink-0`}>
           <Icon size={18} className={cm.text} />
         </div>
         {badge && !loading && (
@@ -186,7 +186,7 @@ function DetailedKpiCard({
           </div>
 
           {/* Footer */}
-          <p className="mt-auto min-h-[48px] rounded-lg border border-border bg-white/[0.035] px-2.5 py-2 text-xs text-muted-foreground leading-snug">{footer}</p>
+          <p className="mt-auto min-h-12 rounded-lg border border-border bg-white/[0.035] px-2.5 py-2 text-xs text-muted-foreground leading-snug">{footer}</p>
         </>
       )}
     </motion.div>
@@ -598,7 +598,7 @@ export default function OverviewPage() {
           <p className="text-sm text-muted-foreground uppercase tracking-[0.2em] font-medium mb-2">
             Solar Dashboard · {d?.siteName ?? "Loading…"}
           </p>
-          <h1 className="text-3xl font-bold text-foreground leading-none tracking-tight">
+          <h1 className="page-title leading-none">
             <Greeting name={firstName} />
           </h1>
         </div>

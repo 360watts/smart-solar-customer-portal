@@ -61,6 +61,28 @@ export interface ServiceBooking {
   updated_at: string;
 }
 
+export interface SiteMember {
+  id: number;
+  role: "viewer" | "co_owner";
+  status: "pending" | "active" | "revoked";
+  user: { id: number; first_name: string; last_name: string } | null;
+  added_by: { id: number; first_name: string } | null;
+  created_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  invite_link?: string;
+  qr_code?: string;
+  expires_at?: string;
+}
+
+export interface InviteDetails {
+  site_name: string;
+  role: "viewer" | "co_owner";
+  invited_by: string;
+  expires_at: string;
+  invite_email?: string;
+}
+
 export interface PortalSummaryMeta<TData> {
   version: 1;
   site_id: string;
@@ -232,4 +254,25 @@ export const portalApi = {
 
   cancelServiceBooking: (bookingId: number) =>
     api.post<ServiceBooking>(`/api/backend/bookings/${bookingId}/cancel/`),
+
+  getSiteMembers: (siteId: string, includeRevoked = false, signal?: AbortSignal) =>
+    api.get<SiteMember[]>(`/api/backend/sites/${siteId}/members/`, {
+      params: includeRevoked ? { include_revoked: 1 } : undefined,
+      ...sig(signal),
+    }),
+
+  inviteSiteMember: (siteId: string, email: string | null, role: SiteMember["role"]) =>
+    api.post<SiteMember>(`/api/backend/sites/${siteId}/members/`, { invite_email: email ?? undefined, role }),
+
+  updateSiteMember: (siteId: string, memberId: number, data: { role?: string; status?: string }) =>
+    api.patch<SiteMember>(`/api/backend/sites/${siteId}/members/${memberId}/`, data),
+
+  resendSiteInvite: (siteId: string, memberId: number) =>
+    api.post(`/api/backend/sites/${siteId}/members/${memberId}/resend/`, {}),
+
+  getInviteDetails: (token: string, signal?: AbortSignal) =>
+    api.get<InviteDetails>(`/api/backend/site-invites/${token}/`, sig(signal)),
+
+  acceptInvite: (token: string) =>
+    api.post(`/api/backend/site-invites/${token}/accept/`),
 };

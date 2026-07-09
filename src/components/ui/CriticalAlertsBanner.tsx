@@ -64,7 +64,7 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
             <motion.div
               animate={prefersReducedMotion ? {} : { opacity: [0.6, 1, 0.6] }}
               transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="flex-shrink-0"
+              className="shrink-0"
             >
               <AlertTriangle size={16} className="text-red-400" strokeWidth={2.5} />
             </motion.div>
@@ -78,14 +78,14 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
               )}
             </p>
 
-            <span className="flex-shrink-0 flex items-center gap-1 text-sm font-medium text-red-300/80 group-hover:text-red-200">
+            <span className="shrink-0 flex items-center gap-1 text-sm font-medium text-red-300/80 group-hover:text-red-200">
               View details
               <ChevronRight size={13} />
             </span>
 
             <button
               onClick={handleDismiss}
-              className="flex-shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors duration-200"
+              className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors duration-200"
               aria-label="Dismiss alert"
             >
               <X size={14} className="text-red-300/60" strokeWidth={2.5} />

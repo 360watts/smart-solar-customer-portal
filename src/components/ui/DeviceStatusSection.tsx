@@ -94,7 +94,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
               : { opacity: [1, 0.6, 1] }
         }
         transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        className="flex-shrink-0"
+        className="shrink-0"
       >
         <StatusIcon size={16} className={getStatusColor()} strokeWidth={2} />
       </motion.div>
@@ -132,7 +132,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
             <motion.div
               animate={prefersReducedMotion ? {} : { rotate: expanded ? 180 : 0 }}
               transition={prefersReducedMotion ? {} : { duration: 0.3, ease: "easeOut" }}
-              className="flex-shrink-0"
+              className="shrink-0"
             >
               <ChevronDown size={14} className="text-muted-foreground" strokeWidth={2.5} />
             </motion.div>
@@ -188,7 +188,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                             : {}
                       }
                       transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity }}
-                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      className="w-2 h-2 rounded-full shrink-0"
                       style={{ background: isOnline ? "#10b981" : "#ef4444" }}
                     />
                     <p className={`text-sm font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
@@ -205,7 +205,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
 
                 {/* Alert indicator */}
                 {device.alert_count > 0 && (
-                  <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-border">
+                  <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-border">
                     <AlertTriangle size={12} className="text-amber-400" />
                     <span className="text-sm font-semibold text-foreground">{device.alert_count}</span>
                   </div>

@@ -35,7 +35,7 @@ export function UnifiedSolutionSection() {
           </p>
         </motion.div>
 
-        <motion.div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 lg:gap-[113px] justify-center items-stretch mb-6 sm:mb-8" {...staggerMotionProps}>
+        <motion.div className="flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 lg:gap-28.25 justify-center items-stretch mb-6 sm:mb-8" {...staggerMotionProps}>
           <motion.div
             style={reduceMotion ? undefined : { x: convergeLeft }}
             className="w-full md:flex-1 min-w-0"
@@ -47,7 +47,7 @@ export function UnifiedSolutionSection() {
               style={tilt1.cardStyle}
               onMouseMove={tilt1.onMouseMove}
               onMouseLeave={tilt1.onMouseLeave}
-              className="relative rounded-[16px] sm:rounded-[20px] overflow-hidden w-full lg:w-[567px] h-[220px] sm:h-[300px] md:h-[320px] lg:h-[342px]"
+              className="relative rounded-2xl sm:rounded-[20px] overflow-hidden w-full lg:w-141.75 h-55 sm:h-75 md:h-80 lg:h-85.5"
             >
             <picture>
               <source type="image/webp" srcSet="/solar-panels-house-roof.webp" />
@@ -59,9 +59,9 @@ export function UnifiedSolutionSection() {
                 decoding="async"
               />
             </picture>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(204,204,204,0.3)] to-transparent rounded-[16px] sm:rounded-[20px]" />
-            <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-[30px] flex flex-col justify-start text-left">
-              <div className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 lg:gap-[19px] pt-2 sm:pt-4 md:pt-6 lg:pt-[24px]">
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-[rgba(204,204,204,0.3)] to-transparent rounded-2xl sm:rounded-[20px]" />
+            <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-7.5 flex flex-col justify-start text-left">
+              <div className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 lg:gap-4.75 pt-2 sm:pt-4 md:pt-6 lg:pt-6">
                 <div className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14">
                   <svg viewBox="0 0 56 56" fill="none" className="w-full h-full">
                     <circle cx="28" cy="28" r="12" fill="#FFA500" />
@@ -73,7 +73,7 @@ export function UnifiedSolutionSection() {
                     />
                   </svg>
                 </div>
-                <div className="flex flex-col gap-1 sm:gap-[7px] md:gap-[8px] mt-4 sm:mt-0">
+                <div className="flex flex-col gap-1 sm:gap-1.75 md:gap-2 mt-4 sm:mt-0">
                   <h3 className="text-[16px] sm:text-[22px] md:text-[24px] lg:text-[27px] xl:text-[30px] font-bold text-black font-['Urbanist'] leading-tight md:leading-8 lg:leading-9 drop-shadow-lg">
                     Solar Solutions
                   </h3>
@@ -105,7 +105,7 @@ export function UnifiedSolutionSection() {
               style={tilt2.cardStyle}
               onMouseMove={tilt2.onMouseMove}
               onMouseLeave={tilt2.onMouseLeave}
-              className="relative rounded-[16px] sm:rounded-[20px] overflow-hidden w-full lg:w-[567px] h-[220px] sm:h-[300px] md:h-[320px] lg:h-[342px]"
+              className="relative rounded-2xl sm:rounded-[20px] overflow-hidden w-full lg:w-141.75 h-55 sm:h-75 md:h-80 lg:h-85.5"
             >
             <img
               src={APP_IMAGES.digitalTablet}
@@ -114,15 +114,15 @@ export function UnifiedSolutionSection() {
               loading="lazy"
               decoding="async"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(204,204,204,0.75)] to-transparent rounded-[16px] sm:rounded-[20px]" />
-            <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-[30px] flex flex-col justify-start text-left">
-              <div className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 lg:gap-[19px] pt-2 sm:pt-4 md:pt-6 lg:pt-[24px]">
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-[rgba(204,204,204,0.75)] to-transparent rounded-2xl sm:rounded-[20px]" />
+            <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-7.5 flex flex-col justify-start text-left">
+              <div className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 lg:gap-4.75 pt-2 sm:pt-4 md:pt-6 lg:pt-6">
                 <img
                   src={APP_IMAGES.iconSmartHome}
                   alt=""
                   className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12"
                 />
-                <div className="flex flex-col gap-1 sm:gap-[7px] md:gap-[8px] mt-4 sm:mt-0">
+                <div className="flex flex-col gap-1 sm:gap-1.75 md:gap-2 mt-4 sm:mt-0">
                   <h3 className="text-[16px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] font-bold text-black font-['Urbanist'] leading-tight md:leading-8 lg:leading-9 drop-shadow-lg">
                     Smart Home Solutions
                   </h3>
@@ -140,7 +140,7 @@ export function UnifiedSolutionSection() {
         <motion.div className="text-center" variants={revealVariant}>
           <motion.a
             href="#solutions-section"
-            className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 min-h-[44px] border border-[rgba(74,85,101,0.75)] rounded-[10px] text-[#4a5565] hover:bg-gray-50 transition-colors text-[14px] sm:text-[19px] tracking-[-0.76px]"
+            className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 min-h-11 border border-[rgba(74,85,101,0.75)] rounded-[10px] text-[#4a5565] hover:bg-gray-50 transition-colors text-[14px] sm:text-[19px] tracking-[-0.76px]"
             {...ctaMotionProps}
           >
             Know more

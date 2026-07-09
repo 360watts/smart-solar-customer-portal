@@ -210,7 +210,7 @@ export default function ConsumptionPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>
+        <h1 className="page-title mb-1">
           Consumption
         </h1>
         <p className="text-muted-foreground text-base">Energy usage breakdown and load forecast</p>
@@ -271,10 +271,10 @@ export default function ConsumptionPage() {
         </div>
 
         {loading && !data ? (
-          <div className="h-[280px] rounded-xl bg-white/[0.04] animate-pulse" />
+          <div className="h-70 rounded-xl bg-white/[0.04] animate-pulse" />
         ) : view === "Week" ? (
           !data?.weekTrend || data.weekTrend.labels.length === 0 ? (
-            <div className="h-[280px] flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
+            <div className="h-70 flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
           ) : (
             <TrendChart
               labels={data.weekTrend.labels}
@@ -288,7 +288,7 @@ export default function ConsumptionPage() {
             />
           )
         ) : !chartData || chartData.labels.length === 0 ? (
-          <div className="h-[280px] flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
+          <div className="h-70 flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
         ) : (
           <DataChart type={chartType} data={chartData} height={280} />
         )}

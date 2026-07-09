@@ -94,12 +94,12 @@ export function AppShowcaseSection() {
   }, [appShowcaseInView, isPageVisible]);
 
   return (
-    <section ref={appShowcaseRef} className="py-12 sm:py-20 px-4 sm:px-6 bg-gradient-to-r from-[#00a63e] to-[#017c54] overflow-hidden">
+    <section ref={appShowcaseRef} className="py-12 sm:py-20 px-4 sm:px-6 bg-linear-to-r from-[#04713a] to-[#015c40] overflow-hidden">
       <div className="w-full max-w-7xl mx-auto min-w-0">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
           {/* Left: feature list — highlights the active slide, click to jump */}
-          <div className="text-foreground min-w-0">
+          <div className="text-white min-w-0">
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-['Urbanist'] mb-4 sm:mb-6">
               One App. For Everything.
             </h2>
@@ -108,18 +108,18 @@ export function AppShowcaseSection() {
                 <button
                   key={index}
                   onClick={() => setCurrentAppSlide(index)}
-                  className={`flex items-start gap-4 w-full text-left transition-opacity duration-500 ease-out min-h-[44px] py-1 ${
+                  className={`flex items-start gap-4 w-full text-left transition-opacity duration-500 ease-out min-h-11 py-1 ${
                     index === currentAppSlide ? "opacity-100" : "opacity-50 hover:opacity-75"
                   }`}
                 >
-                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
                     <img src={feature.icon} alt="" className="w-7 h-7" />
                   </div>
                   <div>
                     <h3 className="font-extrabold text-black text-xl font-['Poppins']">
                       {feature.title}
                     </h3>
-                    <p className="text-foreground font-['Poppins']">{feature.description}</p>
+                    <p className="text-white font-['Poppins']">{feature.description}</p>
                   </div>
                 </button>
               ))}
@@ -215,7 +215,7 @@ export function AppShowcaseSection() {
                   aria-selected={i === currentAppSlide}
                   aria-label={slide.alt}
                   onClick={() => setCurrentAppSlide(i)}
-                  className="group min-w-[44px] min-h-[44px] flex items-center justify-center transition-transform duration-300 ease-out hover:scale-110 active:scale-95"
+                  className="group min-w-11 min-h-11 flex items-center justify-center transition-transform duration-300 ease-out hover:scale-110 active:scale-95"
                 >
                   <span
                     className={`h-2 rounded-full transition-all duration-500 ease-out ${

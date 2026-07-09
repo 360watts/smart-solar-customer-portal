@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BadgeCheck, Bell, Cpu, Mail, MessageSquare, ShieldCheck, Wifi,
+  BadgeCheck, Cpu, KeyRound, Mail, MessageSquare, Pencil, ShieldCheck, Zap,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
+import SiteMembersCard from "@/components/profile/SiteMembersCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
@@ -65,6 +66,16 @@ function formatDate(iso: string | null | undefined): string {
 
 const inputClass =
   "w-full bg-white/5 border border-border rounded-lg px-4 py-3 text-foreground text-base focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground";
+
+/** Eyebrow-style card heading — a quiet uppercase label so the data carries the card. */
+function CardTitle({ icon, className, children }: { icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
+  return (
+    <h3 className={cn("flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-4", className)}>
+      {icon}
+      {children}
+    </h3>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Page
@@ -228,45 +239,64 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
-        {[...Array(4)].map((_, i) => (
-          <GlassCard key={i}>
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-white/10 rounded w-1/3" />
-              <div className="h-4 bg-white/10 rounded w-2/3" />
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
-        <GlassCard>
-          <p className="text-base text-red-300">{error || "Profile data is unavailable."}</p>
-        </GlassCard>
-      </div>
-    );
-  }
-
-  const deviceUsagePct = profile.device_limit > 0
+  const deviceUsagePct = profile && profile.device_limit > 0
     ? Math.min(100, Math.round((profile.total_devices_count / profile.device_limit) * 100))
     : 0;
 
   return (
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div key="skeleton" className="space-y-4" exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+          <h1 className="page-title mb-6">Profile</h1>
+          <GlassCard>
+            <div className="animate-pulse flex items-center gap-5">
+              <div className="w-20 h-20 rounded-full bg-white/10 shrink-0" />
+              <div className="flex-1 space-y-3">
+                <div className="h-5 bg-white/10 rounded w-1/3" />
+                <div className="h-4 bg-white/10 rounded w-1/2" />
+              </div>
+            </div>
+          </GlassCard>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-7 space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <GlassCard key={i}>
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-white/10 rounded w-1/3" />
+                    <div className="h-4 bg-white/10 rounded w-2/3" />
+                    <div className="h-4 bg-white/10 rounded w-1/2" />
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+            <div className="lg:col-span-5 space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <GlassCard key={i}>
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-4 bg-white/10 rounded w-1/2" />
+                    <div className="h-4 bg-white/10 rounded w-2/3" />
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      ) : !profile ? (
+        <motion.div key="empty" className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <h1 className="page-title mb-6">Profile</h1>
+          <GlassCard>
+            <p className="text-base text-red-300">{error || "Profile data is unavailable."}</p>
+          </GlassCard>
+        </motion.div>
+      ) : (
     <motion.div
+      key="content"
       className="space-y-4"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <h1 className="text-3xl font-bold text-foreground font-display mb-6">Profile</h1>
+      <h1 className="page-title mb-6">Profile</h1>
 
       {error && (
         <GlassCard>
@@ -274,29 +304,46 @@ export default function ProfilePage() {
         </GlassCard>
       )}
 
-      {/* ── 1. Identity Card ── */}
-      <GlassCard glow={tier.glow ? "amber" : "green"}>
-        <div className="flex items-center gap-5 flex-wrap">
-          <div className="flex-shrink-0">
+      {/* ── Identity band ── */}
+      <GlassCard glow={tier.glow ? "amber" : "green"} className="relative overflow-hidden">
+        {/* soft brand aura behind the avatar */}
+        <div
+          aria-hidden
+          className={cn(
+            "absolute -top-24 -left-16 w-64 h-64 rounded-full blur-3xl pointer-events-none",
+            tier.glow ? "bg-amber-400/10" : "bg-emerald-400/10",
+          )}
+        />
+        <div className="relative flex items-center gap-5 flex-wrap">
+          <div className="shrink-0">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt={initials}
-                className="w-16 h-16 rounded-full object-cover border-2 border-border"
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-border"
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-emerald-500/30 border border-emerald-500/40 flex items-center justify-center">
-                <span className="font-display text-xl font-bold text-emerald-300">{initials}</span>
+              <div
+                className={cn(
+                  "w-20 h-20 rounded-2xl flex items-center justify-center border",
+                  tier.glow
+                    ? "bg-amber-500/20 border-amber-500/40"
+                    : "bg-emerald-500/20 border-emerald-500/40",
+                )}
+              >
+                <span className={cn("font-display text-2xl font-bold", tier.glow ? "text-amber-300" : "text-emerald-300")}>
+                  {initials}
+                </span>
               </div>
             )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-xl font-bold text-foreground truncate">
+            <h2 className="font-display text-2xl font-bold text-foreground truncate">
               {profile.first_name} {profile.last_name}
             </h2>
             <p className="text-base text-muted-foreground mt-0.5 truncate">{profile.email}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <StatusPill
                 status={profile.subscription_status === "active" ? "active" : profile.subscription_status === "trial" ? "warning" : "inactive"}
                 label={profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1)}
@@ -317,8 +364,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="text-right shrink-0">
-            <p className="text-sm text-muted-foreground uppercase tracking-wide">Customer since</p>
-            <p className="text-base text-foreground font-mono">{formatDate(profile.date_joined)}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.14em]">Customer since</p>
+            <p className="text-base text-foreground font-mono mt-1">{formatDate(profile.date_joined)}</p>
             {profile.customer_id && (
               <p className="text-sm text-muted-foreground font-mono mt-1">{profile.customer_id}</p>
             )}
@@ -326,255 +373,282 @@ export default function ProfilePage() {
         </div>
       </GlassCard>
 
-      {/* ── 2. Plan & Usage ── */}
-      <GlassCard>
-        <h3 className="font-semibold text-foreground mb-4">Plan &amp; Usage</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm text-muted-foreground uppercase tracking-wide">Devices</span>
-              <span className="font-mono text-sm text-foreground">{profile.total_devices_count} / {profile.device_limit}</span>
-            </div>
-            <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-              <div
-                className={cn("h-full rounded-full", tier.glow ? "bg-amber-400" : "bg-emerald-400")}
-                style={{ width: `${deviceUsagePct}%` }}
+      {/* ── Bento: system on the left, account settings on the right ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left rail — the physical installation */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* System nameplate */}
+          <GlassCard className="relative overflow-hidden">
+            <CardTitle icon={<Zap size={13} className="text-emerald-400" />}>System nameplate</CardTitle>
+
+            <div className="flex items-end justify-between gap-4 pb-4 mb-4 border-b border-border">
+              <div>
+                <p className="stat-number text-4xl glow-text-green">
+                  {site ? site.capacity_kw : "—"}
+                  <span className="text-lg ml-1.5 font-semibold text-muted-foreground">kWp</span>
+                </p>
+                <p className="text-sm text-muted-foreground mt-1.5">{site?.site_name ?? "No site linked"}</p>
+              </div>
+              <StatusPill
+                status={site?.serial ? "active" : "inactive"}
+                label={site?.serial ? "Gateway linked" : "No gateway"}
+                animated={Boolean(site?.serial)}
               />
             </div>
-          </div>
 
-          <div className="flex flex-col justify-center gap-1.5">
-            <div className="flex items-center gap-2 text-sm">
-              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_access_ai ? "bg-emerald-400" : "bg-white/20")} />
-              <span className={profile.plan_features.can_access_ai ? "text-foreground" : "text-muted-foreground"}>AI insights &amp; recommendations</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_view_history_90d ? "bg-emerald-400" : "bg-white/20")} />
-              <span className={profile.plan_features.can_view_history_90d ? "text-foreground" : "text-muted-foreground"}>90-day history &amp; trends</span>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-
-      {/* ── 3. Your System ── */}
-      <GlassCard>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Wifi size={16} className="text-emerald-400" /> Your System
-        </h3>
-        <div className="space-y-3">
-          {[
-            { label: "Site", value: site?.site_name ?? "—" },
-            { label: "Solar Capacity", value: site ? `${site.capacity_kw} kWp` : "—" },
-            { label: "Gateway Serial", value: site?.serial ?? "—" },
-            { label: "Connectivity", value: site?.connectivity_type ?? "—" },
-            { label: "Account ID", value: user?.site_id ?? "—" },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-              <span className="text-sm text-muted-foreground uppercase tracking-wide">{label}</span>
-              <span className="font-mono text-base text-foreground">{value}</span>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
-
-      {/* ── 4. Equipment ── */}
-      {equipment.length > 0 && (
-        <GlassCard>
-          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Cpu size={16} className="text-emerald-400" /> Equipment
-          </h3>
-          <div className="space-y-3">
-            {equipment.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-3">
-                <div className="min-w-0">
-                  <p className="text-base text-foreground truncate">
-                    {item.make} {item.model_name}
-                    <span className="ml-2 text-sm text-muted-foreground uppercase tracking-wide">{item.kind}</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground font-mono truncate">{item.serial_number}</p>
+            <div className="space-y-0">
+              {[
+                { label: "Gateway serial", value: site?.serial ?? "—" },
+                { label: "Connectivity", value: site?.connectivity_type ?? "—" },
+                { label: "Account ID", value: user?.site_id ?? "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                  <span className="font-mono text-sm text-foreground">{value}</span>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm text-muted-foreground">Warranty until</p>
-                  <p className="text-sm text-muted-foreground font-mono">{formatDate(item.warranty_expires_at)}</p>
+              ))}
+            </div>
+          </GlassCard>
+
+          {/* Equipment */}
+          {equipment.length > 0 && (
+            <GlassCard>
+              <CardTitle icon={<Cpu size={13} className="text-emerald-400" />}>Equipment</CardTitle>
+              <div className="space-y-0">
+                {equipment.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0 gap-3">
+                    <div className="min-w-0">
+                      <p className="text-base text-foreground truncate">
+                        {item.make} {item.model_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground font-mono truncate mt-0.5">{item.serial_number}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="inline-block text-xs uppercase tracking-wide text-muted-foreground bg-white/5 border border-border rounded-full px-2.5 py-0.5 mb-1">
+                        {item.kind}
+                      </span>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        Warranty {formatDate(item.warranty_expires_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
+          {/* Site members */}
+          {user?.site_id && <SiteMembersCard siteId={user.site_id} />}
+        </div>
+
+        {/* Right rail — plan, contact, account settings */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Plan & usage */}
+          <GlassCard>
+            <CardTitle icon={<BadgeCheck size={13} className={tier.glow ? "text-amber-400" : "text-emerald-400"} />}>
+              Plan &amp; usage
+            </CardTitle>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm text-muted-foreground">Devices</span>
+                  <span className="font-mono text-sm text-foreground">{profile.total_devices_count} / {profile.device_limit}</span>
+                </div>
+                <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full", tier.glow ? "bg-amber-400" : "bg-emerald-400")}
+                    style={{ width: `${deviceUsagePct}%` }}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </GlassCard>
-      )}
 
-      {/* ── 5. Contact & Preferences ── */}
-      <GlassCard>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <ShieldCheck size={16} className="text-emerald-400" /> Contact &amp; Preferences
-        </h3>
-        <div className="space-y-3">
-          {[
-            { label: "Phone", value: profile.phone || "—" },
-            { label: "Address", value: profile.address || "—" },
-            { label: "Timezone", value: profile.timezone },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between py-2 border-b border-border gap-4">
-              <span className="text-sm text-muted-foreground uppercase tracking-wide shrink-0">{label}</span>
-              <span className="text-base text-foreground text-right truncate">{value}</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_access_ai ? "bg-emerald-400" : "bg-white/20")} />
+                  <span className={profile.plan_features.can_access_ai ? "text-foreground" : "text-muted-foreground"}>AI insights &amp; recommendations</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_view_history_90d ? "bg-emerald-400" : "bg-white/20")} />
+                  <span className={profile.plan_features.can_view_history_90d ? "text-foreground" : "text-muted-foreground"}>90-day history &amp; trends</span>
+                </div>
+              </div>
             </div>
-          ))}
-          <div className="flex items-center justify-between py-2 border-b border-border">
-            <span className="text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5"><Mail size={13} /> Email Alerts</span>
-            <StatusPill
-              status={profile.email_notifications_enabled ? "active" : "inactive"}
-              label={profile.email_notifications_enabled ? "Enabled" : "Disabled"}
-              animated={false}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5"><MessageSquare size={13} /> SMS Alerts</span>
-            <StatusPill
-              status={profile.sms_notifications_enabled ? "active" : "inactive"}
-              label={profile.sms_notifications_enabled ? "Enabled" : "Disabled"}
-              animated={false}
-            />
-          </div>
-        </div>
-      </GlassCard>
+          </GlassCard>
 
-      {/* ── 6. Edit Profile ── */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-foreground">Edit Profile</h3>
-          <button
-            onClick={handleSave}
-            disabled={!isDirty || saveState === "saving"}
-            className="px-4 py-1.5 rounded-lg text-base font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary"
-          >
-            {saveState === "saving" ? "Saving…" : "Save"}
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">First Name</label>
-              <input
-                type="text"
-                value={editFirst}
-                onChange={(e) => setEditFirst(e.target.value)}
-                className={inputClass}
-              />
+          {/* Contact & preferences */}
+          <GlassCard>
+            <CardTitle icon={<ShieldCheck size={13} className="text-emerald-400" />}>Contact &amp; preferences</CardTitle>
+            <div className="space-y-0">
+              {[
+                { label: "Phone", value: profile.phone || "—" },
+                { label: "Address", value: profile.address || "—" },
+                { label: "Timezone", value: profile.timezone },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between py-2.5 border-b border-border gap-4">
+                  <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+                  <span className="text-sm text-foreground text-right truncate">{value}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between py-2.5 border-b border-border">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail size={13} /> Email alerts</span>
+                <StatusPill
+                  status={profile.email_notifications_enabled ? "active" : "inactive"}
+                  label={profile.email_notifications_enabled ? "Enabled" : "Disabled"}
+                  animated={false}
+                />
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageSquare size={13} /> SMS alerts</span>
+                <StatusPill
+                  status={profile.sms_notifications_enabled ? "active" : "inactive"}
+                  label={profile.sms_notifications_enabled ? "Enabled" : "Disabled"}
+                  animated={false}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1.5">Last Name</label>
-              <input
-                type="text"
-                value={editLast}
-                onChange={(e) => setEditLast(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">Phone</label>
-            <input
-              type="tel"
-              value={editPhone}
-              onChange={(e) => setEditPhone(e.target.value)}
-              className={inputClass}
-              placeholder="+91 98765 43210"
-            />
-          </div>
-        </div>
+          </GlassCard>
 
-        <AnimatePresence>
-          {saveState === "saved" && (
-            <motion.p
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mt-3 text-base text-emerald-400"
-            >
-              Saved ✓
-            </motion.p>
-          )}
-          {saveState === "error" && (
-            <motion.p
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mt-3 text-base text-red-400"
-            >
-              Failed to save. Please try again.
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </GlassCard>
-
-      {/* ── 7. Change Password ── */}
-      <GlassCard>
-        <h3 className="font-semibold text-foreground mb-4">Change Password</h3>
-        <form onSubmit={handleChangePassword} className="space-y-3">
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">Current Password</label>
-            <input
-              type="password"
-              value={currentPw}
-              onChange={(e) => setCurrentPw(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">New Password</label>
-            <input
-              type="password"
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1.5">Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <AnimatePresence>
-            {pwError && (
-              <motion.p
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-base text-red-400"
+          {/* Edit profile */}
+          <GlassCard>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle icon={<Pencil size={13} className="text-emerald-400" />} className="mb-0">Edit profile</CardTitle>
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || saveState === "saving"}
+                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary"
               >
-                {pwError}
-              </motion.p>
-            )}
-            {pwState === "saved" && (
-              <motion.p
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-base text-emerald-400"
-              >
-                Password changed ✓
-              </motion.p>
-            )}
-          </AnimatePresence>
+                {saveState === "saving" ? "Saving…" : "Save"}
+              </button>
+            </div>
 
-          <button
-            type="submit"
-            disabled={pwState === "saving"}
-            className="mt-2 w-full py-3 rounded-lg text-base font-semibold bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {pwState === "saving" ? "Updating…" : "Update Password"}
-          </button>
-        </form>
-      </GlassCard>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1.5">First name</label>
+                  <input
+                    type="text"
+                    value={editFirst}
+                    onChange={(e) => setEditFirst(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1.5">Last name</label>
+                  <input
+                    type="text"
+                    value={editLast}
+                    onChange={(e) => setEditLast(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Phone</label>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className={inputClass}
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {saveState === "saved" && (
+                <motion.p
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-3 text-sm text-emerald-400"
+                >
+                  Saved ✓
+                </motion.p>
+              )}
+              {saveState === "error" && (
+                <motion.p
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-3 text-sm text-red-400"
+                >
+                  Failed to save. Please try again.
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </GlassCard>
+
+          {/* Change password */}
+          <GlassCard>
+            <CardTitle icon={<KeyRound size={13} className="text-emerald-400" />}>Change password</CardTitle>
+            <form onSubmit={handleChangePassword} className="space-y-3">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Current password</label>
+                <input
+                  type="password"
+                  value={currentPw}
+                  onChange={(e) => setCurrentPw(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">New password</label>
+                <input
+                  type="password"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1.5">Confirm new password</label>
+                <input
+                  type="password"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  className={inputClass}
+                  required
+                />
+              </div>
+
+              <AnimatePresence>
+                {pwError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-sm text-red-400"
+                  >
+                    {pwError}
+                  </motion.p>
+                )}
+                {pwState === "saved" && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-sm text-emerald-400"
+                  >
+                    Password changed ✓
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={pwState === "saving"}
+                className="mt-2 w-full py-3 rounded-lg text-base font-semibold bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {pwState === "saving" ? "Updating…" : "Update password"}
+              </button>
+            </form>
+          </GlassCard>
+        </div>
+      </div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

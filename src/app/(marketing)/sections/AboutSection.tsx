@@ -33,7 +33,7 @@ export function AboutSection() {
   return (
     <motion.section id="about-section" className="scroll-mt-20 bg-[#f7fff9] min-h-screen text-[#0a0a0a]" {...sectionMotionProps}>
       {/* Hero */}
-      <motion.section className="relative h-[50vh] sm:h-[60vh] md:h-[70vh] min-h-[400px] sm:min-h-[450px] md:min-h-[520px] w-full overflow-hidden" {...sectionMotionProps}>
+      <motion.section className="relative h-[50vh] sm:h-[60vh] md:h-[70vh] min-h-100 sm:min-h-112.5 md:min-h-130 w-full overflow-hidden" {...sectionMotionProps}>
         <img
           src={APP_IMAGES.aboutHero}
           alt="Solar hero"
@@ -41,14 +41,14 @@ export function AboutSection() {
           loading="lazy"
           decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-black/50" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/50 via-black/25 to-black/50" />
         <div className="relative z-10 w-full max-w-5xl mx-auto min-w-0 px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 lg:pt-36 flex items-start">
-          <motion.div className="text-foreground space-y-2 sm:space-y-3 max-w-xl" variants={revealVariant}>
+          <motion.div className="text-white space-y-2 sm:space-y-3 max-w-xl" variants={revealVariant}>
             <p className="text-sm sm:text-base md:text-lg font-['Poppins']">360watts.com | solar + smart home solutions</p>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-['Urbanist'] leading-tight">
               We're on a mission.
             </h1>
-            <p className="text-sm sm:text-base md:text-lg font-['Poppins'] text-foreground">
+            <p className="text-sm sm:text-base md:text-lg font-['Poppins'] text-white">
               To revolutionize how homes consume and manage energy.
             </p>
           </motion.div>
@@ -64,7 +64,7 @@ export function AboutSection() {
           </motion.div>
 
           <div className="relative">
-            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-[#3fa66b] via-[#3fa66b]/95 to-transparent z-0 hidden md:block" />
+            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-linear-to-b from-[#3fa66b] via-[#3fa66b]/95 to-transparent z-0 hidden md:block" />
 
             <div className="space-y-10 sm:space-y-12 md:space-y-16 relative z-10">
               {storySteps.map((step, idx) => (
@@ -135,7 +135,7 @@ export function AboutSection() {
 
       {/* Partner CTA */}
       <motion.section className="py-10 sm:py-12 px-4 sm:px-6" {...sectionMotionProps}>
-        <motion.div className="w-full max-w-4xl mx-auto min-w-0 border-2 border-[#00a63e] rounded-[16px] sm:rounded-[20px] bg-white shadow-sm p-6 sm:p-8 md:p-10 text-center" variants={revealVariant}>
+        <motion.div className="w-full max-w-4xl mx-auto min-w-0 border-2 border-[#04713a] rounded-2xl sm:rounded-[20px] bg-white shadow-sm p-6 sm:p-8 md:p-10 text-center" variants={revealVariant}>
           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold font-['Urbanist'] mb-2 sm:mb-3">Partner with Us</h3>
           <p className="text-base sm:text-lg text-[#4a5565] font-['Poppins'] mb-4 sm:mb-6">
             Join us in revolutionizing home energy. Whether you're a supplier, installer, or technology partner, let's work together.
@@ -146,7 +146,7 @@ export function AboutSection() {
               e.preventDefault();
               document.getElementById("partnership")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] bg-gradient-to-r from-[#00a63e] to-[#007a55] text-foreground font-semibold hover:opacity-90 transition"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[10px] bg-linear-to-r from-[#04713a] to-[#015c40] text-white font-semibold hover:opacity-90 transition"
           >
             Get in Touch <ArrowRight className="w-5 h-5" />
           </a>

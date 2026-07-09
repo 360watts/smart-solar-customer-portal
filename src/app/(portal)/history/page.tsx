@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Zap, TrendingUp, Leaf, ArrowUpRight, Download } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import MetricCard from "@/components/ui/MetricCard";
@@ -127,14 +128,16 @@ export default function HistoryPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1
-            className="text-3xl font-bold text-foreground mb-1"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
+          <h1 className="page-title mb-1">
             History
           </h1>
           <p className="text-muted-foreground text-base">12-month energy &amp; savings overview</p>
@@ -314,6 +317,6 @@ export default function HistoryPage() {
           </table>
         </div>
       </GlassCard>
-    </div>
+    </motion.div>
   );
 }

@@ -364,6 +364,60 @@ export async function loginCustomer(
   return { ...sessionResolution, tokens };
 }
 
+// ── Registration (invite-only — see api/views/auth.py register_user) ───────────
+
+export async function registerCustomerFromInvite(data: {
+  invite_token: string;
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<SessionResolution & { tokens?: Partial<TokenPair> }> {
+  let registerResponse: Response;
+  try {
+    registerResponse = await backendFetch("/api/auth/register/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    throw Object.assign(
+      new Error(isTimeout ? "Registration timed out. Please try again." : "Cannot reach the server. Please try again later."),
+      { isNetworkError: true },
+    );
+  }
+
+  if (!registerResponse.ok) {
+    const responseData = await registerResponse.json().catch(() => ({}));
+    const message =
+      (responseData as { error?: string; detail?: string }).error ??
+      (responseData as { error?: string; detail?: string }).detail ??
+      "Registration failed.";
+    throw new Error(message);
+  }
+
+  const registerData = (await registerResponse.json()) as { tokens?: TokenPair };
+  const tokens = registerData.tokens;
+
+  if (!tokens?.access || !tokens.refresh) {
+    throw new Error("Backend registration did not return tokens.");
+  }
+
+  const sessionResolution = await resolveSessionFromTokens(tokens);
+  if (sessionResolution.kind === "authenticated") {
+    return {
+      ...sessionResolution,
+      tokens: {
+        refresh: tokens.refresh,
+        ...(sessionResolution.tokens ?? {}),
+        access: sessionResolution.tokens?.access ?? tokens.access,
+      },
+    };
+  }
+
+  return { ...sessionResolution, tokens };
+}
+
 // ── Logout ─────────────────────────────────────────────────────────────────────
 
 export async function logoutCustomer(): Promise<void> {

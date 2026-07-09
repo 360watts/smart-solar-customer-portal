@@ -110,6 +110,32 @@ export async function loginWithPassword(
   return mapSessionUser(data.session);
 }
 
+export async function registerWithInvite(data: {
+  invite_token: string;
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<AuthUser> {
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const responseData = (await response.json().catch(() => ({}))) as {
+    message?: string;
+    session?: CustomerSession;
+  };
+
+  if (!response.ok || !responseData.session) {
+    throw new AuthRequestError(responseData.message ?? "Registration failed.", response.status);
+  }
+
+  return mapSessionUser(responseData.session);
+}
+
 export async function logoutSession(): Promise<void> {
   await fetch("/api/auth/logout", {
     method: "POST",

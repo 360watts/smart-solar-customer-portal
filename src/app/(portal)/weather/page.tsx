@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Cloud, Sun, CloudSun, CloudRain, Wind, Droplets, Thermometer } from "lucide-react";
+import { motion } from "framer-motion";
+import { Cloud, Sun, CloudSun, CloudRain, Wind, Droplets, Thermometer, type LucideIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import DataChart from "@/components/ui/DataChart";
 import { COLORS } from "@/lib/tokens";
@@ -29,7 +30,7 @@ interface WeatherCurrent {
 }
 interface DayForecast {
   day: string;
-  Icon: React.ElementType;
+  Icon: LucideIcon;
   high: number;
   low: number;
   avgGhi: number;
@@ -49,7 +50,7 @@ const MOCK_GHI_DATA = {
   datasets: [{ label: "GHI W/m²", data: [120,380,650,820,790,510,180], borderColor: COLORS.amber, backgroundColor: COLORS.amberMuted, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: COLORS.amber }],
 };
 
-function conditionFromCloud(cloudPct: number): { label: string; Icon: React.ElementType } {
+function conditionFromCloud(cloudPct: number): { label: string; Icon: LucideIcon } {
   if (cloudPct < 20) return { label: "Clear Sky", Icon: Sun };
   if (cloudPct < 50) return { label: "Partly Cloudy", Icon: CloudSun };
   if (cloudPct < 80) return { label: "Mostly Cloudy", Icon: Cloud };
@@ -157,9 +158,14 @@ export default function WeatherPage() {
   const { label: conditionLabel, Icon: ConditionIcon } = conditionFromCloud(cloudPct ?? 0);
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1" style={{ fontFamily: "var(--font-display)" }}>Weather</h1>
+        <h1 className="page-title mb-1">Weather</h1>
         <p className="text-muted-foreground text-base">Coimbatore — solar irradiance &amp; conditions</p>
       </div>
 
@@ -239,6 +245,6 @@ export default function WeatherPage() {
       <p className="text-sm text-muted-foreground text-center pb-2">
         Weather data: Open-Meteo · Updated {data?.fetchedAt ? timeAgo(data.fetchedAt) : "recently"}
       </p>
-    </div>
+    </motion.div>
   );
 }

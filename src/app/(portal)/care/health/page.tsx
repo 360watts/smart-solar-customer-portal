@@ -27,7 +27,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
 
   return (
     <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
-      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${meta.color}cc, ${meta.color}33)` }} />
+      <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${meta.color}cc, ${meta.color}33)` }} />
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -88,7 +88,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
           </p>
         )}
         {data.warranty && (
-          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Warranty: {data.warranty}
           </p>
         )}
@@ -106,7 +106,7 @@ function UptimeTile({ siteId }: { siteId: string }) {
 
   return (
     <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
-      <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${color}cc, ${color}33)` }} />
+      <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${color}cc, ${color}33)` }} />
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-4">
           <div className="min-w-0">
@@ -142,7 +142,7 @@ export default function SystemHealthDetailsPage() {
         <ArrowLeft size={16} /> Back to 360Care
       </button>
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+        <h1 className="page-title">
           System Health Details
         </h1>
         {health && (

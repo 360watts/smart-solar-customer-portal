@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { localFinalLogo } from "../data";
@@ -16,13 +17,13 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
         background:
           "linear-gradient(135deg, rgba(247, 255, 248, 1) 0%, rgba(240, 253, 244, 1) 50%, rgba(236, 254, 255, 1) 100%)",
         boxShadow:
-          "0 -15px 50px rgba(0, 166, 62, 0.12), 0 -5px 25px rgba(0, 0, 0, 0.1)",
+          "0 -15px 50px rgba(4, 113, 58, 0.12), 0 -5px 25px rgba(0, 0, 0, 0.1)",
       }}
     >
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
-        <div className="absolute top-10 left-10 w-40 h-40 bg-[#00a63e] rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-10 left-10 w-40 h-40 bg-[#04713a] rounded-full blur-3xl animate-pulse"></div>
         <div
-          className="absolute bottom-10 right-10 w-52 h-52 bg-[#017c54] rounded-full blur-3xl animate-pulse"
+          className="absolute bottom-10 right-10 w-52 h-52 bg-[#015c40] rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: "1s" }}
         ></div>
         <div
@@ -48,14 +49,14 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
               <img
                 src={APP_IMAGES.footerLogo}
                 alt="360watts"
-                className="h-[85px] sm:h-[100px] md:h-[120px] w-auto transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-md"
+                className="h-21.25 sm:h-25 md:h-30 w-auto transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-md"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = localFinalLogo;
                 }}
               />
-              <div className="absolute -inset-4 bg-gradient-to-r from-[#00a63e]/20 to-[#007a55]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute -inset-4 bg-linear-to-r from-[#04713a]/20 to-[#015c40]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
             <div className="text-center sm:text-left">
               <div className="text-[13px] sm:text-[15px] md:text-[17px] text-[#4a5565] font-['Figtree',sans-serif] tracking-[-0.3px] sm:tracking-[-0.76px] mb-2 sm:mb-3 md:mb-4">
@@ -71,7 +72,7 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
           <div className="col-span-1 md:col-span-3 space-y-3 sm:space-y-4 md:space-y-5">
             <h4 className="text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-3 sm:mb-4 md:mb-6 leading-6 relative inline-block">
               Quick Links
-              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-gradient-to-r from-[#00a63e] to-[#007a55] rounded-full"></div>
+              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-linear-to-r from-[#04713a] to-[#015c40] rounded-full"></div>
             </h4>
             <nav className="flex flex-col space-y-2 sm:space-y-3">
               {[
@@ -89,9 +90,9 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
                       .getElementById(link.href.substring(1))
                       ?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] hover:text-[#017c54] transition-all duration-200 font-medium leading-6 sm:leading-7 group flex items-center min-h-[44px]"
+                  className="text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] hover:text-[#015c40] transition-all duration-200 font-medium leading-6 sm:leading-7 group flex items-center min-h-11"
                 >
-                  <span className="w-0 group-hover:w-3 h-0.5 bg-[#00a63e] mr-0 group-hover:mr-2 transition-all duration-300 rounded-full"></span>
+                  <span className="w-0 group-hover:w-3 h-0.5 bg-[#04713a] mr-0 group-hover:mr-2 transition-all duration-300 rounded-full"></span>
                   {link.label}
                   <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-200">
                     →
@@ -104,16 +105,16 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
           <div className="col-span-1 md:col-span-3 space-y-3 sm:space-y-4 md:space-y-5">
             <h4 className="text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-3 sm:mb-4 md:mb-6 leading-6 relative inline-block">
               Contact Us
-              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-gradient-to-r from-[#00a63e] to-[#007a55] rounded-full"></div>
+              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-linear-to-r from-[#04713a] to-[#015c40] rounded-full"></div>
             </h4>
             <div className="space-y-3 sm:space-y-4">
               <a
                 href="mailto:hello@360watts.com"
-                className="flex items-center gap-2 sm:gap-3 text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] hover:text-[#017c54] transition-colors duration-200 font-medium leading-6 sm:leading-7 group"
+                className="flex items-center gap-2 sm:gap-3 text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] hover:text-[#015c40] transition-colors duration-200 font-medium leading-6 sm:leading-7 group"
               >
-                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gradient-to-br from-[#00a63e]/10 to-[#017c54]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-linear-to-br from-[#04713a]/10 to-[#015c40]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#00a63e]"
+                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#04713a]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -132,11 +133,11 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
               </a>
               <a
                 href="tel:9087610051"
-                className="flex items-center gap-2 sm:gap-3 text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] font-medium leading-6 sm:leading-7 hover:text-[#00a63e] transition-colors group"
+                className="flex items-center gap-2 sm:gap-3 text-[14px] sm:text-[15px] md:text-[16px] text-[#4a5565] font-medium leading-6 sm:leading-7 hover:text-[#04713a] transition-colors group"
               >
-                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gradient-to-br from-[#00a63e]/10 to-[#017c54]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-linear-to-br from-[#04713a]/10 to-[#015c40]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#00a63e]"
+                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#04713a]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -159,19 +160,19 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
           <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-3 sm:space-y-4 md:space-y-5">
             <h4 className="text-[16px] sm:text-[18px] md:text-[20px] lg:text-[24px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-3 sm:mb-4 md:mb-6 leading-6 relative inline-block">
               Follow Us
-              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-gradient-to-r from-[#00a63e] to-[#007a55] rounded-full"></div>
+              <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-8 sm:w-10 md:w-12 h-0.5 sm:h-1 bg-linear-to-r from-[#04713a] to-[#015c40] rounded-full"></div>
             </h4>
             <div className="flex flex-wrap gap-2 sm:gap-3">
               <a
                 href="https://www.instagram.com/360.watts/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-linear-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                 title="Instagram"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-linear-to-br from-[#04713a]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -182,12 +183,12 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
                 href="https://www.facebook.com/360watts"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-linear-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                 title="Facebook"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-linear-to-br from-[#04713a]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -198,12 +199,12 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
                 href="https://in.linkedin.com/company/360watts"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-linear-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                 title="LinkedIn"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#00a63e]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-linear-to-br from-[#04713a]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-foreground group-hover:brightness-125 transition-all duration-200 relative z-10"
+                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white group-hover:brightness-125 transition-all duration-200 relative z-10"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -218,13 +219,19 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t-2 border-gray-200/60"></div>
           </div>
-          <div className="relative flex justify-center">
-            <div className="bg-gradient-to-r from-[#f7fff9] via-white to-[#f0fdf4] px-6 sm:px-8 md:px-10 py-2.5 sm:py-3 rounded-full shadow-md border-2 border-gray-100 hover:scale-105 transition-transform duration-300 hover:shadow-lg">
+          <div className="relative flex flex-col items-center gap-3">
+            <div className="bg-linear-to-r from-[#f7fff9] via-white to-[#f0fdf4] px-6 sm:px-8 md:px-10 py-2.5 sm:py-3 rounded-full shadow-md border-2 border-gray-100 hover:scale-105 transition-transform duration-300 hover:shadow-lg">
               <p className="text-[12px] sm:text-[13px] md:text-[15px] text-[#4a5565] font-semibold tracking-wide">
                 © 2025 Matterless Technologies (OPC) Private Limited. All rights
                 reserved.
               </p>
             </div>
+            <Link
+              href="/privacy"
+              className="text-[12px] sm:text-[13px] text-[#8a9a90] hover:text-[#017c54] font-medium underline decoration-transparent hover:decoration-[#00a63e]/50 underline-offset-4 transition-colors"
+            >
+              Privacy Policy
+            </Link>
           </div>
         </div>
       </div>

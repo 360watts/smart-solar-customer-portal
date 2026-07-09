@@ -32,6 +32,17 @@ const PortalSidebar = React.memo(function PortalSidebar() {
   // CPU/GPU on an animation the user cannot see.
   const [tabVisible, setTabVisible] = useState(true);
   const pathname = usePathname();
+
+  // This sidebar lives in a shared layout that can be served as a static
+  // shell across every portal route, so `usePathname()` may briefly disagree
+  // between the server-rendered HTML (baked at build/prerender time) and the
+  // client's first render (the real current URL) — that mismatch is exactly
+  // what triggers a hydration error. Deferring the active-state calculation
+  // until after mount guarantees the server and first-client-paint markup
+  // are identical (every item inactive); the correct highlight then applies
+  // one client-only render later, which is not a hydration diff.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { user, logout } = useAuth();
   const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase() || "C";
   const displayName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Customer";
@@ -72,7 +83,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
             width={25}
             height={18}
             priority
-            className="relative h-[22px] w-auto object-contain logo-glow"
+            className="relative h-5.5 w-auto object-contain logo-glow"
           />
         </div>
         <AnimatePresence>
@@ -95,7 +106,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
       <nav className="sidebar-nav flex-1 py-4 px-2 space-y-0.5 overflow-y-auto"
         style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(47,191,113,0.45) rgba(7,11,18,0.5)" }}>
         {NAV.map((item) => {
-          const active = pathname === item.href;
+          const active = mounted && pathname === item.href;
           return (
             <Link key={item.href} href={item.href}>
               <motion.div

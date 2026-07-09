@@ -46,11 +46,11 @@ export default function LoginForm() {
       {/* Ambient atmosphere — restrained, off-axis glow mesh rather than a flat backdrop */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div
-          className="absolute -top-40 -left-32 w-[560px] h-[560px] rounded-full opacity-[0.14]"
+          className="absolute -top-40 -left-32 w-140 h-140 rounded-full opacity-[0.14]"
           style={{ background: "radial-gradient(circle, #2FBF71 0%, transparent 70%)" }}
         />
         <div
-          className="absolute -bottom-48 -right-24 w-[480px] h-[480px] rounded-full opacity-[0.10]"
+          className="absolute -bottom-48 -right-24 w-120 h-120 rounded-full opacity-[0.10]"
           style={{ background: "radial-gradient(circle, #E9B949 0%, transparent 70%)" }}
         />
         <div

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Unbounded, DM_Sans, JetBrains_Mono, Poppins, Urbanist, Figtree, Biryani, IBM_Plex_Sans } from "next/font/google";
+import { Unbounded, DM_Sans, JetBrains_Mono, Poppins, Urbanist, Figtree, Biryani, IBM_Plex_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -55,6 +55,15 @@ const biryani = Biryani({
   weight: ["400", "600", "700", "800"],
 });
 
+// Editorial serif used on marketing legal pages (privacy/terms) for a
+// warmer, more trustworthy tone than the brand's display sans.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://360watts.com"),
   applicationName: "360watts",
@@ -94,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${unbounded.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${poppins.variable} ${urbanist.variable} ${figtree.variable} ${biryani.variable} h-full antialiased dark`}
+      className={`${unbounded.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${poppins.variable} ${urbanist.variable} ${figtree.variable} ${biryani.variable} ${fraunces.variable} h-full antialiased dark`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">

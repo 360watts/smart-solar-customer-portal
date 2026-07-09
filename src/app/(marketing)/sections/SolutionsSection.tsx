@@ -79,9 +79,9 @@ export function SolutionsSection() {
         }}
       >
         {/* Video Hero */}
-        <section ref={solutionsVideoRef} className="relative w-full min-w-0 flex justify-center items-center h-[280px] sm:h-[400px] md:h-[500px] lg:h-auto py-0 lg:py-12 px-4 sm:px-6">
+        <section ref={solutionsVideoRef} className="relative w-full min-w-0 flex justify-center items-center h-70 sm:h-100 md:h-125 lg:h-auto py-0 lg:py-12 px-4 sm:px-6">
           <div
-            className="group relative w-full max-w-[1000px] aspect-video overflow-hidden shadow-xl border border-black/10 bg-transparent z-10 min-w-0"
+            className="group relative w-full max-w-250 aspect-video overflow-hidden shadow-xl border border-black/10 bg-transparent z-10 min-w-0"
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
           >
@@ -97,10 +97,10 @@ export function SolutionsSection() {
             >
               <source src={APP_IMAGES.solutionsVideo} type="video/mp4" />
             </video>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#f7fff9]/30 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#f7fff9]/30 pointer-events-none" />
             {/* Media controls — visible on hover or when paused */}
             <div
-              className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-200 ${
+              className={`absolute inset-0 z-20 flex flex-col justify-end bg-linear-to-t from-black/60 via-transparent to-transparent transition-opacity duration-200 ${
                 showControls || !isPlaying ? "opacity-100" : "opacity-0"
               }`}
               style={{ pointerEvents: showControls || !isPlaying ? "auto" : "none" }}
@@ -109,7 +109,7 @@ export function SolutionsSection() {
                 <button
                   type="button"
                   onClick={togglePlayPause}
-                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-foreground p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-white p-2 transition-colors min-w-11 min-h-11 flex items-center justify-center"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
@@ -117,7 +117,7 @@ export function SolutionsSection() {
                 <button
                   type="button"
                   onClick={toggleMute}
-                  className="flex-shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-foreground p-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="shrink-0 rounded-full bg-white/20 hover:bg-white/30 text-white p-2 transition-colors min-w-11 min-h-11 flex items-center justify-center"
                   aria-label={isMuted ? "Unmute video" : "Mute video"}
                 >
                   {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -178,17 +178,17 @@ export function SolutionsSection() {
 
         {/* Solar hero image with callouts */}
         <motion.section className="px-6 pb-16" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-5xl mx-auto min-w-0 rounded-[20px] md:rounded-[24px] overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)] relative" variants={revealVariant}>
+          <motion.div className="w-full max-w-5xl mx-auto min-w-0 rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)] relative" variants={revealVariant}>
             <img
               src={APP_IMAGES.solutionsSolarHouse}
               alt="Solar house"
-              className="w-full h-[400px] sm:h-[600px] md:h-[800px] lg:h-[1000px] object-cover object-bottom"
+              className="w-full h-100 sm:h-150 md:h-200 lg:h-250 object-cover object-bottom"
               loading="lazy"
               decoding="async"
             />
             <div className="absolute inset-0 pointer-events-none block">
               <motion.div
-                className="absolute left-[5%] sm:left-[10%] top-[5%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-[12px] sm:rounded-[16px] md:rounded-[20px] lg:rounded-[12px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 lg:p-6 w-[140px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
+                className="absolute left-[5%] sm:left-[10%] top-[5%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] lg:rounded-xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 lg:p-6 w-35 sm:w-50 md:w-60 lg:w-70"
                 animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
               >
@@ -199,7 +199,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">From design to installation to maintenance</p>
               </motion.div>
               <motion.div
-                className="absolute right-[5%] sm:right-[10%] top-[15%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-[12px] sm:rounded-[16px] md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-[140px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
+                className="absolute right-[5%] sm:right-[10%] top-[15%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
                 animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
               >
@@ -210,7 +210,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">Track your system 24/7</p>
               </motion.div>
               <motion.div
-                className="absolute right-[5%] sm:right-[10%] bottom-[50%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-[12px] sm:rounded-[16px] md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-[140px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
+                className="absolute right-[5%] sm:right-[10%] bottom-[50%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
                 animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
               >
@@ -221,7 +221,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">Guaranteed performance and support</p>
               </motion.div>
               <motion.div
-                className="absolute left-[5%] sm:left-[10%] bottom-[62%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-[12px] sm:rounded-[16px] md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-2 sm:p-3 md:p-4 w-[140px] sm:w-[200px] md:w-[240px] lg:w-[280px]"
+                className="absolute left-[5%] sm:left-[10%] bottom-[62%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-2 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
                 animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
               >
@@ -240,7 +240,7 @@ export function SolutionsSection() {
                 e.preventDefault();
                 document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-[rgba(0,0,0,0.75)] text-foreground font-['Urbanist'] font-bold text-[19px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
+              className="bg-[rgba(0,0,0,0.75)] text-white font-['Urbanist'] font-bold text-[19px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
             >
               Enquire Solar Plans
             </a>
@@ -266,9 +266,9 @@ export function SolutionsSection() {
               <motion.div
                 key={item.title}
                 variants={revealVariant}
-                className="bg-white rounded-[16px] md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
+                className="bg-white rounded-2xl md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#fdc700] to-[#ff6900] flex items-center justify-center text-foreground font-bold text-base sm:text-lg md:text-xl">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-linear-to-br from-[#fdc700] to-[#ff6900] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
@@ -287,7 +287,7 @@ export function SolutionsSection() {
             </p>
           </motion.div>
 
-          <motion.div className="relative w-full max-w-6xl mx-auto rounded-[24px] overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]" variants={revealVariant}>
+          <motion.div className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]" variants={revealVariant}>
             <img
               src={APP_IMAGES.solutionsSmartHomeScene}
               alt="Smart home"
@@ -297,7 +297,7 @@ export function SolutionsSection() {
             />
             <div className="absolute inset-0 pointer-events-none block">
               <motion.div
-                className="absolute left-[5%] sm:left-[10%] top-[10%] sm:top-[15%] bg-white/94 rounded-[6px] sm:rounded-[8px] md:rounded-[10px] lg:rounded-[12px] px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-[100px] sm:max-w-[120px] md:max-w-[160px] lg:max-w-[180px] xl:max-w-[210px]"
+                className="absolute left-[5%] sm:left-[10%] top-[10%] sm:top-[15%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-25 sm:max-w-30 md:max-w-40 lg:max-w-45 xl:max-w-52.5"
                 animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
                 transition={reduceMotion ? undefined : { duration: 5.6, repeat: Infinity, ease: "easeInOut" }}
               >
@@ -305,7 +305,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">Automate based on your routine</p>
               </motion.div>
               <motion.div
-                className="absolute right-[15%] sm:right-[10%] md:right-[20%] top-[32%] sm:top-[35%] bg-white/94 rounded-[6px] sm:rounded-[8px] md:rounded-[10px] lg:rounded-[12px] px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-[110px] sm:max-w-[140px] md:max-w-[180px] lg:max-w-[200px] xl:max-w-[230px] text-right"
+                className="absolute right-[15%] sm:right-[10%] md:right-[20%] top-[32%] sm:top-[35%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-27.5 sm:max-w-35 md:max-w-45 lg:max-w-50 xl:max-w-57.5 text-right"
                 animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
               >
@@ -313,7 +313,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">AI learns your patterns</p>
               </motion.div>
               <motion.div
-                className="absolute left-[40%] sm:left-[35%] md:left-[45%] top-[10%] sm:top-[15%] bg-white/94 rounded-[6px] sm:rounded-[8px] md:rounded-[10px] lg:rounded-[12px] px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-[105px] sm:max-w-[130px] md:max-w-[170px] lg:max-w-[190px] xl:max-w-[220px]"
+                className="absolute left-[40%] sm:left-[35%] md:left-[45%] top-[10%] sm:top-[15%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-26.25 sm:max-w-32.5 md:max-w-42.5 lg:max-w-47.5 xl:max-w-55"
                 animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
                 transition={reduceMotion ? undefined : { duration: 5.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
               >
@@ -321,7 +321,7 @@ export function SolutionsSection() {
                 <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">Works with existing smart devices</p>
               </motion.div>
               <motion.div
-                className="absolute left-[23%] sm:left-[20%] md:left-[28%] bottom-[55%] sm:bottom-[56%] bg-white/94 rounded-[6px] sm:rounded-[8px] md:rounded-[10px] lg:rounded-[12px] px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-[105px] sm:max-w-[130px] md:max-w-[170px] lg:max-w-[190px] xl:max-w-[220px] text-center"
+                className="absolute left-[23%] sm:left-[20%] md:left-[28%] bottom-[55%] sm:bottom-[56%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-26.25 sm:max-w-32.5 md:max-w-42.5 lg:max-w-47.5 xl:max-w-55 text-center"
                 animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
                 transition={reduceMotion ? undefined : { duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
               >
@@ -337,7 +337,7 @@ export function SolutionsSection() {
                 e.preventDefault();
                 document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="bg-[#0a0a0a] text-foreground font-['Urbanist'] font-bold text-[17px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
+              className="bg-[#0a0a0a] text-white font-['Urbanist'] font-bold text-[17px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
             >
               Enquire Smart Home
             </a>
@@ -365,9 +365,9 @@ export function SolutionsSection() {
               <motion.div
                 key={item.title}
                 variants={revealVariant}
-                className="bg-white rounded-[16px] md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
+                className="bg-white rounded-2xl md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#51a2ff] to-[#615fff] flex items-center justify-center text-foreground font-bold text-base sm:text-lg md:text-xl">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-linear-to-br from-[#51a2ff] to-[#615fff] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
@@ -403,7 +403,7 @@ export function SolutionsSection() {
                     Monitor your energy generation, consumption, and savings live, all in one intuitive dashboard.
                   </p>
                 </div>
-                <div className="flex-shrink-0 relative w-[176px] sm:w-[380px] lg:w-[370px] aspect-[329/636]">
+                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
                   {/* App Screenshot */}
                   <img src={APP_IMAGES.solutionsAppPhoneInsights} alt="Real-time Insights" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
                   {/* Phone Frame Overlay */}
@@ -418,7 +418,7 @@ export function SolutionsSection() {
                     Automatically run high-load devices when solar power is abundant to maximize efficiency and reduce costs.
                   </p>
                 </div>
-                <div className="flex-shrink-0 relative w-[176px] sm:w-[380px] lg:w-[370px] aspect-[329/636]">
+                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
                   {/* App Screenshot */}
                   <img src={APP_IMAGES.solutionsAppPhoneMonitor} alt="Smart Scheduling" className="absolute inset-[14%] top-[10%] w-[75%] h-[80%] object-cover rounded-[10px]" loading="lazy" decoding="async" />
                   {/* Phone Frame Overlay */}
@@ -434,7 +434,7 @@ export function SolutionsSection() {
                     Set your home to match your daily life. Lights, fans, and devices adjust automatically to your routine.
                   </p>
                 </div>
-                <div className="flex-shrink-0 relative w-[160px] sm:w-[380px] lg:w-[370px] aspect-[329/636]">
+                <div className="shrink-0 relative w-40 sm:w-95 lg:w-92.5 aspect-[329/636]">
                   {/* App Screenshot */}
                   <img src={APP_IMAGES.solutionsAppPhoneModes} alt="Routines and Modes" className="absolute inset-[11.5%] top-[8.5%] w-[77%] h-[83%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
                   {/* Phone Frame Overlay */}
@@ -450,7 +450,7 @@ export function SolutionsSection() {
                     Easily book service appointments and keep your solar and smart systems performing at their best.
                   </p>
                 </div>
-                <div className="flex-shrink-0 relative w-[176px] sm:w-[380px] lg:w-[370px] aspect-[329/636]">
+                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
                   {/* App Screenshot */}
                   <img src={APP_IMAGES.solutionsAppPhoneHero} alt="Maintenance and Care" className="absolute inset-[14.5%] top-[9%] bottom-[6%] w-[75%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
                   {/* Phone Frame Overlay */}
@@ -478,7 +478,7 @@ export function SolutionsSection() {
                   e.preventDefault();
                   document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="bg-gradient-to-r from-orange-400 to-orange-600 text-foreground font-bold px-5 sm:px-6 md:px-8 py-3 sm:py-4 rounded-[10px] hover:opacity-90 transition-opacity text-[14px] sm:text-[15px] md:text-base"
+                className="bg-linear-to-r from-orange-400 to-orange-600 text-white font-bold px-5 sm:px-6 md:px-8 py-3 sm:py-4 rounded-[10px] hover:opacity-90 transition-opacity text-[14px] sm:text-[15px] md:text-base"
               >
                 Chat with us
               </a>

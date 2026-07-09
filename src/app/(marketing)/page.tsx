@@ -55,7 +55,7 @@ export default function HomePage() {
   return (
     <main
       id="main-content"
-      className="bg-gradient-to-b from-[#f7fff9] via-white to-[#f7fff9] min-h-screen overflow-x-hidden w-full min-w-0"
+      className="bg-linear-to-b from-[#f7fff9] via-white to-[#f7fff9] min-h-screen overflow-x-hidden w-full min-w-0"
     >
       <HeroSection />
 

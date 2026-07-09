@@ -6,7 +6,7 @@ import PortalSidebar from "@/components/layout/PortalSidebar";
 import { hasSessionCookies } from "@/lib/server-auth";
 
 export const metadata: Metadata = {
-  title: "Customer Portal",
+  title: "Energy Portal",
   description: "Monitor your solar generation, savings, devices, and service health.",
 };
 
