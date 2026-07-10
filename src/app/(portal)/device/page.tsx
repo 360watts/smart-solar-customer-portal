@@ -187,19 +187,19 @@ function timeAgo(iso: string): string {
 // never use positive thresholds like these). Bucketed on that scale, aligned
 // to the same warn/critical boundaries the backend already uses.
 function signalBars(pct: number): { count: number; color: string; label: string } {
-  if (pct >= 70) return { count: 5, color: "#2FBF71", label: "Excellent" };
-  if (pct >= 55) return { count: 4, color: "#2FBF71", label: "Good" };
-  if (pct >= 40) return { count: 3, color: "#E9B949", label: "Fair" };
-  if (pct >= 25) return { count: 2, color: "#E9B949", label: "Weak" };
-  return { count: 1, color: "#F87171", label: "Poor" };
+  if (pct >= 70) return { count: 5, color: "var(--primary)", label: "Excellent" };
+  if (pct >= 55) return { count: 4, color: "var(--primary)", label: "Good" };
+  if (pct >= 40) return { count: 3, color: "var(--secondary)", label: "Fair" };
+  if (pct >= 25) return { count: 2, color: "var(--secondary)", label: "Weak" };
+  return { count: 1, color: "var(--destructive)", label: "Poor" };
 }
 
 function warrantyColor(expiryDate: string): string {
-  if (!expiryDate) return "#6B7A99";
+  if (!expiryDate) return "var(--muted)";
   const msLeft = new Date(expiryDate).getTime() - Date.now();
-  if (msLeft < 0) return "#F87171";
-  if (msLeft < 365 * 24 * 3600000) return "#E9B949";
-  return "#6B7A99";
+  if (msLeft < 0) return "var(--destructive)";
+  if (msLeft < 365 * 24 * 3600000) return "var(--secondary)";
+  return "var(--muted)";
 }
 
 function warrantyYear(expiryDate: string): string {
@@ -209,22 +209,22 @@ function warrantyYear(expiryDate: string): string {
 }
 
 function efficiencyColor(pct: number): string {
-  if (pct >= 80) return "#2FBF71";
-  if (pct >= 60) return "#E9B949";
-  return "#F87171";
+  if (pct >= 80) return "var(--primary)";
+  if (pct >= 60) return "var(--secondary)";
+  return "var(--destructive)";
 }
 
 function healthTone(pct: number | null): { label: string; color: string } {
-  if (pct == null) return { label: "No Data", color: "#6B7A99" };
-  if (pct >= 80) return { label: "Excellent", color: "#2FBF71" };
-  if (pct >= 60) return { label: "Fair", color: "#E9B949" };
-  return { label: "Needs Attention", color: "#F87171" };
+  if (pct == null) return { label: "No Data", color: "var(--muted)" };
+  if (pct >= 80) return { label: "Excellent", color: "var(--primary)" };
+  if (pct >= 60) return { label: "Fair", color: "var(--secondary)" };
+  return { label: "Needs Attention", color: "var(--destructive)" };
 }
 
 function tempColor(c: number, warn = 65, critical = 75): string {
-  if (c > critical) return "#F87171";
-  if (c > warn) return "#E9B949";
-  return "#6B7A99";
+  if (c > critical) return "var(--destructive)";
+  if (c > warn) return "var(--secondary)";
+  return "var(--muted)";
 }
 
 function fleetDeviceLabel(deviceType?: string): string {
@@ -297,7 +297,7 @@ function buildDisplayDevices(fleet: FleetDevice[], gateway: GatewayStatus): Disp
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function SocArc({ pct }: { pct: number }) {
-  const color = pct > 50 ? "#2FBF71" : pct > 20 ? "#E9B949" : "#F87171";
+  const color = pct > 50 ? "var(--primary)" : pct > 20 ? "var(--secondary)" : "var(--destructive)";
   return (
     <span className="inline-flex items-center gap-1.5">
       <span
@@ -306,7 +306,7 @@ function SocArc({ pct }: { pct: number }) {
           width: 32,
           height: 8,
           borderRadius: 4,
-          background: "rgba(255,255,255,0.08)",
+          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
           overflow: "hidden",
         }}
       >
@@ -353,7 +353,7 @@ function MiniArc({
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
-      <path d={path} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <path d={path} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} strokeLinecap="round" />
       <motion.path
         d={path} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
         pathLength={1}
@@ -533,17 +533,17 @@ export default function DevicePage() {
                               />
                             )}
                             <div
-                              style={{ background: d.is_online ? "rgba(47,191,113,0.15)" : "rgba(239,68,68,0.12)" }}
+                              style={{ background: d.is_online ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "rgba(239,68,68,0.12)" }}
                               className={`relative rounded-xl flex items-center justify-center ${d.isPrimary ? "w-14 h-14" : "w-11 h-11"}`}
                             >
-                              <Cpu size={d.isPrimary ? 26 : 20} style={{ color: d.is_online ? "#2FBF71" : "#F87171" }} />
+                              <Cpu size={d.isPrimary ? 26 : 20} style={{ color: d.is_online ? "var(--primary)" : "var(--destructive)" }} />
                             </div>
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               {d.isPrimary && (
                                 <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                                  style={{ background: "rgba(47,191,113,0.15)", color: "#2FBF71" }}>
+                                  style={{ background: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
                                   Primary
                                 </span>
                               )}
@@ -564,7 +564,7 @@ export default function DevicePage() {
                       {d.isPrimary && d.signalPct != null ? (() => {
                         const sig = signalBars(d.signalPct);
                         return (
-                          <div className="relative overflow-hidden rounded-xl bg-white/[0.03] border border-border mb-4">
+                          <div className="relative overflow-hidden rounded-xl bg-foreground/[0.03] border border-border mb-4">
                             <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${sig.color}cc, ${sig.color}33)` }} />
                             <div
                               className="pointer-events-none absolute -top-4 left-6 w-20 h-10 rounded-full opacity-40"
@@ -592,8 +592,8 @@ export default function DevicePage() {
                                     className="inline-block mt-1.5 text-sm font-mono px-2 py-0.5 rounded-full"
                                     style={
                                       d.dataSourceBadge.tone === "good"
-                                        ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
-                                        : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
+                                        ? { background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }
+                                        : { background: "color-mix(in srgb, var(--secondary) 12%, transparent)", color: "var(--secondary)", border: "1px solid color-mix(in srgb, var(--secondary) 30%, transparent)" }
                                     }
                                   >
                                     Data via: {d.dataSourceBadge.label}
@@ -609,8 +609,8 @@ export default function DevicePage() {
                             className="text-sm font-mono px-2 py-0.5 rounded-full"
                             style={
                               d.dataSourceBadge.tone === "good"
-                                ? { background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.3)" }
-                                : { background: "rgba(233,185,73,0.12)", color: "#E9B949", border: "1px solid rgba(233,185,73,0.3)" }
+                                ? { background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)" }
+                                : { background: "color-mix(in srgb, var(--secondary) 12%, transparent)", color: "var(--secondary)", border: "1px solid color-mix(in srgb, var(--secondary) 30%, transparent)" }
                             }
                           >
                             Data via: {d.dataSourceBadge.label}
@@ -639,7 +639,7 @@ export default function DevicePage() {
                         <div className="mt-auto pt-3 relative">
                           <div
                             className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
-                            style={{ background: "rgba(233,185,73,0.08)", border: "1px solid rgba(233,185,73,0.2)", color: "#E9B949" }}
+                            style={{ background: "color-mix(in srgb, var(--secondary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 20%, transparent)", color: "var(--secondary)" }}
                           >
                             <AlertTriangle size={13} className="shrink-0" />
                             <span>{d.commsBanner.text}</span>
@@ -663,26 +663,26 @@ export default function DevicePage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {/* Run State */}
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                <div style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderRadius: 10 }} className="p-3">
                   <p className="text-sm text-muted-foreground mb-1">Run State</p>
                   <p className="text-base font-semibold text-foreground">{runStateLabel(telemetry.run_state)}</p>
                 </div>
                 {/* Solar Output */}
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                <div style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderRadius: 10 }} className="p-3">
                   <p className="text-sm text-muted-foreground mb-1">Solar Output</p>
                   <p className="text-base font-semibold text-foreground">
                     <AnimatedNumber value={solarOutputKw} decimals={2} /> kW
                   </p>
                 </div>
                 {/* Inverter Temp */}
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                <div style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderRadius: 10 }} className="p-3">
                   <p className="text-sm text-muted-foreground mb-1">Inverter Temp</p>
                   <p className="text-base font-semibold" style={{ color: tempColor(telemetry.inverter_temp_c) }}>
                     <AnimatedNumber value={telemetry.inverter_temp_c} decimals={1} />°C
                   </p>
                 </div>
                 {/* Battery SOC */}
-                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10 }} className="p-3">
+                <div style={{ background: "color-mix(in srgb, var(--foreground) 4%, transparent)", borderRadius: 10 }} className="p-3">
                   <p className="text-sm text-muted-foreground mb-1">Battery SOC</p>
                   {telemetry.battery_soc_percent != null
                     ? <SocArc pct={telemetry.battery_soc_percent} />
@@ -700,7 +700,7 @@ export default function DevicePage() {
                   {faultCodes.map((fc, i) => (
                     <span
                       key={i}
-                      style={{ background: "rgba(248,113,113,0.12)", color: "#F87171", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontFamily: "monospace" }}
+                      style={{ background: "color-mix(in srgb, var(--destructive) 12%, transparent)", color: "var(--destructive)", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontFamily: "monospace" }}
                     >
                       {fc}
                     </span>
@@ -716,7 +716,7 @@ export default function DevicePage() {
               {/* Inverters */}
               <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap size={16} style={{ color: "#2FBF71" }} />
+                  <Zap size={16} style={{ color: "var(--primary)" }} />
                   <h4 className="text-base font-semibold text-foreground">Inverter</h4>
                 </div>
                 {equipment.inverters.length === 0 ? (
@@ -741,7 +741,7 @@ export default function DevicePage() {
               {/* Batteries */}
               <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                  <Battery size={16} style={{ color: "#2FBF71" }} />
+                  <Battery size={16} style={{ color: "var(--primary)" }} />
                   <h4 className="text-base font-semibold text-foreground">Battery</h4>
                 </div>
                 {equipment.batteries.length === 0 ? (
@@ -761,7 +761,7 @@ export default function DevicePage() {
               {/* Panels — group identical make/model to avoid repeating 8× the same row */}
               <GlassCard>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sun size={16} style={{ color: "#2FBF71" }} />
+                  <Sun size={16} style={{ color: "var(--primary)" }} />
                   <h4 className="text-base font-semibold text-foreground">Solar Panels</h4>
                 </div>
                 {equipment.panels.length === 0 ? (
@@ -807,7 +807,7 @@ export default function DevicePage() {
                   ? Math.round(available.reduce((s, v) => s + v, 0) / available.length)
                   : null;
                 const overallTone = healthTone(overallPct);
-                const color = overallPct != null ? efficiencyColor(overallPct) : "#6B7A99";
+                const color = overallPct != null ? efficiencyColor(overallPct) : "var(--muted)";
 
                 return (
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">

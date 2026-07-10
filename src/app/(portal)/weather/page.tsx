@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
+import { formatHourLabel, SITE_TIMEZONE } from "@/lib/utils";
 
 interface WeatherHourly {
   forecast_for: string;
@@ -40,15 +41,10 @@ interface DayForecast {
 interface WeatherData {
   current: WeatherCurrent | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ghiChart: any;
+  ghiChart: any | null;
   forecast: DayForecast[];
   fetchedAt: string | null;
 }
-
-const MOCK_GHI_DATA = {
-  labels: ["6am","8am","10am","12pm","2pm","4pm","6pm"],
-  datasets: [{ label: "GHI W/m²", data: [120,380,650,820,790,510,180], borderColor: COLORS.amber, backgroundColor: COLORS.amberMuted, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: COLORS.amber }],
-};
 
 function conditionFromCloud(cloudPct: number): { label: string; Icon: LucideIcon } {
   if (cloudPct < 20) return { label: "Clear Sky", Icon: Sun };
@@ -64,25 +60,24 @@ function timeAgo(isoString: string): string {
     return `${Math.floor(diff / 60)}h ago`;
   } catch { return "recently"; }
 }
-function formatHour(isoString: string): string {
-  try {
-    const h = new Date(isoString).getHours();
-    if (h === 0) return "12am";
-    if (h < 12) return `${h}am`;
-    if (h === 12) return "12pm";
-    return `${h - 12}pm`;
-  } catch { return ""; }
-}
+// Matches the staff dashboard's WeatherTab format and the site's own
+// timezone (Coimbatore), not the viewing device's.
+const formatHour = formatHourLabel;
+
 function dayLabel(isoString: string, index: number): string {
   if (index === 0) return "Today";
   if (index === 1) return "Tomorrow";
-  try { return new Date(isoString).toLocaleDateString("en-US", { weekday: "short" }); }
+  try { return new Date(isoString).toLocaleDateString("en-US", { weekday: "short", timeZone: SITE_TIMEZONE }); }
   catch { return `Day ${index + 1}`; }
 }
 function groupByDay(hourly: WeatherHourly[]): DayForecast[] {
   const byDay: Record<string, WeatherHourly[]> = {};
   hourly.forEach((h) => {
-    const key = h.forecast_for.slice(0, 10);
+    // Bucket by the site's own calendar day (Coimbatore), not a raw slice of
+    // the ISO string — if forecast_for is UTC, slicing the first 10 chars
+    // puts hours after ~6:30pm IST into tomorrow's UTC date, silently
+    // shifting the 5-day forecast by a day near midnight.
+    const key = new Date(h.forecast_for).toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE });
     if (!byDay[key]) byDay[key] = [];
     byDay[key].push(h);
   });
@@ -104,11 +99,11 @@ function SolarQualityArc({ score }: { score: number }) {
   const radius = 32; const cx = 44; const cy = 44;
   const circumference = Math.PI * radius;
   const progress = (score / 100) * circumference;
-  const color = score > 75 ? COLORS.primary : score > 40 ? COLORS.amber : COLORS.muted;
+  const color = score > 75 ? "var(--primary)" : score > 40 ? "var(--secondary)" : "var(--muted)";
   return (
     <div className="flex flex-col items-center">
       <svg width="88" height="52" viewBox="0 0 88 52">
-        <path d={`M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={6} strokeLinecap="round" />
+        <path d={`M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`} fill="none" stroke="var(--border)" strokeWidth={6} strokeLinecap="round" />
         <path d={`M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round" strokeDasharray={`${progress} ${circumference}`} style={{ transition: "stroke-dasharray 1s ease" }} />
       </svg>
       <p className="text-sm text-muted-foreground -mt-2">Solar Quality</p>
@@ -127,7 +122,10 @@ export default function WeatherPage() {
       const raw = res.data as { current: WeatherCurrent; hourly_forecast: WeatherHourly[] };
       const now = new Date();
 
-      let ghiChart: Parameters<typeof DataChart>[0]["data"] = MOCK_GHI_DATA;
+      // No fallback to mock data here — showing MOCK_GHI_DATA when the API
+      // returns nothing would silently present fabricated numbers as real
+      // readings. null means "no data" and the page shows an empty state.
+      let ghiChart: Parameters<typeof DataChart>[0]["data"] | null = null;
       let forecast: DayForecast[] = [];
 
       if (raw.hourly_forecast?.length) {
@@ -169,7 +167,7 @@ export default function WeatherPage() {
         <p className="text-muted-foreground text-base">Coimbatore — solar irradiance &amp; conditions</p>
       </div>
 
-      {error && <GlassCard><p className="text-base text-red-300">{error}</p></GlassCard>}
+      {error && <GlassCard><p className="text-base" style={{ color: "var(--destructive)" }}>{error}</p></GlassCard>}
 
       <GlassCard glow="amber">
         <div className="flex flex-col lg:flex-row items-start gap-6">
@@ -192,7 +190,7 @@ export default function WeatherPage() {
               { icon: Thermometer, label: "Feels Like", value: feelsLike != null ? `${feelsLike}°C` : "—" },
               { icon: Cloud, label: "Cloud Cover", value: cloudPct != null ? `${cloudPct}%` : "—" },
             ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/4 border border-border">
+              <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-foreground/4 border border-border">
                 <s.icon size={13} className="text-amber-400 shrink-0" />
                 <div>
                   <p className="text-sm text-muted-foreground leading-tight">{s.label}</p>
@@ -200,7 +198,7 @@ export default function WeatherPage() {
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-center px-3 py-1 rounded-xl bg-white/4 border border-border">
+            <div className="flex items-center justify-center px-3 py-1 rounded-xl bg-foreground/4 border border-border">
               <SolarQualityArc score={solarScore} />
             </div>
           </div>
@@ -212,18 +210,24 @@ export default function WeatherPage() {
           <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>Solar Irradiance — Today</h2>
           <span className="text-sm text-muted-foreground font-mono">W/m²</span>
         </div>
-        <DataChart type="line" data={(data?.ghiChart ?? MOCK_GHI_DATA) as Parameters<typeof DataChart>[0]["data"]} height={200} />
+        {data?.ghiChart ? (
+          <DataChart type="line" data={data.ghiChart as Parameters<typeof DataChart>[0]["data"]} height={200} />
+        ) : (
+          <div className="h-50 flex items-center justify-center text-base text-muted-foreground">
+            {loading ? "Loading…" : "No irradiance data available for today."}
+          </div>
+        )}
       </GlassCard>
 
       <GlassCard>
         <h2 className="text-lg font-semibold text-foreground mb-4" style={{ fontFamily: "var(--font-display)" }}>5-Day Solar Forecast</h2>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
           {(data?.forecast ?? []).map((f, i) => {
-            const scoreColor = f.solarScore > 75 ? COLORS.primary : f.solarScore > 40 ? COLORS.amber : COLORS.muted;
+            const scoreColor = f.solarScore > 75 ? "var(--primary)" : f.solarScore > 40 ? "var(--secondary)" : "var(--muted)";
             return (
-              <div key={i} className="shrink-0 w-36 rounded-2xl p-4 flex flex-col gap-2 border border-border" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <div key={i} className="shrink-0 w-36 rounded-2xl p-4 flex flex-col gap-2 border border-border bg-foreground/3">
                 <p className="text-sm font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>{f.day}</p>
-                <f.Icon size={28} className="my-1" style={{ color: i === 0 ? COLORS.amber : COLORS.muted }} />
+                <f.Icon size={28} className="my-1" style={{ color: i === 0 ? "var(--secondary)" : "var(--muted)" }} />
                 <p className="text-sm text-muted-foreground leading-tight">{f.condition}</p>
                 <p className="text-base font-medium text-foreground">{f.high}° / {f.low}°</p>
                 <p className="text-sm text-muted-foreground">{f.avgGhi} W/m²</p>
@@ -232,7 +236,7 @@ export default function WeatherPage() {
                     <span className="text-sm text-muted-foreground">Score</span>
                     <span className="text-sm font-medium" style={{ color: scoreColor }}>{f.solarScore}</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${f.solarScore}%`, background: scoreColor }} />
                   </div>
                 </div>

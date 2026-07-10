@@ -1,0 +1,129 @@
+/*
+ * 360watts App design system — tokens extracted directly from the Figma
+ * file (OEIt8xV5NZXmMMk1GnofqP), nodes 1218-201 (Colour Scheme) and
+ * 1076-1579 (Typography). Hex values were read from the literal SVG fills
+ * in the Colour Scheme sheet, not eyeballed from a screenshot.
+ *
+ * Namespaced under --ds-* and scoped to [data-ds-scope] so it coexists with
+ * the portal's existing "Solar Noir" tokens in globals.css without
+ * collision — this is a separate, self-contained system for the
+ * /demo/design-system review page and any components built against it.
+ */
+
+[data-ds-scope] {
+  /* Primary — green ramp (base/900/800/700/600/400/300/200/100) */
+  --ds-primary-900: #122618;
+  --ds-primary-800: #244c30;
+  --ds-primary-700: #377149;
+  --ds-primary-600: #499761;
+  --ds-primary: #5bbd79;
+  --ds-primary-400: #7cca94;
+  --ds-primary-300: #9dd7af;
+  --ds-primary-200: #bde5c9;
+  --ds-primary-100: #def2e4;
+
+  /* Call to action — orange ramp (the actual button/CTA color, distinct
+     from the green "brand" primary above) */
+  --ds-cta-900: #301707;
+  --ds-cta-800: #612f0d;
+  --ds-cta-700: #914614;
+  --ds-cta-600: #c15e1a;
+  --ds-cta: #f27521;
+  --ds-cta-400: #f5914d;
+  --ds-cta-300: #f7ac7a;
+  --ds-cta-200: #fac8a6;
+  --ds-cta-100: #fce3d3;
+
+  /* Neutral */
+  --ds-neutral-900: #15171a;
+  --ds-neutral-800: #2b2e33;
+  --ds-neutral-700: #40444d;
+  --ds-neutral-600: #565b66;
+  --ds-neutral-500: #6b7280;
+  --ds-neutral-400: #898e99;
+  --ds-neutral-300: #a6aab3;
+  --ds-neutral-200: #c4c7cc;
+  --ds-neutral-100: #e1e3e6;
+
+  /* Success */
+  --ds-success-900: #061c12;
+  --ds-success-800: #0c3724;
+  --ds-success-700: #135337;
+  --ds-success-600: #196e49;
+  --ds-success: #1f8a5b;
+  --ds-success-400: #4ca17c;
+  --ds-success-300: #79b99d;
+  --ds-success-200: #a5d0bd;
+  --ds-success-100: #d2e8de;
+
+  /* Warning */
+  --ds-warning-900: #2f250f;
+  --ds-warning-800: #5d4a1d;
+  --ds-warning-700: #8c6f2c;
+  --ds-warning-600: #ba943a;
+  --ds-warning: #e9b949;
+  --ds-warning-400: #edc76d;
+  --ds-warning-300: #f2d592;
+  --ds-warning-200: #f6e3b6;
+  --ds-warning-100: #fbf1db;
+
+  /* Error */
+  --ds-error-900: #270101;
+  --ds-error-800: #4e0303;
+  --ds-error-700: #750404;
+  --ds-error-600: #9d0606;
+  --ds-error: #c40707;
+  --ds-error-400: #d03939;
+  --ds-error-300: #dc6a6a;
+  --ds-error-200: #e79c9c;
+  --ds-error-100: #f3cdcd;
+
+  /* Info */
+  --ds-info-900: #070f14;
+  --ds-info-800: #0e1f28;
+  --ds-info-700: #162e3d;
+  --ds-info-600: #1d3e51;
+  --ds-info: #244d65;
+  --ds-info-400: #507184;
+  --ds-info-300: #7c94a3;
+  --ds-info-200: #a7b8c1;
+  --ds-info-100: #d3dbe0;
+
+  /* Surface + text */
+  --ds-bg: #ffffff;
+  --ds-card: #ffffff;
+  --ds-text-heading: #15171a;
+  --ds-text-body: #40444d;
+  --ds-border: #a6aab3;
+
+  /* Radii — from the Figma "Border Radius" variable collection */
+  --ds-radius-sm: 8px;
+  --ds-radius-lg: 16px;
+  --ds-radius-exlg: 64px;
+
+  /* Type scale — Inter, weights/sizes/line-heights exactly as specified in
+     the Typography sheet (Font Weight/Heading=Bold, /Subheading=Semibold,
+     /Label=Medium, /Body=Regular) */
+  --ds-h1-size: 48px; --ds-h1-line: 56px;
+  --ds-h2-size: 40px; --ds-h2-line: 48px;
+  --ds-h3-size: 32px; --ds-h3-line: 40px;
+  --ds-h4-size: 28px; --ds-h4-line: 32px;
+  --ds-h5-size: 24px; --ds-h5-line: 28px;
+  --ds-h6-size: 20px; --ds-h6-line: 24px;
+  --ds-body-lg-size: 20px; --ds-body-lg-line: 24px;
+  --ds-body-md-size: 16px; --ds-body-md-line: 20px;
+  --ds-body-sm-size: 14px; --ds-body-sm-line: 16px;
+  --ds-body-xs-size: 12px; --ds-body-xs-line: 16px;
+}
+
+/* Dark surface variant — the Figma sheets themselves are light-only, so
+   this dark mapping is a considered extension (deepen the ramps toward
+   neutral-900, keep the CTA/primary base hues so brand recognition holds),
+   not something lifted from the file. */
+[data-ds-scope][data-ds-theme="dark"] {
+  --ds-bg: #101214;
+  --ds-card: #16181b;
+  --ds-text-heading: #f2f3f4;
+  --ds-text-body: #c4c7cc;
+  --ds-border: #40444d;
+}

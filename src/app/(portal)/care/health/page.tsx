@@ -27,13 +27,13 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
 
   return (
     <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
-      <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${meta.color}cc, ${meta.color}33)` }} />
+      <div className="h-0.75" style={{ background: `linear-gradient(90deg, color-mix(in srgb, ${meta.color} 80%, transparent), color-mix(in srgb, ${meta.color} 20%, transparent))` }} />
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-              style={{ background: `${meta.color}18`, border: `1px solid ${meta.color}30` }}
+              style={{ background: `color-mix(in srgb, ${meta.color} 9%, transparent)`, border: `1px solid color-mix(in srgb, ${meta.color} 19%, transparent)` }}
             >
               <Icon size={15} style={{ color: meta.color }} />
             </div>
@@ -56,7 +56,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
           </div>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 rounded-full whitespace-nowrap"
-            style={{ background: `${sc}14`, border: `1px solid ${sc}30`, color: sc }}
+            style={{ background: `color-mix(in srgb, ${sc} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${sc} 19%, transparent)`, color: sc }}
           >
             {statusLabel(data.status)}
           </span>
@@ -68,7 +68,7 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
           ))}
         </ul>
 
-        <div className="h-px bg-white/8 my-4" />
+        <div className="h-px bg-foreground/8 my-4" />
 
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-2">Live Metrics (7d)</p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
@@ -100,13 +100,13 @@ function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_MET
 function UptimeTile({ siteId }: { siteId: string }) {
   const { loading, rollingAvgUptimePct } = useUptimeScore(siteId, 30);
   const pct = rollingAvgUptimePct ?? 100;
-  const color = pct >= 99 ? "#2FBF71" : pct >= 95 ? "#E9B949" : "#EF4444";
+  const color = pct >= 99 ? "var(--primary)" : pct >= 95 ? "var(--secondary)" : "var(--destructive)";
 
   if (loading) return <SkeletonPulse className="h-full" />;
 
   return (
     <GlassCard className="relative overflow-hidden p-0 h-full flex flex-col">
-      <div className="h-0.75" style={{ background: `linear-gradient(90deg, ${color}cc, ${color}33)` }} />
+      <div className="h-0.75" style={{ background: `linear-gradient(90deg, color-mix(in srgb, ${color} 80%, transparent), color-mix(in srgb, ${color} 20%, transparent))` }} />
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-4">
           <div className="min-w-0">

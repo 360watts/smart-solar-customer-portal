@@ -75,7 +75,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
   };
 
   const getStatusBg = () => {
-    if (!hasData) return "bg-white/5 border-border";
+    if (!hasData) return "bg-foreground/5 border-border";
     if (allOnline) return "bg-emerald-500/10 border-emerald-500/20";
     if (allOffline) return "bg-red-500/10 border-red-500/25";
     return "bg-amber-500/10 border-amber-500/20";
@@ -189,7 +189,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                       }
                       transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity }}
                       className="w-2 h-2 rounded-full shrink-0"
-                      style={{ background: isOnline ? "#10b981" : "#ef4444" }}
+                      style={{ background: isOnline ? "var(--primary)" : "var(--destructive)" }}
                     />
                     <p className={`text-sm font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
                   </div>
@@ -205,7 +205,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
 
                 {/* Alert indicator */}
                 {device.alert_count > 0 && (
-                  <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-border">
+                  <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-foreground/10 border border-border">
                     <AlertTriangle size={12} className="text-amber-400" />
                     <span className="text-sm font-semibold text-foreground">{device.alert_count}</span>
                   </div>

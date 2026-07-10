@@ -180,8 +180,8 @@ export default function AlertsPage() {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border"
                 style={
                   d.is_online
-                    ? { background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.25)", color: "#34d399" }
-                    : { background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: "#f87171" }
+                    ? { background: "color-mix(in srgb, var(--primary) 8%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)", color: "var(--primary)" }
+                    : { background: "color-mix(in srgb, var(--destructive) 10%, transparent)", borderColor: "color-mix(in srgb, var(--destructive) 30%, transparent)", color: "var(--destructive)" }
                 }
               >
                 {d.is_online ? <Wifi size={12} /> : <WifiOff size={12} />}

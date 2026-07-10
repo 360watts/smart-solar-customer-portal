@@ -22,8 +22,8 @@ export default async function PortalLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <PortalSidebar />
-      <main className="flex-1 overflow-auto bg-background">
-        <div className="p-6">{children}</div>
+      <main className="flex-1 overflow-auto bg-background bg-atmosphere">
+        <div className="relative z-10 p-6">{children}</div>
       </main>
     </div>
   );

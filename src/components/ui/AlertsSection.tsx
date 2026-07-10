@@ -57,32 +57,27 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 280, damping: 28, delay: delay * 0.08 }}
         whileHover={{ y: -3, transition: { type: "spring", stiffness: 400, damping: 20 } }}
-        className={`
-          glass rounded-2xl p-5 cursor-pointer transition-all duration-300 h-full min-h-62 flex flex-col
-          ${
-            hasMultipleCritical
-              ? "border-red-500/50 hover:border-red-500/70 bg-linear-to-br from-red-950/15 to-transparent"
-              : hasCritical
-                ? "border-red-500/30 hover:border-red-500/50"
-                : "border-border hover:border-border"
-          }
-        `}
+        className="glass rounded-2xl p-5 cursor-pointer transition-all duration-300 h-full min-h-62 flex flex-col"
+        style={
+          hasCritical
+            ? {
+                borderColor: `color-mix(in srgb, var(--destructive) ${hasMultipleCritical ? 50 : 30}%, transparent)`,
+                background: hasMultipleCritical
+                  ? `linear-gradient(to bottom right, color-mix(in srgb, var(--destructive) 12%, transparent), transparent)`
+                  : undefined,
+              }
+            : undefined
+        }
       >
         {/* Header: Title + Badge */}
         <div className="flex items-start justify-between mb-4">
           <div
-            className={`
-              w-10 h-10 rounded-xl flex items-center justify-center shrink-0
-              ${
-                hasCritical
-                  ? "bg-red-500/20"
-                  : "bg-white/10"
-              }
-            `}
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: hasCritical ? "color-mix(in srgb, var(--destructive) 20%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)" }}
           >
             <AlertTriangle
               size={18}
-              className={hasCritical ? "text-red-400" : "text-muted-foreground"}
+              style={{ color: hasCritical ? "var(--destructive)" : "var(--muted-foreground)" }}
             />
           </div>
 
@@ -91,8 +86,8 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
             <motion.div
               animate={prefersReducedMotion ? {} : { opacity: [1, 0.7, 1] }}
               transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="px-3 py-1.5 rounded-full text-sm font-bold bg-red-500/90 text-foreground
-                shadow-lg shadow-red-500/30"
+              className="px-3 py-1.5 rounded-full text-sm font-bold"
+              style={{ background: "var(--destructive)", color: "#ffffff", boxShadow: "0 8px 20px color-mix(in srgb, var(--destructive) 30%, transparent)" }}
             >
               {counts.critical} Critical
             </motion.div>
@@ -100,10 +95,10 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         </div>
 
         <div className="mb-3">
-          <div className={`stat-number text-3xl mb-0.5 ${hasCritical ? "text-red-300" : "text-foreground"}`}>
+          <div className="stat-number text-3xl mb-0.5" style={{ color: hasCritical ? "var(--destructive)" : "var(--foreground)" }}>
             {loading ? "..." : total}
           </div>
-          <p className={`text-sm mt-1 font-medium uppercase tracking-wider ${hasCritical ? "text-red-200" : "text-muted-foreground"}`}>
+          <p className="text-sm mt-1 font-medium uppercase tracking-wider" style={{ color: hasCritical ? "var(--destructive)" : "var(--muted-foreground)" }}>
             {total === 0 ? "No Active Alerts" : `Active Alert${total !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -111,10 +106,17 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         {!loading && (
           <>
             <div className="mb-3">
-              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
                 <motion.div
-                  className={`h-full rounded-full ${hasCritical ? "bg-red-400" : counts.warning > 0 ? "bg-amber-400" : "bg-emerald-400"}`}
-                  style={{ boxShadow: hasCritical ? "0 0 6px rgba(248,113,113,0.55)" : counts.warning > 0 ? "0 0 6px rgba(251,191,36,0.45)" : "0 0 6px rgba(52,211,153,0.45)" }}
+                  className="h-full rounded-full"
+                  style={{
+                    background: hasCritical ? "var(--destructive)" : counts.warning > 0 ? "var(--secondary)" : "var(--primary)",
+                    boxShadow: hasCritical
+                      ? "0 0 6px color-mix(in srgb, var(--destructive) 55%, transparent)"
+                      : counts.warning > 0
+                        ? "0 0 6px color-mix(in srgb, var(--secondary) 45%, transparent)"
+                        : "0 0 6px color-mix(in srgb, var(--primary) 45%, transparent)",
+                  }}
                   initial={{ width: 0 }}
                   animate={{ width: `${severityPct}%` }}
                   transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1] }}
@@ -122,22 +124,36 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
               </div>
               <div className="flex justify-between mt-1.5">
                 <span className="text-xs text-muted-foreground">Alert severity</span>
-                <span className={`text-xs font-semibold ${hasCritical ? "text-red-300" : counts.warning > 0 ? "text-amber-300" : "text-emerald-300"}`}>{severityLabel}</span>
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: hasCritical ? "var(--destructive)" : counts.warning > 0 ? "var(--secondary)" : "var(--primary)" }}
+                >
+                  {severityLabel}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/15">
+              <div
+                className="p-2.5 rounded-lg"
+                style={{ background: "color-mix(in srgb, var(--destructive) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--destructive) 18%, transparent)" }}
+              >
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_5px_rgba(248,113,113,0.55)] shrink-0" />
-                  <span className="text-xs text-red-200/70 truncate">Critical</span>
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: "var(--destructive)", boxShadow: "0 0 5px color-mix(in srgb, var(--destructive) 55%, transparent)" }}
+                  />
+                  <span className="text-xs truncate" style={{ color: "var(--destructive)" }}>Critical</span>
                 </div>
-                <span className="text-sm font-bold text-red-300 tabular-nums">{counts.critical}</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: "var(--destructive)" }}>{counts.critical}</span>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-white/[0.03] border border-border">
+              <div className="p-2.5 rounded-lg bg-foreground/[0.03] border border-border">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)] shrink-0" />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: "var(--secondary)", boxShadow: "0 0 5px color-mix(in srgb, var(--secondary) 45%, transparent)" }}
+                  />
                   <span className="text-xs text-muted-foreground truncate">Warn / Info</span>
                 </div>
                 <span className="text-sm font-bold text-foreground tabular-nums">{counts.warning} / {counts.info}</span>
@@ -147,18 +163,22 @@ export const AlertsSection: React.FC<AlertsSectionProps> = ({
         )}
 
         {/* CTA Footer */}
-        <div className={`mt-auto flex min-h-12 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 ${hasCritical ? "border-red-500/15 bg-red-500/[0.08]" : "border-border bg-white/[0.035]"}`}>
-          <span className={`text-xs font-medium leading-snug ${hasCritical ? "text-red-100/85" : "text-muted-foreground"}`}>
+        <div
+          className="mt-auto flex min-h-12 items-center justify-between gap-2 rounded-lg border border-border px-2.5 py-2"
+          style={
+            hasCritical
+              ? { borderColor: "color-mix(in srgb, var(--destructive) 18%, transparent)", background: "color-mix(in srgb, var(--destructive) 8%, transparent)" }
+              : undefined
+          }
+        >
+          <span className="text-xs font-medium leading-snug" style={{ color: hasCritical ? "var(--foreground)" : "var(--muted-foreground)" }}>
             {footerText}
           </span>
           <motion.div
             animate={prefersReducedMotion ? {} : { x: hasCritical ? [0, 3, 0] : 0 }}
             transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <ArrowRight
-              size={14}
-              className={hasCritical ? "text-red-400/70" : "text-muted-foreground"}
-            />
+            <ArrowRight size={14} style={{ color: hasCritical ? "var(--destructive)" : "var(--muted-foreground)" }} />
           </motion.div>
         </div>
       </motion.div>

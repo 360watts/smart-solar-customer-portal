@@ -46,7 +46,7 @@ function PaybackRing({ pct }: { pct: number }) {
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="var(--border)"
           strokeWidth={strokeWidth}
         />
         {/* Progress */}
@@ -61,7 +61,7 @@ function PaybackRing({ pct }: { pct: number }) {
         />
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#2FBF71" />
+            <stop offset="0%" stopColor="var(--primary)" />
             <stop offset="100%" stopColor="#6EE7B7" />
           </linearGradient>
         </defs>
@@ -93,7 +93,7 @@ function ConsumptionBar({ label, value, total, color, icon: Icon }: {
           {value.toFixed(1)} kWh
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -113,9 +113,9 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
   return (
     <div className="flex items-stretch gap-4">
       {/* Without solar */}
-      <div className="flex-1 rounded-xl p-4" style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)" }}>
+      <div className="flex-1 rounded-xl p-4" style={{ background: "color-mix(in srgb, var(--destructive) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--destructive) 15%, transparent)" }}>
         <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">Without Solar</p>
-        <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#F87171" }}>
+        <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--destructive)" }}>
           ₹<AnimatedNumber value={withoutSolar} decimals={0} />
         </p>
         <p className="text-sm text-muted-foreground mt-1">Projected EB bill</p>
@@ -124,18 +124,18 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
       {/* Arrow */}
       <div className="flex flex-col items-center justify-center shrink-0">
         <div className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold"
-          style={{ background: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "1px solid rgba(47,191,113,0.2)" }}>
+          style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
           <TrendingUp size={12} />
           {savingsPct.toFixed(0)}% saved
         </div>
-        <div className="w-px h-6 my-2" style={{ background: "rgba(255,255,255,0.08)" }} />
+        <div className="w-px h-6 my-2" style={{ background: "var(--border)" }} />
         <ChevronRight size={14} className="text-muted-foreground" />
       </div>
 
       {/* Actual EB bill */}
-      <div className="flex-1 rounded-xl p-4" style={{ background: "rgba(47,191,113,0.06)", border: "1px solid rgba(47,191,113,0.15)" }}>
+      <div className="flex-1 rounded-xl p-4" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
         <p className="text-sm text-muted-foreground mb-2 uppercase tracking-wider">Actual EB Bill</p>
-        <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#2FBF71" }}>
+        <p className="text-2xl font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--primary)" }}>
           ₹<AnimatedNumber value={ebBill} decimals={0} />
         </p>
         <p className="text-sm text-muted-foreground mt-1">This billing cycle</p>
@@ -147,9 +147,9 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
 // ── Status pill ───────────────────────────────────────────────────────────────
 function StatusPill({ status }: { status: "due" | "paid" | "overdue" }) {
   const cfg = {
-    due:     { bg: "rgba(233,185,73,0.12)", color: "#E9B949", border: "rgba(233,185,73,0.25)", label: "Payment Due" },
-    paid:    { bg: "rgba(47,191,113,0.12)", color: "#2FBF71", border: "rgba(47,191,113,0.25)", label: "Paid" },
-    overdue: { bg: "rgba(248,113,113,0.12)", color: "#F87171", border: "rgba(248,113,113,0.25)", label: "Overdue" },
+    due:     { bg: "color-mix(in srgb, var(--secondary) 12%, transparent)", color: "var(--secondary)", border: "color-mix(in srgb, var(--secondary) 25%, transparent)", label: "Payment Due" },
+    paid:    { bg: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "rgba(47,191,113,0.25)", label: "Paid" },
+    overdue: { bg: "color-mix(in srgb, var(--destructive) 12%, transparent)", color: "var(--destructive)", border: "color-mix(in srgb, var(--destructive) 25%, transparent)", label: "Overdue" },
   }[status];
   return (
     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold"
@@ -163,12 +163,12 @@ function StatusPill({ status }: { status: "due" | "paid" | "overdue" }) {
 function SavingsSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-white/[0.05]" />
+      <div className="h-8 w-48 rounded-lg bg-foreground/[0.05]" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {[1, 2, 3].map((i) => <div key={i} className="h-52 rounded-xl bg-white/[0.04]" />)}
+        {[1, 2, 3].map((i) => <div key={i} className="h-52 rounded-xl bg-foreground/[0.04]" />)}
       </div>
-      <div className="h-64 rounded-xl bg-white/[0.04]" />
-      <div className="h-48 rounded-xl bg-white/[0.04]" />
+      <div className="h-64 rounded-xl bg-foreground/[0.04]" />
+      <div className="h-48 rounded-xl bg-foreground/[0.04]" />
     </div>
   );
 }
@@ -234,9 +234,9 @@ export default function SavingsPage() {
           transition={{ duration: 0.5, delay: 0.05 }}
           className="glass rounded-xl p-6 flex flex-col items-center justify-center gap-4"
           style={{
-            background: "linear-gradient(135deg, rgba(12,18,32,0.9) 0%, rgba(8,14,24,0.95) 100%)",
-            border: "1px solid rgba(47,191,113,0.12)",
-            boxShadow: "0 0 40px rgba(47,191,113,0.05)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--card) 90%, transparent) 0%, color-mix(in srgb, var(--card) 95%, var(--background) 5%) 100%)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            boxShadow: "0 0 40px color-mix(in srgb, var(--primary) 5%, transparent)",
           }}
         >
           <PaybackRing pct={investment.paybackPercentage} />
@@ -261,13 +261,13 @@ export default function SavingsPage() {
           transition={{ duration: 0.5, delay: 0.12 }}
           className="glass rounded-xl p-6 flex flex-col justify-between"
           style={{
-            background: "linear-gradient(135deg, rgba(47,191,113,0.06) 0%, rgba(12,18,32,0.92) 100%)",
-            border: "1px solid rgba(47,191,113,0.14)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 6%, transparent) 0%, color-mix(in srgb, var(--card) 92%, transparent) 100%)",
+            border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
           }}
         >
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(47,191,113,0.12)", border: "1px solid rgba(47,191,113,0.2)" }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
                 <IndianRupee size={18} className="text-emerald-400" />
               </div>
               <p className="text-base text-muted-foreground">This Billing Cycle</p>
@@ -277,14 +277,14 @@ export default function SavingsPage() {
             </p>
             <p className="text-base text-muted-foreground">saved on electricity</p>
           </div>
-          <div className="mt-6 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between text-base">
               <span className="text-muted-foreground">Savings rate</span>
               <span className="font-semibold text-emerald-400" style={{ fontFamily: "JetBrains Mono, monospace" }}>
                 {sav.savingsPercentage.toFixed(1)}%
               </span>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="mt-2 h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "linear-gradient(90deg, #2FBF71, #6EE7B7)" }}
@@ -303,14 +303,14 @@ export default function SavingsPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="glass rounded-xl p-6 flex flex-col justify-between"
           style={{
-            background: "linear-gradient(135deg, rgba(12,18,32,0.9) 0%, rgba(8,14,24,0.95) 100%)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--card) 90%, transparent) 0%, color-mix(in srgb, var(--card) 95%, var(--background) 5%) 100%)",
+            border: "1px solid var(--border)",
           }}
         >
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(233,185,73,0.10)", border: "1px solid rgba(233,185,73,0.18)" }}>
-                <Calendar size={18} style={{ color: COLORS.amber }} />
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--secondary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 18%, transparent)" }}>
+                <Calendar size={18} style={{ color: "var(--secondary)" }} />
               </div>
               <p className="text-base text-muted-foreground">Break-Even Projection</p>
             </div>
@@ -319,16 +319,16 @@ export default function SavingsPage() {
             </p>
             <p className="text-sm text-muted-foreground">estimated recovery date</p>
           </div>
-          <div className="mt-6 space-y-3 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="mt-6 space-y-3 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between text-base">
               <span className="text-muted-foreground">Months remaining</span>
-              <span style={{ fontFamily: "JetBrains Mono, monospace", color: COLORS.amber }}>
+              <span style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--secondary)" }}>
                 {investment.monthsToBreakEven.toLocaleString("en-IN")}
               </span>
             </div>
             <div className="flex items-center justify-between text-base">
               <span className="text-muted-foreground">Still to recover</span>
-              <span style={{ fontFamily: "JetBrains Mono, monospace", color: "rgba(255,255,255,0.6)" }}>
+              <span style={{ fontFamily: "JetBrains Mono, monospace", color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
                 ₹{investment.remainingInvestment.toLocaleString("en-IN")}
               </span>
             </div>
@@ -379,7 +379,7 @@ export default function SavingsPage() {
               label="Solar Generated"
               value={consumption.solarUnits}
               total={totalUnits}
-              color="#2FBF71"
+              color="var(--primary)"
               icon={Sun}
             />
             <ConsumptionBar
@@ -408,10 +408,10 @@ export default function SavingsPage() {
           </div>
 
           {/* kWh summary row */}
-          <div className="mt-6 pt-5 flex flex-wrap gap-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="mt-6 pt-5 flex flex-wrap gap-4" style={{ borderTop: "1px solid var(--border)" }}>
             {[
-              { label: "Total Units", value: totalUnits, color: "rgba(255,255,255,0.5)" },
-              { label: "Solar Units", value: consumption.solarUnits, color: "#2FBF71" },
+              { label: "Total Units", value: totalUnits, color: "color-mix(in srgb, var(--foreground) 50%, transparent)" },
+              { label: "Solar Units", value: consumption.solarUnits, color: "var(--primary)" },
               { label: "Grid Import", value: consumption.ebImportUnits, color: COLORS.amber },
               { label: "Grid Export", value: consumption.ebExportUnits, color: "#60a5fa" },
             ].map(({ label, value, color }) => (

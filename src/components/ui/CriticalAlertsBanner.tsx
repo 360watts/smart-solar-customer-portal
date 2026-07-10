@@ -60,35 +60,50 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
         className="w-full"
       >
         <Link href="/alerts?severity=critical" legacyBehavior={false}>
-          <div className="glass rounded-xl border border-red-500/30 bg-red-950/15 px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:border-red-500/50 transition-colors duration-200 group">
+          <div
+            className="rounded-xl px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors duration-200 group backdrop-blur-xl"
+            style={{
+              background: "color-mix(in srgb, var(--destructive) 10%, var(--card) 90%)",
+              border: "1px solid color-mix(in srgb, var(--destructive) 35%, transparent)",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "color-mix(in srgb, var(--destructive) 55%, transparent)")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "color-mix(in srgb, var(--destructive) 35%, transparent)")}
+          >
             <motion.div
               animate={prefersReducedMotion ? {} : { opacity: [0.6, 1, 0.6] }}
               transition={prefersReducedMotion ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="shrink-0"
             >
-              <AlertTriangle size={16} className="text-red-400" strokeWidth={2.5} />
+              <AlertTriangle size={16} style={{ color: "var(--destructive)" }} strokeWidth={2.5} />
             </motion.div>
 
-            <p className="text-base text-red-200 font-medium flex-1 min-w-0 truncate">
-              <span className="font-bold">{criticalCount} critical alert{criticalCount !== 1 ? "s" : ""}</span>
+            <p className="text-base font-medium flex-1 min-w-0 truncate" style={{ color: "var(--foreground)" }}>
+              <span className="font-bold" style={{ color: "var(--destructive)" }}>
+                {criticalCount} critical alert{criticalCount !== 1 ? "s" : ""}
+              </span>
               {offlineCount > 0 && (
-                <span className="text-red-200/70">
+                <span style={{ color: "var(--muted-foreground)" }}>
                   {" "}· {offlineCount} device{offlineCount !== 1 ? "s" : ""} offline
                 </span>
               )}
             </p>
 
-            <span className="shrink-0 flex items-center gap-1 text-sm font-medium text-red-300/80 group-hover:text-red-200">
+            <span
+              className="shrink-0 flex items-center gap-1 text-sm font-medium transition-colors"
+              style={{ color: "var(--destructive)" }}
+            >
               View details
               <ChevronRight size={13} />
             </span>
 
             <button
               onClick={handleDismiss}
-              className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors duration-200"
+              className="shrink-0 p-1 rounded-md transition-colors duration-200"
               aria-label="Dismiss alert"
+              onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 8%, transparent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <X size={14} className="text-red-300/60" strokeWidth={2.5} />
+              <X size={14} style={{ color: "var(--muted-foreground)" }} strokeWidth={2.5} />
             </button>
           </div>
         </Link>

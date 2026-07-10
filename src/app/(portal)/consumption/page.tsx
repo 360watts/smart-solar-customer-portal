@@ -204,8 +204,13 @@ export default function ConsumptionPage() {
   }
 
   const chartData = view === "Day" ? data?.dayChart : view === "Month" ? data?.monthChart : undefined;
-  // Day = line (power over time), Week = TrendChart (daily totals + self-sufficiency), Month = line (trend over months)
-  const chartType = "line" as const;
+  // Day = line (power over time), Week = TrendChart (daily totals + self-sufficiency).
+  // Month was previously hardcoded to "line" while buildAggChart's datasets are styled
+  // for bars (borderRadius, solid fills, no `fill`/tension meant for a line) — that
+  // mismatch rendered as two overlapping near-invisible lines instead of the
+  // intended grouped monthly columns. Month is genuinely discrete-category data
+  // (12 months), so it belongs on a bar chart like the dataset styling always assumed.
+  const chartType = view === "Month" ? "bar" as const : "line" as const;
 
   return (
     <div className="space-y-8">
@@ -241,7 +246,7 @@ export default function ConsumptionPage() {
             {(["Day", "Week", "Month"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  view === v ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-white/5"}`}>
+                  view === v ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-foreground/5"}`}>
                 {v}
               </button>
             ))}
@@ -271,7 +276,7 @@ export default function ConsumptionPage() {
         </div>
 
         {loading && !data ? (
-          <div className="h-70 rounded-xl bg-white/[0.04] animate-pulse" />
+          <div className="h-70 rounded-xl bg-foreground/[0.04] animate-pulse" />
         ) : view === "Week" ? (
           !data?.weekTrend || data.weekTrend.labels.length === 0 ? (
             <div className="h-70 flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
@@ -300,7 +305,7 @@ export default function ConsumptionPage() {
               {TARIFF_BANDS.map((band) => (
                 <div key={band.label}
                   className="flex flex-col items-center justify-center px-2 py-1.5 border-r last:border-r-0 transition-colors"
-                  style={{ flex: band.flex, background: band.bg, borderColor: band.border, borderRightColor: "rgba(255,255,255,0.06)" }}>
+                  style={{ flex: band.flex, background: band.bg, borderColor: band.border, borderRightColor: "var(--border)" }}>
                   <span className="text-sm font-semibold" style={{ color: band.textColor }}>{band.rate}</span>
                   <span className="text-xs text-muted-foreground leading-tight">{band.time}</span>
                   <span className="text-[11px] uppercase tracking-wider mt-0.5" style={{ color: band.textColor, opacity: 0.7 }}>{band.label}</span>
@@ -332,7 +337,7 @@ export default function ConsumptionPage() {
           ))}
         </div>
         {loading && !data ? (
-          <div className="h-48 rounded-xl bg-white/[0.04] animate-pulse" />
+          <div className="h-48 rounded-xl bg-foreground/[0.04] animate-pulse" />
         ) : !data?.forecastChart || data.forecastChart.labels.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-base text-muted-foreground">No forecast data available.</div>
         ) : (
@@ -351,7 +356,7 @@ export default function ConsumptionPage() {
             return (
               <motion.div key={a.name} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08, duration: 0.35 }} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-foreground/5 flex items-center justify-center shrink-0">
                   <a.icon size={18} className={a.color} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -359,7 +364,7 @@ export default function ConsumptionPage() {
                     <span className="text-base text-foreground">{a.name}</span>
                     <span className="text-base font-mono text-muted-foreground">{kwh} kWh</span>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: a.colorHex }}
                       initial={{ width: 0 }} animate={{ width: `${a.pct}%` }}
                       transition={{ delay: i * 0.08 + 0.2, duration: 0.6, ease: "easeOut" }} />

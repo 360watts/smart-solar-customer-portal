@@ -69,7 +69,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
         {SKELETON_HEIGHTS.map((heights, i) => (
           <div key={i} className="flex-1 flex items-end gap-px" style={{ height: "100%" }}>
             {heights.map((h, j) => (
-              <div key={j} className="flex-1 rounded-t-xs bg-white/20" style={{ height: `${h}%` }} />
+              <div key={j} className="flex-1 rounded-t-xs bg-foreground/20" style={{ height: `${h}%` }} />
             ))}
           </div>
         ))}
@@ -195,9 +195,9 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
             <div
               className="px-3.5 py-3 rounded-xl backdrop-blur-xl"
               style={{
-                background: "linear-gradient(135deg, rgba(6,10,16,0.97) 0%, rgba(12,18,32,0.95) 100%)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.07)",
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--card) 97%, transparent) 0%, color-mix(in srgb, var(--card) 95%, var(--background) 5%) 100%)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px var(--border), inset 0 1px 0 rgba(255,255,255,0.05)",
                 whiteSpace: "nowrap",
                 minWidth: "140px",
               }}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   BarController,
   BarElement,
@@ -20,7 +21,7 @@ import {
 } from "chart.js";
 import { Chart } from "react-chartjs-2";
 
-import { CHART_DEFAULTS, COLORS } from "../../lib/tokens";
+import { getChartDefaults, COLORS } from "../../lib/tokens";
 
 // The generic Chart component does not auto-register typed controllers like the
 // Bar/Line wrappers do, so mixed bar+line rendering needs both controllers here.
@@ -41,7 +42,12 @@ let zoomRegistered = false;
 
 const PRIMARY_Y_AXIS_ID = "y";
 const SELF_SUFFICIENCY_Y_AXIS_ID = "ySelfSufficiency";
-const MARKER_MIN_COLOR = "rgba(255, 255, 255, 0.72)";
+function markerMinColor(theme: "dark" | "light") {
+  return theme === "light" ? "rgba(23, 23, 23, 0.72)" : "rgba(255, 255, 255, 0.72)";
+}
+function markerBackdropColor(theme: "dark" | "light") {
+  return theme === "light" ? "rgba(255, 255, 255, 0.85)" : "rgba(6, 10, 16, 0.78)";
+}
 
 const zoomOptions = {
   pan: { enabled: true, mode: "x" as const },
@@ -337,6 +343,7 @@ function clamp(value: number, min: number, max: number): number {
 
 function createPeakMinMarkersPlugin(
   unit?: TrendChartProps["unit"],
+  theme: "dark" | "light" = "dark",
 ): Plugin<"bar" | "line"> {
   return {
     id: "trendChartPeakMinMarkers",
@@ -440,7 +447,7 @@ function createPeakMinMarkersPlugin(
         const backdropPaddingY = 3;
         const backdropHeight = fontSize + backdropPaddingY * 2;
         const backdropY = labelPosition === "above" ? labelY - backdropHeight + backdropPaddingY : labelY - backdropPaddingY;
-        ctx.fillStyle = "rgba(6, 10, 16, 0.78)";
+        ctx.fillStyle = markerBackdropColor(theme);
         ctx.beginPath();
         ctx.roundRect(
           labelX - labelWidth / 2 - backdropPaddingX,
@@ -457,7 +464,7 @@ function createPeakMinMarkersPlugin(
       };
 
       drawMarker(maxIndex, maxValue, COLORS.amber, "above");
-      drawMarker(minIndex, minValue, MARKER_MIN_COLOR, "below");
+      drawMarker(minIndex, minValue, markerMinColor(theme), "below");
     },
   };
 }
@@ -531,6 +538,8 @@ export default function TrendChart({
   gapBands,
 }: TrendChartProps) {
   const chartRef = useRef<ChartJS<"bar" | "line">>(null);
+  const { theme } = useTheme();
+  const chartDefaults = getChartDefaults(theme);
   const [zoomReady, setZoomReady] = useState(() => zoomRegistered);
   const isZoomReady = zoomReady || zoomRegistered;
 
@@ -562,7 +571,7 @@ export default function TrendChart({
     plugins: {
       legend: { display: false },
       tooltip: {
-        ...CHART_DEFAULTS.tooltip,
+        ...chartDefaults.tooltip,
         callbacks: {
           title: (context) => {
             if (!context[0]) return "";
@@ -588,13 +597,13 @@ export default function TrendChart({
     },
     scales: {
       x: {
-        grid: { color: CHART_DEFAULTS.grid.color },
-        ticks: CHART_DEFAULTS.tick,
+        grid: { color: chartDefaults.grid.color },
+        ticks: chartDefaults.tick,
         border: { display: false },
       },
       y: {
-        grid: { color: CHART_DEFAULTS.grid.color },
-        ticks: CHART_DEFAULTS.tick,
+        grid: { color: chartDefaults.grid.color },
+        ticks: chartDefaults.tick,
         border: { display: false },
       },
       ...(hasSelfSufficiencyAxis
@@ -605,7 +614,7 @@ export default function TrendChart({
               max: 100,
               grid: { display: false },
               ticks: {
-                ...CHART_DEFAULTS.tick,
+                ...chartDefaults.tick,
                 callback: (value) => `${value}%`,
               },
               border: { display: false },
@@ -620,7 +629,7 @@ export default function TrendChart({
   };
   const mappedGaps = gapBands ? mapGapsToChartIndices(labels, gapBands) : [];
   const plugins = [
-    ...(bars.length === 1 ? [createPeakMinMarkersPlugin(unit)] : []),
+    ...(bars.length === 1 ? [createPeakMinMarkersPlugin(unit, theme)] : []),
     ...(mappedGaps.length > 0 ? [createGapBandsPlugin(mappedGaps)] : []),
   ];
   // react-chartjs-2's generic <Chart> doesn't reliably re-apply plugin or
@@ -630,8 +639,10 @@ export default function TrendChart({
   // between a single-series view (peak/min markers + no secondary axis) and
   // a multi-series view (no markers) without remounting left the markers
   // permanently missing after the first toggle. Keying on everything that
-  // changes the chart's "shape" forces a clean remount instead.
-  const chartShapeKey = `${bars.length}-${trend?.mode ?? "none"}`;
+  // changes the chart's "shape" forces a clean remount instead — that now
+  // includes theme, since the marker/backdrop colors are baked into the
+  // canvas plugin at draw time, not read from options.
+  const chartShapeKey = `${bars.length}-${trend?.mode ?? "none"}-${theme}`;
 
   return (
     <div style={{ position: "relative" }}>

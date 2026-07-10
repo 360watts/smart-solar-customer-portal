@@ -8,13 +8,13 @@ import { Zap, BatteryMedium, Sun } from "lucide-react";
 // 360Care page and the System Health Details page so the three components
 // always read consistently across the feature.
 export const COMPONENT_META = {
-  solar_panel: { icon: Sun, label: "Solar Panels", color: "#2FBF71" },
+  solar_panel: { icon: Sun, label: "Solar Panels", color: "var(--primary)" },
   inverter: { icon: Zap, label: "Inverter", color: "#60a5fa" },
-  battery: { icon: BatteryMedium, label: "Battery", color: "#E9B949" },
+  battery: { icon: BatteryMedium, label: "Battery", color: "var(--secondary)" },
 } as const;
 
 export function healthStatusColor(status: 0 | 1 | 2): string {
-  return status === 0 ? "#2FBF71" : status === 1 ? "#E9B949" : "#EF4444";
+  return status === 0 ? "var(--primary)" : status === 1 ? "var(--secondary)" : "var(--destructive)";
 }
 
 function cxy(deg: number, cx: number, cy: number, r: number) {
@@ -51,7 +51,7 @@ export function MiniArc({ score, color, size }: { score: number; color: string; 
           </feMerge>
         </filter>
       </defs>
-      <path d={path} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" strokeLinecap="round" />
+      <path d={path} fill="none" stroke="var(--border)" strokeWidth="5" strokeLinecap="round" />
       <motion.path
         d={path}
         fill="none"

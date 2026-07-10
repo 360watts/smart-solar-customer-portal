@@ -120,7 +120,7 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
       <svg viewBox={`0 ${VT} ${W} ${H}`} className="w-full" style={{ height: "auto" }} preserveAspectRatio="xMidYMid meet">
         <defs>
           <pattern id="ef-dots" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="14" cy="14" r="0.65" fill="rgba(255,255,255,0.04)" />
+            <circle cx="14" cy="14" r="0.65" fill="var(--foreground)" opacity="0.06" />
           </pattern>
           <filter id="ef-halo" x="-150%" y="-150%" width="400%" height="400%">
             <feGaussianBlur stdDeviation="12" />
@@ -245,7 +245,7 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
           <defs>
             <radialGradient id="ef-hub-grad" cx="35%" cy="35%" r="65%">
               <stop offset="0%" stopColor="rgba(99,102,241,0.5)" />
-              <stop offset="100%" stopColor="#0d1117" />
+              <stop offset="100%" stopColor="var(--card)" />
             </radialGradient>
           </defs>
           <circle cx={gwX} cy={gwY} r={gwR} fill="url(#ef-hub-grad)" stroke="rgba(99,102,241,.6)" strokeWidth="2" />

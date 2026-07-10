@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Unbounded, DM_Sans, JetBrains_Mono, Poppins, Urbanist, Figtree, Biryani, IBM_Plex_Sans, Fraunces } from "next/font/google";
+import { Unbounded, DM_Sans, JetBrains_Mono, Poppins, Urbanist, Figtree, Biryani, IBM_Plex_Sans, Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider, THEME_BOOTSTRAP_SCRIPT } from "@/contexts/ThemeContext";
 
 const unbounded = Unbounded({
   variable: "--font-display",
@@ -64,6 +65,16 @@ const fraunces = Fraunces({
   style: ["normal", "italic"],
 });
 
+// The official 360watts App design system (Figma) specifies Inter as its one
+// typeface for the whole type scale (H1–H6 + Body Lg/Md/Sm/ExSm) — used only
+// by the design-system components/demo, not a replacement for the portal's
+// existing display/nav fonts.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://360watts.com"),
   applicationName: "360watts",
@@ -103,11 +114,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${unbounded.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${poppins.variable} ${urbanist.variable} ${figtree.variable} ${biryani.variable} ${fraunces.variable} h-full antialiased dark`}
+      className={`${unbounded.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexSans.variable} ${poppins.variable} ${urbanist.variable} ${figtree.variable} ${biryani.variable} ${fraunces.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

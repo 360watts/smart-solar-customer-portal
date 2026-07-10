@@ -1,6 +1,6 @@
 "use client";
 
-import { formatHourLabel } from "@/lib/utils";
+import { getSiteHour, formatHourOfDay } from "@/lib/utils";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -114,9 +114,9 @@ function DetailedKpiCard({
 }: DetailedKpiCardProps) {
   const cm = KPI_COLOR_MAP[color];
   const badgeStyle =
-    badgeTone === "good" ? { background: "rgba(47,191,113,0.15)", color: "#2FBF71" } :
-    badgeTone === "warn" ? { background: "rgba(233,185,73,0.15)", color: "#E9B949" } :
-    { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" };
+    badgeTone === "good" ? { background: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" } :
+    badgeTone === "warn" ? { background: "color-mix(in srgb, var(--secondary) 15%, transparent)", color: "var(--secondary)" } :
+    { background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "var(--muted-foreground)" };
   const clampedPct = Math.min(100, Math.max(0, progressPct));
 
   return (
@@ -155,7 +155,7 @@ function DetailedKpiCard({
 
           {/* Progress bar */}
           <div className="mb-3">
-            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: cm.hex, boxShadow: `0 0 6px ${cm.glow}` }}
@@ -173,7 +173,7 @@ function DetailedKpiCard({
           {/* Stat rows */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             {rows.map((row) => (
-              <div key={row.label} className="p-2.5 rounded-lg bg-white/[0.03] border border-border">
+              <div key={row.label} className="p-2.5 rounded-lg bg-foreground/[0.03] border border-border">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.dot, boxShadow: `0 0 5px ${row.glow}` }} />
                   <span className="text-xs text-muted-foreground truncate">{row.label}</span>
@@ -186,7 +186,7 @@ function DetailedKpiCard({
           </div>
 
           {/* Footer */}
-          <p className="mt-auto min-h-12 rounded-lg border border-border bg-white/[0.035] px-2.5 py-2 text-xs text-muted-foreground leading-snug">{footer}</p>
+          <p className="mt-auto min-h-12 rounded-lg border border-border bg-foreground/[0.035] px-2.5 py-2 text-xs text-muted-foreground leading-snug">{footer}</p>
         </>
       )}
     </motion.div>
@@ -203,7 +203,7 @@ function SelfUseArc({ pct }: { pct: number }) {
   return (
     <svg viewBox="0 0 116 116" className="w-full h-full">
       {/* track */}
-      <circle cx="58" cy="58" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="11" />
+      <circle cx="58" cy="58" r={r} fill="none" stroke="var(--border)" strokeWidth="11" />
       {/* export arc (cyan, behind) */}
       <motion.circle
         cx="58" cy="58" r={r} fill="none" stroke="#22d3ee" strokeWidth="11" strokeLinecap="butt"
@@ -222,9 +222,9 @@ function SelfUseArc({ pct }: { pct: number }) {
         transform="rotate(-90 58 58)"
         style={{ filter: "drop-shadow(0 0 7px rgba(47,191,113,0.55))" }}
       />
-      <text x="58" y="53" textAnchor="middle" fill="#F0F6FF" fontSize="20" fontWeight="800"
+      <text x="58" y="53" textAnchor="middle" fill="var(--foreground)" fontSize="20" fontWeight="800"
         fontFamily="var(--font-display),system-ui">{pct}%</text>
-      <text x="58" y="70" textAnchor="middle" fill="rgba(240,246,255,0.4)" fontSize="9"
+      <text x="58" y="70" textAnchor="middle" fill="var(--muted-foreground)" fontSize="9"
         fontFamily="var(--font-display),system-ui" letterSpacing="1">SELF-USE</text>
     </svg>
   );
@@ -244,7 +244,7 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
         <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium">Self-Consumption</p>
         {!loading && data && (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: "rgba(47,191,113,0.12)", color: "#2FBF71" }}>
+            style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)" }}>
             Today
           </span>
         )}
@@ -266,7 +266,7 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
 
           {/* Segmented bar */}
           <div className="mb-4">
-            <div className="flex rounded-full overflow-hidden h-1.5 bg-white/5">
+            <div className="flex rounded-full overflow-hidden h-1.5 bg-foreground/5">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "#2FBF71", boxShadow: "0 0 6px rgba(47,191,113,0.5)" }}
@@ -297,7 +297,7 @@ function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; lo
             ].map((row) => (
               <div key={row.label}
                 className="flex items-center justify-between px-3 py-2 rounded-xl"
-                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.055)" }}
+                style={{ background: "color-mix(in srgb, var(--foreground) 3%, transparent)", border: "1px solid var(--border)" }}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -409,7 +409,10 @@ export default function OverviewPage() {
       // Aggregate 15-min rows to hourly averages for the bar chart
       const hourBuckets = new Map<number, { solar: number[]; load: number[]; grid: number[] }>();
       for (const r of rows) {
-        const h = new Date(r.ts).getHours();
+        // Bucket by the site's own timezone (Coimbatore), not the viewing
+        // device's — a viewer outside IST would otherwise see rows grouped
+        // into the wrong hour.
+        const h = getSiteHour(r.ts);
         if (!hourBuckets.has(h)) hourBuckets.set(h, { solar: [], load: [], grid: [] });
         const b = hourBuckets.get(h)!;
         b.solar.push(r.solarKw);
@@ -420,7 +423,7 @@ export default function OverviewPage() {
       const hourly: HourlyPoint[] = Array.from(hourBuckets.entries())
         .sort(([a], [b]) => a - b)
         .map(([h, v]) => ({
-          hour: formatHourLabel(new Date(new Date().setHours(h, 0, 0, 0)).toISOString()),
+          hour: formatHourOfDay(h),
           solar: parseFloat(avg(v.solar).toFixed(3)),
           load:  parseFloat(avg(v.load).toFixed(3)),
           grid:  parseFloat(avg(v.grid).toFixed(3)),
@@ -639,7 +642,7 @@ export default function OverviewPage() {
             <div className={`w-1.5 h-1.5 rounded-full ${isFlowFrozen ? "bg-red-500" : isLiveViaCloudFallback ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-pulse"}`} />
             <span
               className="text-sm uppercase tracking-[0.18em] font-medium"
-              style={{ color: isFlowFrozen ? "#f87171" : isLiveViaCloudFallback ? "#f0b429" : "#2FBF71" }}
+              style={{ color: isFlowFrozen ? "var(--destructive)" : isLiveViaCloudFallback ? "var(--secondary)" : "var(--primary)" }}
             >
               {isFlowFrozen ? "Offline — Last Known" : isLiveViaCloudFallback ? "Live · Via Cloud" : "Live Output"}
             </span>
@@ -677,21 +680,21 @@ export default function OverviewPage() {
               </p>
               <div className="flex flex-col gap-2">
                 {[
-                  { label: "Today's yield",  value: `${d?.todayGenKwh.toFixed(1) ?? "—"} kWh`, accent: "rgba(47,191,113,0.7)" },
-                  { label: "This month",     value: `${d?.monthGenKwh.toFixed(0) ?? "—"} kWh`, accent: "rgba(255,255,255,0.18)" },
-                  { label: "CO₂ avoided",   value: `${d?.co2AvoidedKg ?? "—"} kg`,            accent: "rgba(255,255,255,0.18)" },
+                  { label: "Today's yield",  value: `${d?.todayGenKwh.toFixed(1) ?? "—"} kWh`, isPrimary: true },
+                  { label: "This month",     value: `${d?.monthGenKwh.toFixed(0) ?? "—"} kWh`, isPrimary: false },
+                  { label: "CO₂ avoided",   value: `${d?.co2AvoidedKg ?? "—"} kg`,            isPrimary: false },
                 ].map((s) => (
                   <div key={s.label}
-                    className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] border border-border px-4 py-2.5"
-                    style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-foreground/[0.04] border border-border px-4 py-2.5"
+                    style={{ boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent)" }}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-1 h-5 rounded-full shrink-0" style={{ background: s.accent }} />
+                      <div className="w-1 h-5 rounded-full shrink-0" style={{ background: s.isPrimary ? "color-mix(in srgb, var(--primary) 70%, transparent)" : "var(--muted)" }} />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">{s.label}</span>
                     </div>
                     <span className="text-base font-bold whitespace-nowrap tabular-nums"
                       style={{
-                        color: s.accent === "rgba(47,191,113,0.7)" ? "#2FBF71" : "rgba(255,255,255,0.6)",
+                        color: s.isPrimary ? "var(--primary)" : "var(--muted-foreground)",
                         fontFamily: "var(--font-jetbrains-mono), monospace",
                       }}>
                       {s.value}
@@ -703,7 +706,7 @@ export default function OverviewPage() {
           )}
         </div>
 
-        <div className="hidden sm:block w-px bg-white/6 self-stretch" />
+        <div className="hidden sm:block w-px bg-foreground/6 self-stretch" />
 
         {/* Right — energy flow */}
         <div className="min-w-0" style={{ flex: "7" }}>
@@ -802,7 +805,7 @@ export default function OverviewPage() {
                     progressValueLabel={healthLabel}
                     rows={[
                       { label: "Peak Today", value: `${peakTodayKw.toFixed(1)} kW`, dot: "#2FBF71", glow: "rgba(47,191,113,0.5)" },
-                      { label: "Headroom", value: `${headroomKw.toFixed(1)} kW`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                      { label: "Headroom", value: `${headroomKw.toFixed(1)} kW`, dot: "var(--muted)", glow: "transparent" },
                     ]}
                     footer={healthFooter}
                     loading={loading}
@@ -819,7 +822,7 @@ export default function OverviewPage() {
                     progressPct={potentialPct}
                     progressLabel="Of estimated daily potential"
                     rows={[
-                      { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                      { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "var(--muted)", glow: "transparent" },
                       { label: "CO₂ Avoided", value: `${co2AvoidedKg} kg`, dot: "#34d399", glow: "rgba(52,211,153,0.4)" },
                     ]}
                     footer="Generation compared against a clear-sky reference day for this system size."
@@ -849,7 +852,7 @@ export default function OverviewPage() {
                     progressLabel="Actual vs expected output"
                     rows={[
                       { label: "Today's Yield", value: `${todayGenKwh.toFixed(1)} kWh`, dot: "#60a5fa", glow: "rgba(96,165,250,0.4)" },
-                      { label: "Capacity", value: `${capacityKwp.toFixed(1)} kWp`, dot: "rgba(255,255,255,0.35)", glow: "transparent" },
+                      { label: "Capacity", value: `${capacityKwp.toFixed(1)} kWp`, dot: "var(--muted)", glow: "transparent" },
                     ]}
                     footer="Performance ratio compares real output against theoretical maximum for your installed capacity."
                     loading={loading}

@@ -65,7 +65,7 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 const inputClass =
-  "w-full bg-white/5 border border-border rounded-lg px-4 py-3 text-foreground text-base focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground";
+  "w-full bg-foreground/5 border border-border rounded-lg px-4 py-3 text-foreground text-base focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground";
 
 /** Eyebrow-style card heading — a quiet uppercase label so the data carries the card. */
 function CardTitle({ icon, className, children }: { icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
@@ -250,10 +250,10 @@ export default function ProfilePage() {
           <h1 className="page-title mb-6">Profile</h1>
           <GlassCard>
             <div className="animate-pulse flex items-center gap-5">
-              <div className="w-20 h-20 rounded-full bg-white/10 shrink-0" />
+              <div className="w-20 h-20 rounded-full bg-foreground/10 shrink-0" />
               <div className="flex-1 space-y-3">
-                <div className="h-5 bg-white/10 rounded w-1/3" />
-                <div className="h-4 bg-white/10 rounded w-1/2" />
+                <div className="h-5 bg-foreground/10 rounded w-1/3" />
+                <div className="h-4 bg-foreground/10 rounded w-1/2" />
               </div>
             </div>
           </GlassCard>
@@ -262,9 +262,9 @@ export default function ProfilePage() {
               {[...Array(2)].map((_, i) => (
                 <GlassCard key={i}>
                   <div className="animate-pulse space-y-3">
-                    <div className="h-4 bg-white/10 rounded w-1/3" />
-                    <div className="h-4 bg-white/10 rounded w-2/3" />
-                    <div className="h-4 bg-white/10 rounded w-1/2" />
+                    <div className="h-4 bg-foreground/10 rounded w-1/3" />
+                    <div className="h-4 bg-foreground/10 rounded w-2/3" />
+                    <div className="h-4 bg-foreground/10 rounded w-1/2" />
                   </div>
                 </GlassCard>
               ))}
@@ -273,8 +273,8 @@ export default function ProfilePage() {
               {[...Array(2)].map((_, i) => (
                 <GlassCard key={i}>
                   <div className="animate-pulse space-y-3">
-                    <div className="h-4 bg-white/10 rounded w-1/2" />
-                    <div className="h-4 bg-white/10 rounded w-2/3" />
+                    <div className="h-4 bg-foreground/10 rounded w-1/2" />
+                    <div className="h-4 bg-foreground/10 rounded w-2/3" />
                   </div>
                 </GlassCard>
               ))}
@@ -354,7 +354,7 @@ export default function ProfilePage() {
                   "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm font-medium",
                   tier.glow
                     ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
-                    : "bg-white/5 border-border text-muted-foreground",
+                    : "bg-foreground/5 border-border text-muted-foreground",
                 )}
               >
                 <BadgeCheck size={14} />
@@ -424,7 +424,7 @@ export default function ProfilePage() {
                       <p className="text-sm text-muted-foreground font-mono truncate mt-0.5">{item.serial_number}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="inline-block text-xs uppercase tracking-wide text-muted-foreground bg-white/5 border border-border rounded-full px-2.5 py-0.5 mb-1">
+                      <span className="inline-block text-xs uppercase tracking-wide text-muted-foreground bg-foreground/5 border border-border rounded-full px-2.5 py-0.5 mb-1">
                         {item.kind}
                       </span>
                       <p className="text-sm text-muted-foreground font-mono">
@@ -454,7 +454,7 @@ export default function ProfilePage() {
                   <span className="text-sm text-muted-foreground">Devices</span>
                   <span className="font-mono text-sm text-foreground">{profile.total_devices_count} / {profile.device_limit}</span>
                 </div>
-                <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-foreground/8 rounded-full overflow-hidden">
                   <div
                     className={cn("h-full rounded-full", tier.glow ? "bg-amber-400" : "bg-emerald-400")}
                     style={{ width: `${deviceUsagePct}%` }}
@@ -464,11 +464,11 @@ export default function ProfilePage() {
 
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_access_ai ? "bg-emerald-400" : "bg-white/20")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_access_ai ? "bg-emerald-400" : "bg-foreground/20")} />
                   <span className={profile.plan_features.can_access_ai ? "text-foreground" : "text-muted-foreground"}>AI insights &amp; recommendations</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_view_history_90d ? "bg-emerald-400" : "bg-white/20")} />
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", profile.plan_features.can_view_history_90d ? "bg-emerald-400" : "bg-foreground/20")} />
                   <span className={profile.plan_features.can_view_history_90d ? "text-foreground" : "text-muted-foreground"}>90-day history &amp; trends</span>
                 </div>
               </div>

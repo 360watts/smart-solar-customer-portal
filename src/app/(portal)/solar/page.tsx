@@ -11,6 +11,7 @@ import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
+import { formatHourLabel, formatDayLabel, getSiteHour, SITE_TIMEZONE } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -56,32 +57,37 @@ function pvKw(row: TelRow): number {
   return ((Number(row.pv1_power_w) || 0) + (Number(row.pv2_power_w) || 0)) / 1000;
 }
 
-function fmtHour(iso: string): string {
-  const h = new Date(iso).getHours();
-  return `${h % 12 || 12}${h >= 12 ? "pm" : "am"}`;
-}
+// Matches the staff dashboard's chart label format exactly (SiteDataPanel's
+// fmt()): 2-digit hour/minute, always in the site's own timezone
+// (Coimbatore) rather than the viewing device's — e.g. "03:00 PM".
+const fmtHour = formatHourLabel;
 
 function fmtDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+  return formatDayLabel(iso);
+}
+
+/** Calendar-day comparisons pinned to site-local time — a browser in a
+ * different timezone must still see "today"/"tomorrow" as Coimbatore's
+ * calendar day, not its own. */
+function siteDateParts(iso: string): { y: number; m: number; d: number } {
+  const parts = new Date(iso).toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE }).split("-");
+  return { y: Number(parts[0]), m: Number(parts[1]), d: Number(parts[2]) };
 }
 
 function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+  const target = siteDateParts(iso);
+  const now = siteDateParts(new Date().toISOString());
+  return target.y === now.y && target.m === now.m && target.d === now.d;
 }
 
-/** Average actual PV kW for telemetry rows falling within the same hour as `hourIso`. */
+/** Average actual PV kW for telemetry rows falling within the same site-local hour as `hourIso`. */
 function actualKwForHour(hourIso: string, telRows: TelRow[]): number | null {
-  const target = new Date(hourIso);
+  const targetDate = siteDateParts(hourIso);
+  const targetHour = getSiteHour(hourIso);
   const matching = telRows.filter((row) => {
-    const ts = new Date(row.timestamp);
-    return ts.getFullYear() === target.getFullYear()
-      && ts.getMonth() === target.getMonth()
-      && ts.getDate() === target.getDate()
-      && ts.getHours() === target.getHours();
+    const d = siteDateParts(row.timestamp);
+    return d.y === targetDate.y && d.m === targetDate.m && d.d === targetDate.d
+      && getSiteHour(row.timestamp) === targetHour;
   });
   if (matching.length === 0) return null;
   const sum = matching.reduce((s, row) => s + pvKw(row), 0);
@@ -89,12 +95,11 @@ function actualKwForHour(hourIso: string, telRows: TelRow[]): number | null {
 }
 
 function isTomorrow(iso: string): boolean {
-  const d = new Date(iso);
+  const target = siteDateParts(iso);
   const tom = new Date();
   tom.setDate(tom.getDate() + 1);
-  return d.getFullYear() === tom.getFullYear() &&
-    d.getMonth() === tom.getMonth() &&
-    d.getDate() === tom.getDate();
+  const tomParts = siteDateParts(tom.toISOString());
+  return target.y === tomParts.y && target.m === tomParts.m && target.d === tomParts.d;
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -107,7 +112,7 @@ function RegimeBadge({ regime }: { regime: RegimeType }) {
     "Ramp-Down": { bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
     Overcast:    { bg: "rgba(100,116,139,0.15)", color: "#9CA3AF" },
   };
-  const s = styles[regime] ?? { bg: "rgba(255,255,255,0.08)", color: "#94A3B8" };
+  const s = styles[regime] ?? { bg: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "#94A3B8" };
   return (
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold"
       style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}30` }}>
@@ -117,7 +122,7 @@ function RegimeBadge({ regime }: { regime: RegimeType }) {
 }
 
 function SkeletonPulse({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className}`} />;
+  return <div className={`animate-pulse rounded-lg bg-foreground/[0.06] ${className}`} />;
 }
 
 function KpiCard({
@@ -149,7 +154,7 @@ function KpiCard({
           <Icon size={17} className="text-emerald-400" />
         </div>
         {sub && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground">
             {sub}
           </span>
         )}
@@ -376,7 +381,7 @@ export default function SolarPage() {
               <p className="text-sm text-muted-foreground mt-0.5">Probabilistic — P10 / P50 / P90 bands</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-white/[0.04] rounded-xl p-1">
+          <div className="flex items-center gap-1.5 bg-foreground/[0.04] rounded-xl p-1">
             {(["today", "tomorrow"] as const).map((r) => (
               <button key={r} onClick={() => setForecastRange(r)}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize ${
