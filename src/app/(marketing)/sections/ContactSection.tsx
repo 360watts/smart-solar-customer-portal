@@ -233,7 +233,7 @@ export function ContactSection() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2.5 sm:py-3 md:py-3.5 lg:py-4 bg-linear-to-r from-[#c2410c] to-[#7c2d12] text-white font-semibold rounded-lg sm:rounded-[10px] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] shadow-[0_4px_15px_rgba(194,65,12,0.25)] hover:shadow-[0_8px_30px_rgba(194,65,12,0.35)] hover:opacity-90 transition-all disabled:opacity-70 font-['Poppins']"
+                className="w-full py-2.5 sm:py-3 md:py-3.5 lg:py-4 bg-linear-to-r from-[#00a63e] to-[#007a55] text-white font-semibold rounded-lg sm:rounded-[10px] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] shadow-[0_4px_15px_rgba(0,166,62,0.25)] hover:shadow-[0_8px_30px_rgba(0,166,62,0.35)] hover:opacity-90 transition-all disabled:opacity-70 font-['Poppins']"
               >
                 {isSubmitting ? "Sending..." : "Send Message"}
               </button>

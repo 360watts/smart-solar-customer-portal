@@ -53,6 +53,9 @@ const SECURITY_HEADERS = [
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "connect-src 'self'",
+      // Contact section embeds a Google Maps iframe (ContactSection.tsx) —
+      // output=embed redirects through maps.google.com to www.google.com/maps/embed.
+      "frame-src https://www.google.com https://maps.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
