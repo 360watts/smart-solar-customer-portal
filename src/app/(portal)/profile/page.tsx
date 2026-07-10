@@ -285,7 +285,7 @@ export default function ProfilePage() {
         <motion.div key="empty" className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <h1 className="page-title mb-6">Profile</h1>
           <GlassCard>
-            <p className="text-base text-red-300">{error || "Profile data is unavailable."}</p>
+            <p className="text-base" style={{ color: "var(--destructive)" }}>{error || "Profile data is unavailable."}</p>
           </GlassCard>
         </motion.div>
       ) : (
@@ -300,7 +300,7 @@ export default function ProfilePage() {
 
       {error && (
         <GlassCard>
-          <p className="text-base text-red-300">{error}</p>
+          <p className="text-base" style={{ color: "var(--destructive)" }}>{error}</p>
         </GlassCard>
       )}
 

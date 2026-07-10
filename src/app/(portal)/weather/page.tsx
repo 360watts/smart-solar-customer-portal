@@ -211,7 +211,7 @@ export default function WeatherPage() {
           <span className="text-sm text-muted-foreground font-mono">W/m²</span>
         </div>
         {data?.ghiChart ? (
-          <DataChart type="line" data={data.ghiChart as Parameters<typeof DataChart>[0]["data"]} height={200} />
+          <DataChart type="line" data={data.ghiChart as Parameters<typeof DataChart>[0]["data"]} height={260} />
         ) : (
           <div className="h-50 flex items-center justify-center text-base text-muted-foreground">
             {loading ? "Loading…" : "No irradiance data available for today."}

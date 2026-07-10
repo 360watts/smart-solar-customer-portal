@@ -12,15 +12,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// Mock generation values per month index (Jan–Dec)
-const MOCK_GEN = [410, 380, 490, 520, 460, 310, 290, 320, 380, 450, 420, 380];
-const MOCK_CON = [380, 350, 420, 470, 430, 490, 510, 480, 420, 390, 370, 360];
-const MOCK_BUY = [0, 0, 0, 0, 0, 180, 220, 160, 40, 0, 0, 0];
-const MOCK_SELL = [30, 30, 70, 50, 30, 0, 0, 0, 0, 60, 50, 20];
-const MOCK_SELF_USE = [92, 91, 86, 90, 93, 100, 100, 100, 89, 87, 88, 95];
-
 interface MonthRow {
   month: string;
   gen: number;
@@ -37,18 +28,6 @@ function calcSavings(gen: number) {
 
 function calcCo2(gen: number) {
   return Math.round(gen * 0.82);
-}
-
-function buildMockRows(): MonthRow[] {
-  return MONTHS.map((m, i) => ({
-    month: m + " 2026",
-    gen: MOCK_GEN[i],
-    con: MOCK_CON[i],
-    buy: MOCK_BUY[i],
-    sell: MOCK_SELL[i],
-    selfUse: MOCK_SELF_USE[i],
-    savings: calcSavings(MOCK_GEN[i]),
-  }));
 }
 
 function exportCSV(rows: MonthRow[]) {
@@ -153,7 +132,7 @@ export default function HistoryPage() {
 
       {error && (
         <GlassCard>
-          <p className="text-base text-red-300">{error}</p>
+          <p className="text-base" style={{ color: "var(--destructive)" }}>{error}</p>
         </GlassCard>
       )}
 
@@ -213,7 +192,7 @@ export default function HistoryPage() {
                 className={`px-3 py-1 rounded-lg text-sm font-medium capitalize transition-colors ${
                   chartView === v
                     ? "bg-primary/20 text-primary"
-                    : "text-muted-foreground hover:bg-white/5"
+                    : "text-muted-foreground hover:bg-foreground/5"
                 }`}
               >
                 {v === "energy" ? "Energy (kWh)" : "Savings (₹)"}
@@ -226,7 +205,7 @@ export default function HistoryPage() {
           bars={chartView === "energy" ? energyTrendBars : savingsTrendBars}
           trend={{ mode: "moving-average", window: 3 }}
           unit={chartView === "energy" ? "kWh" : "₹"}
-          height={300}
+          height={360}
         />
       </GlassCard>
 
@@ -264,8 +243,8 @@ export default function HistoryPage() {
               {safeRows.map((row, i) => (
                 <tr
                   key={i}
-                  className={`border-b border-border/50 hover:bg-white/[0.03] transition-colors ${
-                    i % 2 === 1 ? "bg-white/[0.02]" : ""
+                  className={`border-b border-border/50 hover:bg-foreground/[0.03] transition-colors ${
+                    i % 2 === 1 ? "bg-foreground/[0.02]" : ""
                   }`}
                 >
                   <td className="py-3 pr-4 text-foreground font-medium">{row.month}</td>

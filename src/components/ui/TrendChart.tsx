@@ -598,7 +598,9 @@ export default function TrendChart({
     scales: {
       x: {
         grid: { color: chartDefaults.grid.color },
-        ticks: chartDefaults.tick,
+        // Matches the staff dashboard's flat (never-rotated) axis labels —
+        // Chart.js otherwise auto-rotates up to 50° once labels don't fit.
+        ticks: { ...chartDefaults.tick, maxRotation: 0, minRotation: 0, autoSkip: true, autoSkipPadding: 12 },
         border: { display: false },
       },
       y: {

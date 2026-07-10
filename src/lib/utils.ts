@@ -21,8 +21,10 @@ export function formatHourLabel(ts: string): string {
   }
 }
 
-/** Day label matching the staff dashboard's date formatting — also pinned to site-local time. */
-export function formatDayLabel(ts: string, opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric" }): string {
+/** Day label matching the staff dashboard's date-axis format exactly
+ * (SiteDataPanel's `fmt()` for its >7d case: `{ month: 'short', day: 'numeric' }`,
+ * e.g. "Jul 7" — no weekday name) — also pinned to site-local time. */
+export function formatDayLabel(ts: string, opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }): string {
   try {
     return new Date(ts).toLocaleDateString([], { ...opts, timeZone: SITE_TIMEZONE });
   } catch {

@@ -453,48 +453,66 @@ export default function OverviewPage() {
       // CO₂ avoided: Indian grid factor 0.82 kg CO₂/kWh
       const co2AvoidedKg = Math.round(todayGenKwh * 0.82);
 
-      // Alerts
-      const alertsList: Array<{
-        id?: string | number;
-        status?: string;
-        resolved?: boolean;
-        severity?: string;
-        title?: string;
-        message?: string;
-        device_serial?: string;
-        fault_code?: string | null;
-        timestamp?: string;
-      }> = Array.isArray(payload.alerts)
-        ? payload.alerts as never[]
-        : [];
-      const activeAlertsList = alertsList.filter(
-        (a) => a.status !== "resolved" && !a.resolved,
-      );
-      const activeAlerts = activeAlertsList.length;
-
-      // Calculate severity breakdown from actual alert data
+      // Alerts — sourced from the new Incident model, not the legacy Alert
+      // model embedded in portal-overview. The heartbeat-check maintenance
+      // cron (maintenance_tasks.py::_run_heartbeat_check) was migrated to
+      // manage Incident exclusively — it no longer resolves Alert rows at
+      // all, so Alert-derived counts can show stale criticals that already
+      // cleared (confirmed live: a "Device Offline" Alert from days ago sat
+      // active while the device's real heartbeat was seconds old) or miss
+      // real open warnings if nothing's currently writing new Alert rows for
+      // that type. Incident is also the Alerts page's own source of truth
+      // (src/app/(portal)/alerts/page.tsx), so this keeps Overview and
+      // Alerts consistent with each other.
+      let activeAlerts = 0;
       let alertsCounts = { critical: 0, warning: 0, info: 0 };
       const deviceAlertMap = new Map<string, { count: number; severity: "critical" | "warning" | "info" }>();
 
-      if (activeAlerts > 0) {
-        // Count by severity from real alert data
-        for (const alert of activeAlertsList) {
-          const severity = (alert.severity || "warning") as "critical" | "warning" | "info";
-          if (severity === "critical") alertsCounts.critical++;
-          else if (severity === "warning") alertsCounts.warning++;
-          else alertsCounts.info++;
-        }
+      try {
+        const activeDeviceSerials = new Set(
+          (((rt.devices ?? []) as Array<{ device_serial: string }>)).map((d) => d.device_serial),
+        );
+        // Fetching "most recent N by ts_start" is the wrong query here: a
+        // flapping device_offline incident that opens and auto-resolves
+        // within a second (confirmed live: recurring every ~15-20 min on
+        // this site) floods the recent-ts_start ordering with resolved
+        // noise — 42 incidents for this one site in the last 24h alone —
+        // which pushed a genuinely still-open incident from days earlier
+        // completely out of the first 50 results. Filtering server-side by
+        // status instead finds every open incident regardless of when it
+        // started.
+        const [activeRes, ackRes] = await Promise.all([
+          portalApi.getSiteIncidents(siteId, { limit: 100, status: "active" }, signal),
+          portalApi.getSiteIncidents(siteId, { limit: 100, status: "acknowledged" }, signal),
+        ]);
+        const openIncidents = [...activeRes.results, ...ackRes.results].filter(
+          (i) =>
+            // A soft-deleted device's incidents never get closed by the
+            // maintenance cron (it only re-checks live devices) — exclude
+            // them, or a removed device's stale incident inflates the count
+            // forever.
+            !i.deviceSerial || activeDeviceSerials.has(i.deviceSerial),
+        );
 
-        // Build device alert map keyed by device_serial (now present on every alert)
-        for (const alert of activeAlertsList) {
-          if (!alert.device_serial) continue;
-          const existing = deviceAlertMap.get(alert.device_serial);
-          const isCritical = alert.severity === "critical";
-          deviceAlertMap.set(alert.device_serial, {
+        activeAlerts = openIncidents.length;
+        for (const inc of openIncidents) {
+          if (inc.severity === "critical") alertsCounts.critical++;
+          else if (inc.severity === "warning") alertsCounts.warning++;
+          else alertsCounts.info++;
+
+          if (!inc.deviceSerial) continue;
+          const existing = deviceAlertMap.get(inc.deviceSerial);
+          const isCritical = inc.severity === "critical";
+          deviceAlertMap.set(inc.deviceSerial, {
             count: (existing?.count ?? 0) + 1,
             severity: existing?.severity === "critical" || isCritical ? "critical" : "warning",
           });
         }
+      } catch {
+        // Leave everything at zero rather than falling back to the
+        // legacy Alert list — a stale Alert row is exactly the bug this
+        // replaces, so surfacing "no data" on failure is more honest than
+        // reintroducing it as a fallback.
       }
 
       // Build devices array with status from realtime.devices (all devices on site)
@@ -621,7 +639,7 @@ export default function OverviewPage() {
       {/* Error banner */}
       {error && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-          bg-red-500/10 border border-red-500/20 text-base text-red-300">
+          bg-red-500/10 border border-red-500/20 text-base" style={{ color: "var(--destructive)" }}>
           <span>{error}</span>
           <button onClick={refresh}
             className="text-sm underline underline-offset-2 opacity-70 hover:opacity-100">
@@ -666,7 +684,7 @@ export default function OverviewPage() {
               </div>
               <p className="text-muted-foreground text-base mb-8">
                 {isFlowFrozen ? (
-                  <span className="text-red-300/80 font-medium">Frozen at last reading before disconnect</span>
+                  <span className="font-medium" style={{ color: "var(--destructive)" }}>Frozen at last reading before disconnect</span>
                 ) : isLiveViaCloudFallback ? (
                   <span className="text-amber-300/80 font-medium">
                     Gateway offline — showing live data via inverter cloud
@@ -720,8 +738,8 @@ export default function OverviewPage() {
             <SkeletonPulse className="h-48 w-full rounded-2xl" />
           ) : isFlowFrozen ? (
             <div className="h-48 w-full rounded-2xl border border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center gap-2 text-center px-6">
-              <AlertTriangle size={22} className="text-red-400/70" />
-              <p className="text-base text-red-200/80 font-medium">
+              <AlertTriangle size={22} style={{ color: "var(--destructive)" }} />
+              <p className="text-base font-medium" style={{ color: "var(--destructive)" }}>
                 Both devices are offline — live flow can&apos;t be shown
               </p>
               <p className="text-sm text-muted-foreground">

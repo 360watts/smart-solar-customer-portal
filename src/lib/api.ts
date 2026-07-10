@@ -177,7 +177,7 @@ export const portalApi = {
   getHistory: (siteId: string, params?: { aggregate?: string }, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/history/`, { params, ...sig(signal) }),
 
-  getForecast: (siteId: string, params?: { date?: string }, signal?: AbortSignal) =>
+  getForecast: (siteId: string, params?: { date?: string; start_date?: string; end_date?: string }, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/forecast/`, { params, ...sig(signal) }),
 
   getLoadForecast: (siteId: string, signal?: AbortSignal) =>
@@ -186,9 +186,9 @@ export const portalApi = {
   getWeather: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
 
-  getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
+  getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number; status?: string }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
     const resp = await api.get(`/api/backend/sites/${siteId}/incidents/`, {
-      params: { limit: opts?.limit, offset: opts?.offset }, ...sig(signal),
+      params: { limit: opts?.limit, offset: opts?.offset, status: opts?.status }, ...sig(signal),
     });
     const raw: any = resp.data;
     return { count: raw.count, limit: raw.limit, offset: raw.offset, results: (raw.results || []).map(_mapIncidentDict) };

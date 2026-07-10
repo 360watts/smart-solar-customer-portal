@@ -94,6 +94,11 @@ function actualKwForHour(hourIso: string, telRows: TelRow[]): number | null {
   return parseFloat((sum / matching.length).toFixed(2));
 }
 
+/** Site-local (Coimbatore) calendar date, `daysFromNow` days out, as "YYYY-MM-DD". */
+function siteISODate(daysFromNow: number): string {
+  return new Date(Date.now() + daysFromNow * 86_400_000).toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE });
+}
+
 function isTomorrow(iso: string): boolean {
   const target = siteDateParts(iso);
   const tom = new Date();
@@ -209,7 +214,15 @@ export default function SolarPage() {
     user?.site_id,
     async (siteId, signal) => {
       const [forecastRes, dailyRes, telRes] = await Promise.all([
-        portalApi.getForecast(siteId, {}, signal),
+        // No params defaults to "today, UTC calendar date" server-side (see
+        // site_forecast in forecasting.py) — the Tomorrow toggle had nothing
+        // to show because tomorrow's rows were never fetched at all, even
+        // though the forecast job populates 48h ahead. Request an explicit
+        // range covering both site-local calendar days instead.
+        portalApi.getForecast(siteId, {
+          start_date: `${siteISODate(0)}T00:00:00+05:30`,
+          end_date: `${siteISODate(1)}T23:59:59+05:30`,
+        }, signal),
         // Daily array without summary=true gives per-day rows with period_start + pv_gen_kwh
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
         // 1-day window → raw/5-min rows; telemetry returns a plain array
@@ -350,7 +363,7 @@ export default function SolarPage() {
       </motion.div>
 
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-base text-red-300">
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-base" style={{ color: "var(--destructive)" }}>
           {error}
         </div>
       )}
@@ -417,7 +430,7 @@ export default function SolarPage() {
         {loading ? (
           <SkeletonPulse className="h-52 w-full rounded-xl" />
         ) : forecastChartData ? (
-          <DataChart type="line" data={forecastChartData} height={220} />
+          <DataChart type="line" data={forecastChartData} height={280} />
         ) : (
           <div className="h-52 flex items-center justify-center text-muted-foreground text-base">
             No forecast data for {forecastRange}
@@ -436,7 +449,7 @@ export default function SolarPage() {
         {loading ? (
           <SkeletonPulse className="h-64 w-full rounded-xl" />
         ) : weeklyTrendData ? (
-          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={260} gapBands={gapBands} />
+          <TrendChart labels={weeklyTrendData.labels} bars={weeklyTrendData.bars} trend={{ mode: "moving-average", window: 3 }} unit="kWh" height={320} gapBands={gapBands} />
         ) : (
           <div className="h-64 flex items-center justify-center text-muted-foreground text-base">
             No generation data available

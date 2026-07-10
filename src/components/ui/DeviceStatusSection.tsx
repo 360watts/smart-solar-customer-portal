@@ -158,7 +158,7 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
             const isOnline = device.status === "online";
             const bgColor = isOnline ? "bg-emerald-500/10" : "bg-red-500/10";
             const borderColor = isOnline ? "border-emerald-500/20" : "border-red-500/25";
-            const textColor = isOnline ? "text-emerald-300" : "text-red-300";
+            const textColor = isOnline ? "var(--primary)" : "var(--destructive)";
 
             return (
               <motion.div
@@ -191,14 +191,14 @@ export const DeviceStatusSection: React.FC<DeviceStatusSectionProps> = ({
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ background: isOnline ? "var(--primary)" : "var(--destructive)" }}
                     />
-                    <p className={`text-sm font-semibold ${textColor}`}>{device.label ?? device.serial}</p>
+                    <p className="text-sm font-semibold" style={{ color: textColor }}>{device.label ?? device.serial}</p>
                   </div>
                   {device.label && (
-                    <p className={`text-sm mt-1 font-mono ${isOnline ? "text-emerald-200/50" : "text-red-200/50"}`}>
+                    <p className="text-sm mt-1 font-mono" style={{ color: textColor, opacity: 0.7 }}>
                       {device.serial}
                     </p>
                   )}
-                  <p className={`text-sm mt-1 ${isOnline ? "text-emerald-200/60" : "text-red-200/60"}`}>
+                  <p className="text-sm mt-1" style={{ color: textColor, opacity: 0.8 }}>
                     {isOnline ? "Connected" : "Disconnected"}
                   </p>
                 </div>

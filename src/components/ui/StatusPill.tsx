@@ -15,11 +15,21 @@ export default function StatusPill({
   label,
   animated = true,
 }: StatusPillProps) {
-  const colors = {
-    active: "bg-green-500/20 text-green-300 border-green-500/30",
-    inactive: "bg-gray-500/20 text-gray-300 border-gray-500/30",
-    warning: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    error: "bg-red-500/20 text-red-300 border-red-500/30",
+  // bg-*-500/20 + border-*-500/30 stay Tailwind classes (translucent tints
+  // read fine in both themes); text color moves to the theme's own semantic
+  // tokens instead of a pastel *-300 shade, which has too little contrast
+  // against the light theme's white card background.
+  const bgBorder = {
+    active: "bg-green-500/20 border-green-500/30",
+    inactive: "bg-gray-500/20 border-gray-500/30",
+    warning: "bg-amber-500/20 border-amber-500/30",
+    error: "bg-red-500/20 border-red-500/30",
+  };
+  const textColor = {
+    active: "var(--primary)",
+    inactive: "var(--muted-foreground)",
+    warning: "var(--secondary)",
+    error: "var(--destructive)",
   };
 
   const pulseColor = {
@@ -33,8 +43,9 @@ export default function StatusPill({
     <div
       className={cn(
         "inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium",
-        colors[status]
+        bgBorder[status]
       )}
+      style={{ color: textColor[status] }}
     >
       {animated && (
         <motion.div

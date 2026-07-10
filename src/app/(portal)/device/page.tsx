@@ -464,7 +464,7 @@ export default function DevicePage() {
       {error && (
         <GlassCard>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-base text-red-300">{error}</p>
+            <p className="text-base" style={{ color: "var(--destructive)" }}>{error}</p>
             <button onClick={refresh} className="text-sm text-muted-foreground underline underline-offset-2">
               Retry
             </button>

@@ -100,7 +100,11 @@ function buildBaseOptions(chartDefaults: ReturnType<typeof getChartDefaults>): C
     scales: {
       x: {
         grid: { color: chartDefaults.grid.color },
-        ticks: chartDefaults.tick,
+        // Chart.js auto-rotates x labels up to 50° by default once they
+        // don't fit horizontally — the staff dashboard's Recharts axis never
+        // tilts its ticks, it just thins them out (autoSkip). Matching that
+        // flat layout instead of the tilted default.
+        ticks: { ...chartDefaults.tick, maxRotation: 0, minRotation: 0, autoSkip: true, autoSkipPadding: 12 },
         border: { display: false },
       },
       y: {

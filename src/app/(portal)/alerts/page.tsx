@@ -86,8 +86,18 @@ export default function AlertsPage() {
   const { data, loading, error } = useSiteQuery<AlertsPageData>(
     user?.site_id,
     async (siteId, signal) => {
-      const [incidentsRes, overviewRes] = await Promise.all([
+      // Fetching "most recent N by ts_start" can starve genuinely open
+      // incidents out of the page entirely on a site with a flapping
+      // device (confirmed live: one device opening/auto-resolving a
+      // device_offline incident every ~15-20 min pushed a still-open
+      // incident from days earlier to rank 85 in the site's -ts_start
+      // ordering). Fetch open incidents by status explicitly so they're
+      // never at the mercy of how much resolved noise ranks above them,
+      // and separately fetch a recent-history page for the list/table view.
+      const [recentRes, activeRes, ackRes, overviewRes] = await Promise.all([
         portalApi.getSiteIncidents(siteId, { limit: INCIDENT_FETCH_LIMIT }, signal),
+        portalApi.getSiteIncidents(siteId, { limit: 100, status: "active" }, signal),
+        portalApi.getSiteIncidents(siteId, { limit: 100, status: "acknowledged" }, signal),
         portalApi.getPortalOverview(siteId, undefined, signal).catch(() => null),
       ]);
       signal.throwIfAborted();
@@ -97,7 +107,13 @@ export default function AlertsPage() {
         (realtime.devices ?? []) as Array<{ device_serial: string; device_type?: string; is_online?: boolean }>
       ).map((d) => ({ serial: d.device_serial, device_type: d.device_type ?? "gateway", is_online: Boolean(d.is_online) }));
 
-      return { incidents: incidentsRes.results, totalCount: incidentsRes.count, devices };
+      // Merge the guaranteed-complete open set into the recent-history list
+      // (dedup by id) so the table still shows every open incident even if
+      // it's not among the most recent N by start time.
+      const byId = new Map(recentRes.results.map((i) => [i.id, i]));
+      for (const i of [...activeRes.results, ...ackRes.results]) byId.set(i.id, i);
+
+      return { incidents: Array.from(byId.values()), totalCount: recentRes.count, devices };
     },
     { cacheKey: `alerts:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 30 },
   );
@@ -128,9 +144,23 @@ export default function AlertsPage() {
   const pageEnd = pageStart + ALERTS_PER_PAGE;
   const visibleAlerts = filtered.slice(pageStart, pageEnd);
 
-  const criticalCount = incidents.filter((inc) => inc.severity === "critical").length;
-  const warningCount = incidents.filter((inc) => inc.severity === "warning").length;
-  const infoCount = incidents.filter((inc) => inc.severity === "info").length;
+  // Severity badges must reflect what's currently open, not the fetched
+  // history window — without this, a resolved incident (e.g. a device_offline
+  // blip that opened and auto-resolved within the same second) still counted
+  // toward "X Critical" alongside genuinely active ones. Also exclude
+  // incidents whose device has since been removed from the site — a
+  // soft-deleted device's incidents never get closed by the maintenance
+  // cron (it only re-checks live devices), so they'd otherwise sit "active"
+  // forever and inflate the count.
+  const activeDeviceSerials = new Set(devices.map((d) => d.serial));
+  const openIncidents = incidents.filter(
+    (inc) =>
+      (inc.status === "active" || inc.status === "acknowledged") &&
+      (!inc.deviceSerial || activeDeviceSerials.has(inc.deviceSerial)),
+  );
+  const criticalCount = openIncidents.filter((inc) => inc.severity === "critical").length;
+  const warningCount = openIncidents.filter((inc) => inc.severity === "warning").length;
+  const infoCount = openIncidents.filter((inc) => inc.severity === "info").length;
   const offlineDevices = devices.filter((d) => !d.is_online);
 
   // Map device_serial → offline flag so each incident card can show live device status,
@@ -157,7 +187,7 @@ export default function AlertsPage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-base text-red-300">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-base" style={{ color: "var(--destructive)" }}>
           {error}
         </div>
       )}
@@ -342,7 +372,7 @@ export default function AlertsPage() {
                             </motion.span>
                           )}
                           {deviceOffline && (
-                            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-label px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                            <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-label px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30" style={{ color: "var(--destructive)" }}>
                               <WifiOff size={10} /> Device Offline
                             </span>
                           )}

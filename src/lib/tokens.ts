@@ -42,16 +42,23 @@ export function getChartDefaults(theme: "dark" | "light") {
         bodyColor: "#4B4B4B",
         bodyFont: { family: "DM Sans, system-ui, sans-serif", size: 12, weight: 500 },
         titleFont: { family: "JetBrains Mono, monospace", size: 13, weight: 700 },
-        padding: 16,
+        padding: 10,
         displayColors: true,
-        boxPadding: 8,
-        boxRadius: 6,
-        titleSpacing: 8,
-        bodySpacing: 6,
+        boxPadding: 4,
+        boxRadius: 4,
+        titleSpacing: 4,
+        bodySpacing: 3,
         mode: "index" as const,
         intersect: false,
         usePointStyle: true,
         animation: { duration: 300 } as any,
+        // Multi-series charts (forecast bands: P90/P50/P10/Physics Baseline/
+        // Actual) put one row per dataset in an index-mode tooltip — with
+        // null-valued rows included (future hours with no "Actual" yet,
+        // etc.) the box can grow taller than the chart itself. Dropping
+        // unfilled points here, on top of the tighter padding above, is
+        // what actually keeps the tooltip from covering the chart.
+        filter: (item: any) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
       },
     };
   }
@@ -68,16 +75,17 @@ export function getChartDefaults(theme: "dark" | "light") {
       bodyColor: "#A8B8D8",
       bodyFont: { family: "DM Sans, system-ui, sans-serif", size: 12, weight: 500 },
       titleFont: { family: "JetBrains Mono, monospace", size: 13, weight: 700 },
-      padding: 16,
+      padding: 10,
       displayColors: true,
-      boxPadding: 8,
-      boxRadius: 6,
-      titleSpacing: 8,
-      bodySpacing: 6,
+      boxPadding: 4,
+      boxRadius: 4,
+      titleSpacing: 4,
+      bodySpacing: 3,
       mode: "index" as const,
       intersect: false,
       usePointStyle: true,
       animation: { duration: 300 } as any,
+      filter: (item: any) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
     },
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatHourLabel } from "@/lib/utils";
+import { formatHourLabel, formatDayLabel, SITE_TIMEZONE } from "@/lib/utils";
 
 import React, { useState } from "react";
 import { Home, Sun, Zap, Wind, Car, Lightbulb } from "lucide-react";
@@ -154,7 +154,10 @@ export default function ConsumptionPage() {
       const monthRows: EnergySummaryRow[] = monthS.status === "fulfilled" ? (Array.isArray(monthS.value.data) ? monthS.value.data : (monthS.value.data?.results ?? [])) : [];
       // Load forecast: plain array
       const fRows = forecastS.status === "fulfilled" && Array.isArray(forecastS.value.data) ? forecastS.value.data : [];
-      const weekLabel = (ts: string) => new Date(ts).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+      // Matches the staff dashboard's date-axis format exactly ("Jul 7", no
+      // weekday name) and is pinned to site-local time — the previous
+      // `toLocaleDateString("en-IN", {...})` here had no timeZone at all.
+      const weekLabel = (ts: string) => formatDayLabel(ts);
       const weekTrend = weekRows.length
         ? (() => {
           const labels = weekRows.map((r) => weekLabel(r.period_start ?? ""));
@@ -187,7 +190,7 @@ export default function ConsumptionPage() {
         dayChart:      telRows.length   ? buildDayChart(telRows)                                      : { labels: [], datasets: [] },
         weekChart:     weekRows.length  ? buildAggChart(weekRows, weekLabel)                          : { labels: [], datasets: [] },
         weekTrend,
-        monthChart:    monthRows.length ? buildAggChart(monthRows, (ts) => new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }))  : { labels: [], datasets: [] },
+        monthChart:    monthRows.length ? buildAggChart(monthRows, (ts) => new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: SITE_TIMEZONE }))  : { labels: [], datasets: [] },
         forecastChart: fRows.length     ? buildForecastChart(fRows)                                  : { labels: [], datasets: [] },
       };
     },
@@ -223,7 +226,7 @@ export default function ConsumptionPage() {
 
       {error && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-          bg-red-500/10 border border-red-500/20 text-base text-red-300">
+          bg-red-500/10 border border-red-500/20 text-base" style={{ color: "var(--destructive)" }}>
           <span>{error}</span>
           <button onClick={refresh} className="text-sm underline underline-offset-2 opacity-70 hover:opacity-100">Retry</button>
         </div>
@@ -289,13 +292,13 @@ export default function ConsumptionPage() {
               ]}
               trend={{ mode: "self-sufficiency", values: data.weekTrend.selfSufficiency, label: "Self-Sufficiency" }}
               unit="kWh"
-              height={280}
+              height={340}
             />
           )
         ) : !chartData || chartData.labels.length === 0 ? (
           <div className="h-70 flex items-center justify-center text-base text-muted-foreground">No data available for this period.</div>
         ) : (
-          <DataChart type={chartType} data={chartData} height={280} />
+          <DataChart type={chartType} data={chartData} height={340} />
         )}
 
         {view === "Day" && (
@@ -341,7 +344,7 @@ export default function ConsumptionPage() {
         ) : !data?.forecastChart || data.forecastChart.labels.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-base text-muted-foreground">No forecast data available.</div>
         ) : (
-          <DataChart type="line" data={data.forecastChart} height={200} />
+          <DataChart type="line" data={data.forecastChart} height={260} />
         )}
       </GlassCard>
 
