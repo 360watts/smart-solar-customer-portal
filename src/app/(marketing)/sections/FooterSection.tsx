@@ -180,7 +180,7 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
                 </svg>
               </a>
               <a
-                href="https://www.facebook.com/360watts"
+                href="https://www.facebook.com/profile.php?id=61588957388992"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-linear-to-br from-[#1e2939] to-[#334155] rounded-xl sm:rounded-2xl flex items-center justify-center hover:shadow-2xl hover:shadow-[#1e2939]/30 hover:scale-110 hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
