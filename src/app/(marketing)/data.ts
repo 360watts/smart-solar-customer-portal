@@ -120,11 +120,23 @@ export const processSteps = {
     { number: "3", title: "Maintenance", description: "Regular monitoring and maintenance ensure peak performance. Our smart monitoring alerts you to any issues before they become problems." },
   ],
   smartHome: [
-    { number: "1", title: "Set up Smart Devices", description: "Install smart switches, sensors, and appliances. Our technicians ensure everything is properly connected and configured." },
-    { number: "2", title: "Link it to the app", description: "Connect all devices to the 360watts app. Simple setup with QR codes and automatic device detection." },
-    { number: "3", title: "Create Automations", description: "Set up intelligent routines that maximize solar usage, reduce waste, and adapt to your lifestyle automatically." },
+    { number: "1", title: "Plan & Choose Devices", description: "We map your lifestyle and automation needs, then help you pick the right smart switches, sensors, and appliances — from a few key devices up to a full home." },
+    { number: "2", title: "Connect & Automate", description: "Every device links to the 360watts app in minutes. Let AI suggest automations or set your own — routines that adapt to how you actually live." },
+    { number: "3", title: "Ongoing Smart Support", description: "We keep the app updated with the latest AI/ML improvements, and you can reach us for support anytime." },
   ],
 };
+
+/** Shared theme per step index — ties the Solar and Smart Home columns into
+ *  one parallel story instead of two unrelated lists (see ProcessStorySection). */
+export const processStoryThemes = ["Plan", "Install & Connect", "Ongoing Care"];
+
+/** The four states of one phone (see AppScreensSection) — one device, one app, everything happens here. */
+export const appScreens = [
+  { title: "Real-time Insights", description: "Monitor your energy generation, consumption, and savings live, all in one intuitive dashboard.", image: APP_IMAGES.solutionsAppPhoneInsights },
+  { title: "Smart Scheduling", description: "Automatically run high-load devices when solar power is abundant to maximize efficiency and reduce costs.", image: APP_IMAGES.solutionsAppPhoneMonitor },
+  { title: "Routines and Modes", description: "Set your home to match your daily life. Lights, fans, and devices adjust automatically to your routine.", image: APP_IMAGES.solutionsAppPhoneModes },
+  { title: "Maintenance and Care", description: "Easily book service appointments and keep your solar and smart systems performing at their best.", image: APP_IMAGES.solutionsAppPhoneHero },
+];
 
 export const appFeatures = [
   { icon: APP_IMAGES.appIcon1, title: "Real-time solar analytics", description: "Monitor your energy production" },

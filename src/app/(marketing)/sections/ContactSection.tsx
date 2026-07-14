@@ -1,89 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, MessageCircle, CheckCircle } from "lucide-react";
 import { contactMethods } from "../data";
-import { revealVariant, sectionMotionProps, staggerMotionProps } from "../lib/motion";
+import { revealVariant, sectionMotionProps, staggerMotionProps, reduceMotion } from "../lib/motion";
+import { InquiryForm } from "../components/InquiryForm";
+
+/** Info cards slide in from the map's edge rather than the generic fade-up — a small,
+ *  intentional variant (not a new GSAP effect) for the one spot on this page that's a "you've arrived" moment. */
+const slideInVariant = {
+  hidden: { opacity: 0, x: 40 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+};
 
 export function ContactSection() {
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", city: "", interest: "solar", message: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [partnershipData, setPartnershipData] = useState({ name: "", email: "", phone: "", company: "", partnerType: "Supplier", message: "" });
-  const [isPartnershipSubmitting, setIsPartnershipSubmitting] = useState(false);
-  const [isPartnershipSubmitted, setIsPartnershipSubmitted] = useState(false);
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-  const createMessage = () =>
-    `*Website Customer Contact Form Submission*\n\n*Name:* ${formData.name}\n*Email:* ${formData.email}\n*Phone:* ${formData.phone}\n*City:* ${formData.city}\n*Interest:* ${formData.interest}\n` + (formData.message ? `*Message:* ${formData.message}` : "");
-  const sendViaWhatsApp = () => {
-    window.open(`https://wa.me/919087610051?text=${encodeURIComponent(createMessage())}`, "_blank");
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("https://formsubmit.co/hello@360watts.com", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          name: formData.name, email: formData.email, phone: formData.phone, city: formData.city,
-          interest: formData.interest, message: formData.message || "No message provided",
-          _subject: `Website Customer Contact Form Submission from ${formData.name}`, _captcha: "false", _template: "table",
-        }),
-      });
-      if (response.ok) { setIsSubmitting(false); setIsSubmitted(true); } else { throw new Error("Failed"); }
-    } catch (err) {
-      console.error(err);
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-    }
-  };
-
-  const handlePartnershipChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setPartnershipData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-  const createPartnershipMessage = () =>
-    `*Website Partnership Inquiry*\n\n*Name:* ${partnershipData.name}\n*Email:* ${partnershipData.email}\n*Phone:* ${partnershipData.phone}\n*Company:* ${partnershipData.company}\n*Partner Type:* ${partnershipData.partnerType}\n` + (partnershipData.message ? `*Message:* ${partnershipData.message}` : "");
-  const sendPartnershipViaWhatsApp = () => {
-    window.open(`https://wa.me/919087610051?text=${encodeURIComponent(createPartnershipMessage())}`, "_blank");
-  };
-  const handlePartnershipSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsPartnershipSubmitting(true);
-    try {
-      const response = await fetch("https://formsubmit.co/hello@360watts.com", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          name: partnershipData.name, email: partnershipData.email, phone: partnershipData.phone,
-          company: partnershipData.company, partnerType: partnershipData.partnerType, message: partnershipData.message || "No message provided",
-          _subject: `Website Partnership Inquiry from ${partnershipData.name} - ${partnershipData.company}`, _captcha: "false", _template: "table",
-        }),
-      });
-      if (response.ok) { setIsPartnershipSubmitting(false); setIsPartnershipSubmitted(true); } else { throw new Error("Failed"); }
-    } catch (err) {
-      console.error(err);
-      setIsPartnershipSubmitting(false);
-      setIsPartnershipSubmitted(true);
-    }
-  };
-
   return (
-    <motion.section id="contact-section" className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 bg-white scroll-mt-20" {...sectionMotionProps}>
+    <motion.section id="contact-section" className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 bg-[#f7fff9] scroll-mt-20" {...sectionMotionProps}>
       <div className="w-full max-w-5xl mx-auto min-w-0">
         <motion.div className="text-center mb-8 sm:mb-10 md:mb-12" variants={revealVariant}>
-          <h2 className="text-[20px] sm:text-[24px] md:text-[28px] lg:text-[33px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-2 sm:mb-3 leading-tight">Let's build your smart solar home.</h2>
+          <h2 className="text-[20px] sm:text-[24px] md:text-[28px] lg:text-[33px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-2 sm:mb-3 leading-tight">Let&apos;s build your smart solar home.</h2>
           <p className="text-[14px] sm:text-[15px] md:text-[17px] lg:text-[20px] text-[#4a5565] leading-relaxed">Get in touch with us for a free consultation and personalized energy assessment</p>
         </motion.div>
 
         {/* Contact methods */}
         <motion.div className="flex flex-row sm:flex-row justify-center flex-wrap gap-4 sm:gap-6 md:gap-8 lg:gap-33.5 mb-8 sm:mb-10 md:mb-12" {...staggerMotionProps}>
           {contactMethods.map((method, index) => (
-            <motion.a 
+            <motion.a
               key={index}
               href={method.href}
               target="_blank"
@@ -100,145 +41,45 @@ export function ContactSection() {
             </motion.a>
           ))}
         </motion.div>
-        
+
         {/* Contact form */}
         <motion.div className="border border-[rgba(0,0,0,0.3)] rounded-[20px] sm:rounded-[25px] md:rounded-[30px] p-4 sm:p-6 md:p-8 lg:p-12 shadow-[0px_3px_4px_0px_rgba(0,0,0,0.45)] max-w-234.75 mx-auto" variants={revealVariant}>
-          {isSubmitted ? (
-            <div className="text-center" aria-live="polite">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-[#015c40]" />
-              </div>
-              <h3 className="text-[28px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-4">Thank You!</h3>
-              <p className="text-[17px] text-[#4a5565] mb-2">Your message has been sent successfully to our team.</p>
-              <p className="text-[15px] text-[#4a5565] mb-8">We'll get back to you shortly. For immediate assistance, connect with us on WhatsApp:</p>
-
-              <div className="space-y-4 max-w-2xl mx-auto mb-8">
-                <button
-                  onClick={sendViaWhatsApp}
-                  className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-white font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  Send via WhatsApp Too
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setFormData({ name: "", email: "", phone: "", city: "", interest: "solar", message: "" });
-                }}
-                className="text-[#015c40] font-medium hover:underline font-['Poppins']"
-              >
-                Send another message
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 sm:gap-y-4 md:gap-y-6 lg:gap-y-15 gap-x-3 sm:gap-x-6 md:gap-x-8 lg:gap-x-50">
-                <div>
-                  <label htmlFor="contact-name" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">Name *</label>
-                  <input 
-                    type="text" 
-                    id="contact-name"
-                    name="name" 
-                    placeholder="Your full name"
-                    value={formData.name} 
-                    onChange={handleFormChange} 
-                    required
-                    autoComplete="name"
-                    className="w-full text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#015c40] bg-transparent" 
-                  />
-                </div>
-                <div>
-                  <label htmlFor="contact-email" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">Email</label>
-                  <input 
-                    type="email" 
-                    id="contact-email"
-                    name="email" 
-                    placeholder="your@email.com"
-                    value={formData.email} 
-                    onChange={handleFormChange} 
-                    autoComplete="email"
-                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                    title="Please enter a valid email address"
-                    className="w-full text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#015c40] bg-transparent" 
-                  />
-                </div>
-                <div>
-                  <label htmlFor="contact-phone" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">Phone *</label>
-                  <input 
-                    type="tel" 
-                    id="contact-phone"
-                    name="phone" 
-                    placeholder="+91 XXXXX XXXXX"
-                    value={formData.phone} 
-                    onChange={handleFormChange} 
-                    required
-                    autoComplete="tel"
-                    inputMode="tel"
-                    pattern="[0-9]{10}"
-                    title="Please enter a valid 10-digit phone number"
-                    className="w-full text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#015c40] bg-transparent" 
-                  />
-                </div>
-                <div>
-                  <label htmlFor="contact-city" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">City *</label>
-                  <input 
-                    type="text" 
-                    id="contact-city"
-                    name="city" 
-                    placeholder="Your city"
-                    value={formData.city} 
-                    onChange={handleFormChange} 
-                    required
-                    autoComplete="address-level2"
-                    className="w-full text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#015c40] bg-transparent" 
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="contact-interest" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">Interested in *</label>
-                <div className="relative">
-                  <select 
-                    id="contact-interest"
-                    name="interest" 
-                    value={formData.interest} 
-                    onChange={handleFormChange} 
-                    required
-                    className="w-full px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-lg sm:rounded-[10px] border border-[rgba(0,0,0,0.4)] appearance-none bg-white text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px]"
-                  >
-                    <option value="solar">Solar Only</option>
-                    <option value="smart-home">Smart Home Only</option>
-                    <option value="both">Both Solar &amp; Smart Home</option>
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-[#0a0a0a]/40" />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="contact-message" className="block text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-1">Message (Optional)</label>
-                <input 
-                  type="text" 
-                  id="contact-message"
-                  name="message" 
-                  placeholder="Tell us about your energy needs..."
-                  value={formData.message} 
-                  onChange={handleFormChange} 
-                  autoComplete="off"
-                  className="w-full text-[#4a5565] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] tracking-[-0.5px] sm:tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#015c40] bg-transparent" 
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 sm:py-3 md:py-3.5 lg:py-4 bg-linear-to-r from-[#00a63e] to-[#007a55] text-white font-semibold rounded-lg sm:rounded-[10px] text-[13px] sm:text-[14px] md:text-[16px] lg:text-[19px] shadow-[0_4px_15px_rgba(0,166,62,0.25)] hover:shadow-[0_8px_30px_rgba(0,166,62,0.35)] hover:opacity-90 transition-all disabled:opacity-70 font-['Poppins']"
-              >
-                {isSubmitting ? "Sending..." : "Send Message"}
-              </button>
-            </form>
-          )}
+          <InquiryForm
+            theme="green"
+            gridFields={[
+              { type: "text", name: "name", label: "Name *", placeholder: "Your full name", required: true, autoComplete: "name" },
+              { type: "email", name: "email", label: "Email", placeholder: "your@email.com", autoComplete: "email", pattern: "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$", title: "Please enter a valid email address" },
+              { type: "tel", name: "phone", label: "Phone *", placeholder: "+91 XXXXX XXXXX", required: true, autoComplete: "tel", inputMode: "tel", pattern: "[0-9]{10}", title: "Please enter a valid 10-digit phone number" },
+              { type: "text", name: "city", label: "City *", placeholder: "Your city", required: true, autoComplete: "address-level2" },
+            ]}
+            selectField={{
+              type: "select",
+              name: "interest",
+              label: "Interested in *",
+              options: [
+                { value: "solar", label: "Solar Only" },
+                { value: "smart-home", label: "Smart Home Only" },
+                { value: "both", label: "Both Solar & Smart Home" },
+              ],
+            }}
+            messageField={{ name: "message", label: "Message (Optional)", placeholder: "Tell us about your energy needs..." }}
+            submitLabel="Send Message"
+            submittingLabel="Sending..."
+            endpoint="https://formsubmit.co/hello@360watts.com"
+            buildSubject={(data) => `360Watts — New website inquiry from ${data.name}`}
+            whatsappPhone="919087610051"
+            buildWhatsAppMessage={(data) =>
+              `*New inquiry via 360watts.com*\n\n*Name:* ${data.name}\n*Email:* ${data.email}\n*Phone:* ${data.phone}\n*City:* ${data.city}\n*Interest:* ${data.interest}\n` +
+              (data.message ? `*Message:* ${data.message}` : "")
+            }
+            success={{
+              heading: "Thank You!",
+              body1: "Your message has been sent successfully to our team.",
+              body2: "We'll get back to you shortly. For immediate assistance, connect with us on WhatsApp:",
+              whatsappLabel: "Send via WhatsApp Too",
+              resetLabel: "Send another message",
+            }}
+          />
         </motion.div>
 
         {/* Partnership Form */}
@@ -247,154 +88,46 @@ export function ContactSection() {
             <h2 className="text-[22px] sm:text-[25px] md:text-[27px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-3 sm:mb-4 leading-6">Partnership Inquiry</h2>
             <p className="text-[15px] sm:text-[17px] md:text-[19px] text-[#4a5565] tracking-[-0.76px]">
               Interested in partnering with 360watts?<br />
-              Whether you're a supplier, installer, or technology partner, let's work together.
+              Whether you&apos;re a supplier, installer, or technology partner, let&apos;s work together.
             </p>
           </motion.div>
 
           <motion.div className="border border-[rgba(0,0,0,0.3)] rounded-[20px] sm:rounded-[25px] md:rounded-[30px] p-5 sm:p-8 md:p-12 shadow-[0px_3px_4px_0px_rgba(0,0,0,0.45)] bg-white max-w-234.75 mx-auto" variants={revealVariant}>
-            {isPartnershipSubmitted ? (
-              <div className="text-center" aria-live="polite">
-                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle className="w-10 h-10 text-[#ff6900]" />
-                </div>
-                <h3 className="text-[28px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-4">Thank You!</h3>
-                <p className="text-[17px] text-[#4a5565] mb-2">Your partnership inquiry has been sent successfully.</p>
-                <p className="text-[15px] text-[#4a5565] mb-8">Our partnership team will review your request and get back to you shortly. For immediate discussion, reach us on WhatsApp:</p>
-
-                <div className="space-y-4 max-w-2xl mx-auto mb-8">
-                  <button
-                    onClick={sendPartnershipViaWhatsApp}
-                    className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20BA5A] text-white font-semibold px-6 py-4 rounded-xl transition-colors shadow-lg"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    Connect via WhatsApp
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setIsPartnershipSubmitted(false);
-                    setPartnershipData({ name: "", email: "", phone: "", company: "", partnerType: "Supplier", message: "" });
-                  }}
-                  className="text-[#ff6900] font-medium hover:underline font-['Poppins']"
-                >
-                  Submit another inquiry
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handlePartnershipSubmit} className="space-y-5 sm:space-y-6 md:space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 sm:gap-y-8 md:gap-y-15 gap-x-4 sm:gap-x-12 md:gap-x-50">
-                  <div>
-                    <label htmlFor="partner-name" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-1">Name *</label>
-                    <input 
-                      type="text" 
-                      id="partner-name"
-                      name="name" 
-                      placeholder="Your full name"
-                      value={partnershipData.name} 
-                      onChange={handlePartnershipChange} 
-                      required
-                      autoComplete="name"
-                      className="w-full text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#ff6900] bg-transparent" 
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="partner-email" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-1">Email</label>
-                    <input 
-                      type="email" 
-                      id="partner-email"
-                      name="email" 
-                      placeholder="your@email.com"
-                      value={partnershipData.email} 
-                      onChange={handlePartnershipChange} 
-                      autoComplete="email"
-                      pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                      title="Please enter a valid email address"
-                      className="w-full text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#ff6900] bg-transparent" 
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="partner-phone" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-1">Phone *</label>
-                    <input 
-                      type="tel" 
-                      id="partner-phone"
-                      name="phone" 
-                      placeholder="+91 XXXXX XXXXX"
-                      value={partnershipData.phone} 
-                      onChange={handlePartnershipChange} 
-                      required
-                      autoComplete="tel"
-                      inputMode="tel"
-                      pattern="[0-9]{10}"
-                      title="Please enter a valid 10-digit phone number"
-                      className="w-full text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#ff6900] bg-transparent" 
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="partner-company" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-1">Company/Organization *</label>
-                    <input 
-                      type="text" 
-                      id="partner-company"
-                      name="company" 
-                      placeholder="Company name"
-                      value={partnershipData.company} 
-                      onChange={handlePartnershipChange} 
-                      required
-                      autoComplete="organization"
-                      className="w-full text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px] border-b border-gray-300 pb-2 focus:outline-none focus:border-[#ff6900] bg-transparent" 
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="partner-type" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-2">Partnership Type *</label>
-                  <div className="relative">
-                    <select 
-                      id="partner-type"
-                      name="partnerType" 
-                      value={partnershipData.partnerType} 
-                      onChange={handlePartnershipChange} 
-                      required
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-[10px] border border-[rgba(0,0,0,0.4)] appearance-none bg-white text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px]"
-                    >
-                      <option value="Supplier">Supplier</option>
-                      <option value="Installer">Installer</option>
-                      <option value="Technology Partner">Technology Partner</option>
-                      <option value="Distributor">Distributor</option>
-                      <option value="Investment Partner">Investment Partner</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-[#0a0a0a]/40" />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="partner-message" className="block text-[15px] sm:text-[17px] md:text-[19px] text-[#0a0a0a] tracking-[-0.76px] mb-1">Message (Optional)</label>
-                  <textarea 
-                    id="partner-message"
-                    name="message" 
-                    placeholder="Tell us about your partnership proposal..."
-                    value={partnershipData.message} 
-                    onChange={handlePartnershipChange} 
-                    autoComplete="off"
-                    rows={4}
-                    className="w-full text-[#4a5565] text-[15px] sm:text-[17px] md:text-[19px] tracking-[-0.76px] border border-gray-300 rounded-[10px] p-2.5 sm:p-3 focus:outline-none focus:border-[#ff6900] bg-transparent resize-none" 
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isPartnershipSubmitting}
-                  className="w-full py-3 sm:py-3.5 md:py-4 text-white font-medium rounded-[10px] text-[15px] sm:text-[17px] md:text-[19px] hover:opacity-90 transition-opacity disabled:opacity-70"
-                  style={{ backgroundImage: "linear-gradient(170deg, #fdc700 0%, #ff6900 100%)" }}
-                >
-                  {isPartnershipSubmitting ? "Sending..." : "Submit Partnership Inquiry"}
-                </button>
-              </form>
-            )}
+            <InquiryForm
+              theme="orange"
+              gridFields={[
+                { type: "text", name: "name", label: "Name *", placeholder: "Your full name", required: true, autoComplete: "name" },
+                { type: "email", name: "email", label: "Email", placeholder: "your@email.com", autoComplete: "email", pattern: "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$", title: "Please enter a valid email address" },
+                { type: "tel", name: "phone", label: "Phone *", placeholder: "+91 XXXXX XXXXX", required: true, autoComplete: "tel", inputMode: "tel", pattern: "[0-9]{10}", title: "Please enter a valid 10-digit phone number" },
+                { type: "text", name: "company", label: "Company/Organization *", placeholder: "Company name", required: true, autoComplete: "organization" },
+              ]}
+              selectField={{
+                type: "select",
+                name: "partnerType",
+                label: "Partnership Type *",
+                options: ["Supplier", "Installer", "Technology Partner", "Distributor", "Investment Partner", "Other"].map((v) => ({ value: v, label: v })),
+              }}
+              messageField={{ name: "message", label: "Message (Optional)", placeholder: "Tell us about your partnership proposal...", multiline: true }}
+              submitLabel="Submit Partnership Inquiry"
+              submittingLabel="Sending..."
+              endpoint="https://formsubmit.co/hello@360watts.com"
+              buildSubject={(data) => `360Watts — New partnership inquiry from ${data.company}`}
+              whatsappPhone="919087610051"
+              buildWhatsAppMessage={(data) =>
+                `*New partnership inquiry via 360watts.com*\n\n*Name:* ${data.name}\n*Email:* ${data.email}\n*Phone:* ${data.phone}\n*Company:* ${data.company}\n*Partner Type:* ${data.partnerType}\n` +
+                (data.message ? `*Message:* ${data.message}` : "")
+              }
+              success={{
+                heading: "Thank You!",
+                body1: "Your partnership inquiry has been sent successfully.",
+                body2: "Our partnership team will review your request and get back to you shortly. For immediate discussion, reach us on WhatsApp:",
+                whatsappLabel: "Connect via WhatsApp",
+                resetLabel: "Submit another inquiry",
+              }}
+            />
           </motion.div>
         </motion.div>
-        
+
         {/* Location Information Section */}
         <motion.div className="mt-12 sm:mt-16 md:mt-20 mb-10 sm:mb-12 md:mb-16 bg-linear-to-br from-[#f0fdf4] to-[#f7fff9] rounded-[20px] sm:rounded-[26px] md:rounded-4xl p-5 sm:p-7 md:p-10 border border-[#dcfce7] shadow-[0_8px_30px_rgba(4, 113, 58,0.08)]" {...sectionMotionProps}>
           <motion.div className="text-center mb-6 sm:mb-8 md:mb-10" variants={revealVariant}>
@@ -417,8 +150,8 @@ export function ContactSection() {
               />
             </motion.div>
 
-            <motion.div className="md:col-span-2 space-y-3 sm:space-y-4 md:space-y-5" variants={revealVariant}>
-              <motion.div variants={revealVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
+            <motion.div className="md:col-span-2 space-y-3 sm:space-y-4 md:space-y-5" {...staggerMotionProps}>
+              <motion.div variants={reduceMotion ? revealVariant : slideInVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-16 lg:h-16 bg-linear-to-br from-[#dcfce7] to-[#bbf7d0] rounded-[10px] sm:rounded-xl flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-[#04713a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,7 +164,7 @@ export function ContactSection() {
                   </div>
                 </div>
               </motion.div>
-              <motion.div variants={revealVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
+              <motion.div variants={reduceMotion ? revealVariant : slideInVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-16 lg:h-16 bg-linear-to-br from-[#ddefff] to-[#bfdbfe] rounded-[10px] sm:rounded-xl flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -444,7 +177,7 @@ export function ContactSection() {
                   </div>
                 </div>
               </motion.div>
-              <motion.div variants={revealVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
+              <motion.div variants={reduceMotion ? revealVariant : slideInVariant} className="bg-white rounded-[14px] sm:rounded-[18px] md:rounded-[20px] p-4 sm:p-5 md:p-6 shadow-[0_4px_15px_rgba(0,0,0,0.06)] border border-[#e5f3e9] hover:shadow-[0_8px_25px_rgba(4, 113, 58,0.12)] transition-shadow">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-16 lg:h-16 bg-linear-to-br from-[#fef3c7] to-[#fce7f3] rounded-[10px] sm:rounded-xl flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,7 +207,7 @@ export function ContactSection() {
             </a>
           </div>
         </motion.div>
-        </div>
+      </div>
     </motion.section>
   );
 }

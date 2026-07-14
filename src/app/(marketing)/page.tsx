@@ -8,9 +8,6 @@ import { HowItWorksSection } from "./sections/HowItWorksSection";
 import { AppShowcaseSection } from "./sections/AppShowcaseSection";
 import { staggerMotionProps } from "./lib/motion";
 
-const SolarCalculatorSection = dynamic(() =>
-  import("./sections/SolarCalculatorSection").then((m) => ({ default: m.SolarCalculatorSection })),
-);
 const SolutionsSection = dynamic(() =>
   import("./sections/SolutionsSection").then((m) => ({ default: m.SolutionsSection })),
 );
@@ -72,7 +69,6 @@ export default function HomePage() {
       </div>
 
       <AppShowcaseSection />
-      <SolarCalculatorSection />
       <SolutionsSection />
       <AboutSection />
       <FAQSection />

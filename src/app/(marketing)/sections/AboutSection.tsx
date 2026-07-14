@@ -1,11 +1,17 @@
 "use client";
 
+import { useRef, useState, useLayoutEffect } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { storySteps, teamMembers } from "../data";
 import { revealVariant, sectionMotionProps, staggerMotionProps, storyStepVariants, reduceMotion } from "../lib/motion";
 import { use3DTilt } from "../lib/use3DTilt";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 function TiltCard({
   children,
@@ -30,6 +36,40 @@ function TiltCard({
 }
 
 export function AboutSection() {
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<SVGLineElement>(null);
+
+  // Starts exactly when the timeline's top touches the fixed navbar — not at
+  // an arbitrary viewport percentage — matching the pinned sections'
+  // convention (measure the nav's real height rather than guess an offset).
+  const [navH, setNavH] = useState(0);
+  useLayoutEffect(() => {
+    const update = () => setNavH(document.querySelector("nav")?.getBoundingClientRect().height ?? 0);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // The spine draws itself as you scroll through the timeline — one
+  // continuous scrub tied directly to scroll position, not a one-shot
+  // reveal, so there's no separate trigger system to fall out of sync with.
+  useGSAP(
+    () => {
+      if (reduceMotion || !timelineRef.current || !lineRef.current) return;
+      const tween = gsap.fromTo(
+        lineRef.current,
+        { strokeDashoffset: 1 },
+        {
+          strokeDashoffset: 0,
+          ease: "none",
+          scrollTrigger: { trigger: timelineRef.current, start: `top ${navH}px`, end: "bottom 75%", scrub: true },
+        },
+      );
+      return () => tween.scrollTrigger?.kill();
+    },
+    { dependencies: [navH] },
+  );
+
   return (
     <motion.section id="about-section" className="scroll-mt-20 bg-[#f7fff9] min-h-screen text-[#0a0a0a]" {...sectionMotionProps}>
       {/* Hero */}
@@ -63,8 +103,24 @@ export function AboutSection() {
             <p className="text-base sm:text-lg text-[#4a5565] font-['Poppins']">It all started with a question...</p>
           </motion.div>
 
-          <div className="relative">
-            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-linear-to-b from-[#3fa66b] via-[#3fa66b]/95 to-transparent z-0 hidden md:block" />
+          <div ref={timelineRef} className="relative">
+            <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 z-0 hidden md:block">
+              <svg width="100%" height="100%" className="absolute inset-0 overflow-visible" aria-hidden>
+                <line x1="0" y1="0" x2="0" y2="100%" stroke="rgba(63,166,107,0.18)" strokeWidth="2" />
+                <line
+                  ref={lineRef}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="100%"
+                  stroke="#3fa66b"
+                  strokeWidth="2"
+                  pathLength={1}
+                  strokeDasharray={1}
+                  strokeDashoffset={1}
+                />
+              </svg>
+            </div>
 
             <div className="space-y-10 sm:space-y-12 md:space-y-16 relative z-10">
               {storySteps.map((step, idx) => (

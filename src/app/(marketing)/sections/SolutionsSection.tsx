@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Volume2, VolumeX, Play, Pause } from "lucide-react";
-import { Wrench } from "../components/icons/Wrench";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { reduceMotion, revealVariant, sectionMotionProps, staggerMotionProps } from "../lib/motion";
+import { use3DTilt } from "../lib/use3DTilt";
+import { JourneySection } from "./JourneySection";
+import { AppScreensSection } from "./AppScreensSection";
 
 export function SolutionsSection() {
   const [isMuted, setIsMuted] = useState(true);
@@ -15,6 +17,24 @@ export function SolutionsSection() {
   const [showControls, setShowControls] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [solutionsVideoRef, solutionsVideoInView] = useInView({ triggerOnce: false, threshold: 0.2 });
+
+  // solarInView still drives the sun-glint sweep on the Solar photo below.
+  const [solarSectionRef, solarInView] = useInView({ threshold: 0.4 });
+
+  // Split editorial layout for Solar/Smart Home: image gets its own honestly
+  // proportioned frame (no more forcing a portrait photo into a squashed
+  // landscape band) while the feature list becomes real stacked content
+  // instead of tiny floating labels — reusing the same tilt/parallax
+  // utilities as UnifiedSolutionSection rather than adding another
+  // GSAP-pinned scroll-jack section on top of Journey/AppShowcase/AppScreens.
+  const tiltSolar = use3DTilt({ maxDeg: 5, disabled: reduceMotion });
+  const tiltHome = use3DTilt({ maxDeg: 5, disabled: reduceMotion });
+  const solarImgRef = useRef<HTMLDivElement>(null);
+  const homeImgRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress: solarImgProgress } = useScroll({ target: solarImgRef, offset: ["start end", "end start"] });
+  const { scrollYProgress: homeImgProgress } = useScroll({ target: homeImgRef, offset: ["start end", "end start"] });
+  const solarImgY = useTransform(solarImgProgress, [0, 1], [-20, 20]);
+  const homeImgY = useTransform(homeImgProgress, [0, 1], [-20, 20]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -78,12 +98,31 @@ export function SolutionsSection() {
             "radial-gradient(1200px 520px at 50% -18%, rgba(15,23,42,0.06), transparent 60%), radial-gradient(900px 520px at 110% 12%, rgba(59,130,246,0.10), transparent 66%), linear-gradient(180deg, #f7fff9 0%, #f6fdf8 36%, #eef9f3 72%, #e3f3ea 100%)",
         }}
       >
-        {/* Video Hero */}
-        <section ref={solutionsVideoRef} className="relative w-full min-w-0 flex justify-center items-center h-70 sm:h-100 md:h-125 lg:h-auto py-0 lg:py-12 px-4 sm:px-6">
-          <div
-            className="group relative w-full max-w-250 aspect-video overflow-hidden shadow-xl border border-black/10 bg-transparent z-10 min-w-0"
+        {/* Video Hero — dark "cinema" backdrop (same unified palette as Hero/AppShowcase/Journey)
+            gives this its own moment instead of floating, unframed, in the light wash below it. */}
+        <section
+          ref={solutionsVideoRef}
+          className="relative w-full min-w-0 flex flex-col items-center justify-center py-10 sm:py-16 md:py-20 px-4 sm:px-6 bg-linear-to-b from-[#0f2f1e] via-[#0c1e14] to-[#0f2418]"
+        >
+          <motion.div
+            className="text-center mb-6 sm:mb-8 md:mb-10"
+            initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
+            animate={reduceMotion || solutionsVideoInView ? { opacity: 1, y: 0 } : undefined}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <span className="eyebrow text-[#2FBF71]">See it in action</span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-['Urbanist'] text-white tracking-tight mt-2">
+              360watts, at work
+            </h2>
+          </motion.div>
+
+          <motion.div
+            className="group relative w-full max-w-200 aspect-video overflow-hidden rounded-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] border border-white/10 bg-transparent z-10 min-w-0"
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
+            initial={reduceMotion ? undefined : { opacity: 0, scale: 0.96 }}
+            animate={reduceMotion || solutionsVideoInView ? { opacity: 1, scale: 1 } : undefined}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <video
               ref={videoRef}
@@ -97,7 +136,7 @@ export function SolutionsSection() {
             >
               <source src={APP_IMAGES.solutionsVideo} type="video/mp4" />
             </video>
-            <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#f7fff9]/30 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#0c1e14]/40 pointer-events-none" />
             {/* Media controls — visible on hover or when paused */}
             <div
               className={`absolute inset-0 z-20 flex flex-col justify-end bg-linear-to-t from-black/60 via-transparent to-transparent transition-opacity duration-200 ${
@@ -140,330 +179,157 @@ export function SolutionsSection() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
 
-        {/* Solution selector below video */}
-        <section className="px-6 py-10">
-          <div className="w-full max-w-4xl mx-auto min-w-0 flex justify-center gap-4 flex-wrap">
-            {[
-              { key: "solar", label: "Smart Solar", target: "solar" },
-              { key: "smart-home", label: "Smart Home", target: "smart-home" },
-              { key: "app", label: "App", target: "app" },
-            ].map((tab) => (
-              <motion.button
-                key={tab.key}
-                type="button"
-                onClick={() => {
-                  const el = document.getElementById(tab.target);
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="px-6 py-3 rounded-[10px] font-['Urbanist'] font-bold text-[19px] transition-all border border-black/10 shadow-sm bg-white text-[#0a0a0a] hover:bg-black/5"
-              >
-                {tab.label}
-              </motion.button>
-            ))}
-          </div>
-        </section>
-
-        {/* Smart solar solutions — style matched to Smart home solutions block */}
-        <motion.section id="solar" className="px-4 sm:px-6 py-12 sm:py-14 md:py-16 border-b border-black/5" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-6xl mx-auto min-w-0 text-center space-y-2 sm:space-y-3 mb-8 sm:mb-10" variants={revealVariant}>
-            <p className="text-[32px] sm:text-[40px] md:text-[50px] font-['Urbanist'] text-[#0a0a0a] font-bold">Smart Solar Solutions</p>
-            <p className="text-[14px] sm:text-[15px] md:text-[17px] font-['Poppins'] text-[#4a5565]">
-              We design, install, and maintain high-performance solar systems tailored for your home
-            </p>
-          </motion.div>
-        </motion.section>
-
-        {/* Solar hero image with callouts */}
-        <motion.section className="px-6 pb-16" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-5xl mx-auto min-w-0 rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)] relative" variants={revealVariant}>
-            <img
-              src={APP_IMAGES.solutionsSolarHouse}
-              alt="Solar house"
-              className="w-full h-100 sm:h-150 md:h-200 lg:h-250 object-cover object-bottom"
-              loading="lazy"
-              decoding="async"
-            />
-            <div className="absolute inset-0 pointer-events-none block">
-              <motion.div
-                className="absolute left-[5%] sm:left-[10%] top-[5%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] lg:rounded-xl shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 lg:p-6 w-35 sm:w-50 md:w-60 lg:w-70"
-                animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                  <div className="w-3 h-3 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-[rgba(157,221,180,0.47)] rounded flex items-center justify-center"><Wrench property1="variant-2" vector="vector-2.svg" /></div>
-                  <p className="font-['Urbanist'] font-bold text-[9px] sm:text-[13px] md:text-[14px] lg:text-[16px] text-[#0a0a0a]">End-to-End</p>
-                </div>  
-                <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">From design to installation to maintenance</p>
-              </motion.div>
-              <motion.div
-                className="absolute right-[5%] sm:right-[10%] top-[15%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
-                animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-              >
-                <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                  <div className="w-3 h-3 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-[rgba(157,221,180,0.47)] rounded flex items-center justify-center"><Wrench property1="variant-3" slidersHorizontalVector="vector-3.svg" /></div>
-                  <p className="font-['Urbanist'] font-bold text-[9px] sm:text-[13px] md:text-[14px] lg:text-[16px] text-[#0a0a0a]">Remote performance monitoring</p>
-                </div>
-                <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">Track your system 24/7</p>
-              </motion.div>
-              <motion.div
-                className="absolute right-[5%] sm:right-[10%] bottom-[50%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-1 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
-                animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-              >
-                <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                  <div className="w-3 h-3 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-[rgba(157,221,180,0.47)] rounded flex items-center justify-center"><Wrench property1="variant-3" slidersHorizontalVector="vector-3.svg" /></div>
-                  <p className="font-['Urbanist'] font-bold text-[9px] sm:text-[13px] md:text-[14px] lg:text-[16px] text-[#0a0a0a]">Maintenance & warranty</p>
-                </div>
-                <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">Guaranteed performance and support</p>
-              </motion.div>
-              <motion.div
-                className="absolute left-[5%] sm:left-[10%] bottom-[62%] bg-[rgba(255,255,255,0.8)] border border-[rgba(0,0,0,0.4)] rounded-xl sm:rounded-2xl md:rounded-[20px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)] p-2 sm:p-3 md:p-4 w-35 sm:w-50 md:w-60 lg:w-70"
-                animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
-              >
-                <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                  <div className="w-3 h-3 sm:w-6 sm:h-6 md:w-8 md:h-8 bg-[rgba(157,221,180,0.47)] rounded flex items-center justify-center"><Wrench property1="default" vector="vector-2.svg" /></div>
-                  <p className="font-['Urbanist'] font-bold text-[9px] sm:text-[13px] md:text-[14px] lg:text-[16px] text-[#0a0a0a]">Flexible models</p>
-                </div>
-                <p className="font-['Poppins'] text-[7px] sm:text-[11px] md:text-[12px] lg:text-[14px] text-[rgba(0,0,0,0.7)]">Subscription or purchase options</p>
-              </motion.div>
-            </div>
-          </motion.div>
-          <div className="w-full max-w-5xl mx-auto min-w-0 mt-6 flex justify-center">
-            <a
-              href="#contact-section"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="bg-[rgba(0,0,0,0.75)] text-white font-['Urbanist'] font-bold text-[19px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
-            >
-              Enquire Solar Plans
-            </a>
-          </div>
-        </motion.section>
-
-        {/* Journey */}
-        <motion.section className="px-6 pb-20" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-6xl mx-auto min-w-0 text-center mb-12" variants={revealVariant}>
-            <h2 className="text-[32px] sm:text-[38px] md:text-[44px] lg:text-[48px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-3 md:mb-4 tracking-[-1.5px]">Your journey to smarter solar</h2>
-            <p className="text-[18px] text-[#4a5565] font-['Poppins']">
-              From assessment to ongoing support, we're with you every step of the way
-            </p>
-          </motion.div>
-          <motion.div className="w-full max-w-6xl mx-auto min-w-0 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-5 md:gap-6" {...staggerMotionProps}>
-            {[
-              { title: "Online Proposal", desc: "Upload your bills and location to get your solar proposal with 3D layout." },
-              { title: "Site Assessment", desc: "Our team validates your design & finalizes proposal." },
-              { title: "Professional Installation", desc: "Our team manages everything, from installation, commissioning & subsidy." },
-              { title: "Smart Monitoring", desc: "Control solar generation, savings, and system health - all in one app and from anywhere." },
-              { title: "Ongoing Support", desc: "With 360Care, stay worry-free. We cover all maintenance." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                variants={revealVariant}
-                className="bg-white rounded-2xl md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
-              >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-linear-to-br from-[#fdc700] to-[#ff6900] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
-                <p className="font-['Poppins'] text-[10px] sm:text-[11px] md:text-[12px] text-[#4a5565] leading-[1.4]">{item.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.section>
-
-        {/* Smart home solutions */}
-        <motion.section id="smart-home" className="px-4 sm:px-6 py-12 sm:py-14 md:py-16" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-6xl mx-auto text-center space-y-2 sm:space-y-3 mb-8 sm:mb-10" variants={revealVariant}>
-            <p className="text-[32px] sm:text-[40px] md:text-[50px] font-['Urbanist'] text-[#0a0a0a] font-bold">Smart home solutions</p>
-            <p className="text-[14px] sm:text-[15px] md:text-[17px] font-['Poppins'] text-[#4a5565]">
-              Our intelligent automation connects your home's devices to your solar flow.
-            </p>
-          </motion.div>
-
-          <motion.div className="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]" variants={revealVariant}>
-            <img
-              src={APP_IMAGES.solutionsSmartHomeScene}
-              alt="Smart home"
-              className="w-full h-auto object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            <div className="absolute inset-0 pointer-events-none block">
-              <motion.div
-                className="absolute left-[5%] sm:left-[10%] top-[10%] sm:top-[15%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-25 sm:max-w-30 md:max-w-40 lg:max-w-45 xl:max-w-52.5"
-                animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
-                transition={reduceMotion ? undefined : { duration: 5.6, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <p className="font-['Urbanist'] font-bold text-[8px] sm:text-[10px] md:text-[12px] lg:text-[13px] xl:text-[14px]">Device Scheduling</p>
-                <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">Automate based on your routine</p>
-              </motion.div>
-              <motion.div
-                className="absolute right-[15%] sm:right-[10%] md:right-[20%] top-[32%] sm:top-[35%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-27.5 sm:max-w-35 md:max-w-45 lg:max-w-50 xl:max-w-57.5 text-right"
-                animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-              >
-                <p className="font-['Urbanist'] font-bold text-[8px] sm:text-[10px] md:text-[12px] lg:text-[13px] xl:text-[14px]">Predictive Energy Routines</p>
-                <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">AI learns your patterns</p>
-              </motion.div>
-              <motion.div
-                className="absolute left-[40%] sm:left-[35%] md:left-[45%] top-[10%] sm:top-[15%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-26.25 sm:max-w-32.5 md:max-w-42.5 lg:max-w-47.5 xl:max-w-55"
-                animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
-                transition={reduceMotion ? undefined : { duration: 5.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-              >
-                <p className="font-['Urbanist'] font-bold text-[8px] sm:text-[10px] md:text-[12px] lg:text-[13px] xl:text-[14px]">Seamless Integration</p>
-                <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">Works with existing smart devices</p>
-              </motion.div>
-              <motion.div
-                className="absolute left-[23%] sm:left-[20%] md:left-[28%] bottom-[55%] sm:bottom-[56%] bg-white/94 rounded-md sm:rounded-lg md:rounded-[10px] lg:rounded-xl px-1 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1 md:py-2 lg:py-3 shadow border border-black/5 max-w-26.25 sm:max-w-32.5 md:max-w-42.5 lg:max-w-47.5 xl:max-w-55 text-center"
-                animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
-                transition={reduceMotion ? undefined : { duration: 6.2, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-              >
-                <p className="font-['Urbanist'] font-bold text-[8px] sm:text-[10px] md:text-[12px] lg:text-[13px] xl:text-[14px]">Cross Device Automation</p>
-                <p className="font-['Poppins'] text-[6px] sm:text-[8px] md:text-[10px] lg:text-[11px] xl:text-[12px] text-[#3f3f3f] leading-tight">All devices work together</p>
-              </motion.div>
-            </div>
-          </motion.div>
-          <div className="w-full max-w-6xl mx-auto mt-10 flex justify-center">
-            <a
-              href="#contact-section"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="bg-[#0a0a0a] text-white font-['Urbanist'] font-bold text-[17px] px-6 py-3 rounded-[10px] hover:opacity-90 transition-opacity"
-            >
-              Enquire Smart Home
-            </a>
-          </div>
-        </motion.section>
-
-        {/* Smarter Living */}
-        <motion.section className="px-4 sm:px-6 py-12 sm:py-16 md:py-20" {...sectionMotionProps}>
-          <motion.div className="w-full max-w-6xl mx-auto text-center mb-10 sm:mb-12 md:mb-16" variants={revealVariant}>
-            <h2 className="text-[30px] sm:text-[40px] md:text-[50px] lg:text-[54px] font-['Urbanist'] font-bold tracking-[-1px] sm:tracking-[-2px] text-[#0a0a0a] mb-3 sm:mb-4">
-              Smarter Living, Simplified
-            </h2>
-            <p className="text-[14px] sm:text-[16px] md:text-[18px] text-[#4a5565] font-['Poppins'] max-w-3xl mx-auto">
-              Transform your home into an intelligent, energy-efficient haven
-            </p>
-          </motion.div>
-          <motion.div className="w-full max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-5 md:gap-6" {...staggerMotionProps}>
-            {[
-              { title: "Smart-Home Planning", desc: "We understand your lifestyle and automation needs - from high-load appliances up to a full home." },
-              { title: "Smart devices", desc: "We suggest a list of smart devices for your automation. You can expand to new devices as you wish." },
-              { title: "Device Integration", desc: "Our 360watts app effortlessly recognizes lighting, security, and smart appliances, keeping you connected from anywhere." },
-              { title: "Automation Setup", desc: "The 360watts app guides you effortlessly in automation setup. Let AI suggest automations, or you can set them up manually." },
-              { title: "Continuous Support", desc: "We keep our 360watts app updated to latest AI/ML developments. You can reach us for any technical support anytime." },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                variants={revealVariant}
-                className="bg-white rounded-2xl md:rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-black/5 px-3 sm:px-4 py-4 sm:py-5 flex flex-col items-center text-center gap-2 sm:gap-3"
-              >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-linear-to-br from-[#51a2ff] to-[#615fff] flex items-center justify-center text-white font-bold text-base sm:text-lg md:text-xl">
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <p className="font-['Urbanist'] font-bold text-[13px] sm:text-[14px] md:text-[16px] text-[#0a0a0a]">{item.title}</p>
-                <p className="font-['Poppins'] text-[10px] sm:text-[11px] md:text-[12px] text-[#4a5565] leading-[1.4]">{item.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.section>
-
-        {/* 360watts App */}
-        <section id="app" className="px-3 sm:px-4 md:px-6 py-12 sm:py-16 md:py-20 lg:py-24">
-          <div className="w-full max-w-7xl mx-auto">
-            {/* Header */}
-            <motion.div className="text-center mb-6 sm:mb-10 md:mb-12 lg:mb-16" {...sectionMotionProps}>
-              <h2 className="text-[42px] sm:text-[80px] md:text-[99px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-3.96px] mb-2 sm:mb-4">360watts App</h2>
-              <p className="text-[16px] sm:text-[23px] text-[#0a0a0a]/50 font-['Poppins'] tracking-[-0.92px] mb-4 sm:mb-6">Our Unified App Ecosystem</p>
-              <div className="max-w-2xl mx-auto">
-                <p className="text-[16px] sm:text-[23px] text-[#0a0a0a]/60 font-['Poppins'] tracking-[-0.92px] leading-relaxed">
-                  The 360watts app bridges solar and smart living. View real-time energy flows, control devices, and get actionable insights - all in one dashboard.
-                </p>
-              </div>
+        {/* Smart Solar Solutions — editorial split layout. The source photo
+            is a portrait crop (1314×1920); previously it was force-cropped
+            into a short landscape band via object-cover, losing most of the
+            frame. Here it gets an honestly-proportioned portrait frame
+            instead, and the four features become real stacked nameplate
+            rows (not tiny floating labels), giving this section deliberate,
+            un-skippable scroll weight of its own between the two large
+            pinned sections on either side (Journey before AppShowcase,
+            AppScreens after). */}
+        <motion.section id="solar" ref={solarSectionRef} className="px-4 sm:px-6 py-8 sm:py-10 md:py-12 border-b border-black/5" {...sectionMotionProps}>
+          <div className="w-full max-w-6xl mx-auto min-w-0">
+            <motion.div className="text-center md:text-left space-y-1.5 mb-5 md:mb-6 max-w-2xl mx-auto md:mx-0" variants={revealVariant}>
+              <span className="eyebrow text-[#b4881f]">On your roof</span>
+              <p className="text-[26px] sm:text-[32px] md:text-[38px] font-['Urbanist'] text-[#0a0a0a] font-bold">Smart Solar Solutions</p>
+              <p className="text-[13px] sm:text-[14px] md:text-[15px] font-['Poppins'] text-[#4a5565]">
+                We design, install, and maintain high-performance solar systems tailored for your home
+              </p>
             </motion.div>
 
-            {/* Phone Grid Layout */}
-            <div className="space-y-0">
-              {/* Real-time Insights - First row */}
-              <motion.div className="flex flex-row items-center gap-8 lg:gap-10" {...sectionMotionProps}>
-                <div className="flex-1 text-center px-2 sm:text-center sm:px-6">
-                  <h3 className="text-[18px] sm:text-[28px] lg:text-[30px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1.2px] mb-4">
-                    Real-time Insights
-                  </h3>
-                  <p className="text-[10px] sm:text-[20px] lg:text-[24px] font-['Poppins'] text-[#4a5565] tracking-[-0.96px] leading-relaxed">
-                    Monitor your energy generation, consumption, and savings live, all in one intuitive dashboard.
-                  </p>
-                </div>
-                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
-                  {/* App Screenshot */}
-                  <img src={APP_IMAGES.solutionsAppPhoneInsights} alt="Real-time Insights" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
-                  {/* Phone Frame Overlay */}
-                  <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
-                </div>
-              </motion.div>
-              {/* Smart Scheduling - Second row */}
-              <motion.div className="flex flex-row-reverse items-center gap-8 lg:gap-10" {...sectionMotionProps}>
-                <div className="flex-1 text-center px-1 sm:text-center sm:px-6">
-                  <h3 className="text-[18px] sm:text-[28px] lg:text-[30px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1.2px] mb-2">Smart Scheduling</h3>
-                  <p className="text-[10px] sm:text-[20px] lg:text-[24px] font-['Poppins'] text-[#4a5565] tracking-[-0.96px] leading-relaxed">
-                    Automatically run high-load devices when solar power is abundant to maximize efficiency and reduce costs.
-                  </p>
-                </div>
-                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
-                  {/* App Screenshot */}
-                  <img src={APP_IMAGES.solutionsAppPhoneMonitor} alt="Smart Scheduling" className="absolute inset-[14%] top-[10%] w-[75%] h-[80%] object-cover rounded-[10px]" loading="lazy" decoding="async" />
-                  {/* Phone Frame Overlay */}
-                  <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
-                </div>
+            <div className="grid md:grid-cols-2 gap-5 md:gap-8 items-center">
+              <motion.div ref={solarImgRef} variants={revealVariant} style={tiltSolar.wrapperStyle} className="relative w-full max-w-xs md:max-w-none mx-auto md:mx-0">
+                <motion.div
+                  style={tiltSolar.cardStyle}
+                  onMouseMove={tiltSolar.onMouseMove}
+                  onMouseLeave={tiltSolar.onMouseLeave}
+                  className="relative h-[269px] sm:h-[307px] md:h-[346px] rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]"
+                >
+                  <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: solarImgY }}>
+                    <img
+                      src={APP_IMAGES.solutionsSolarHouse}
+                      alt="Solar house"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </motion.div>
+                  {!reduceMotion && (
+                    <motion.div
+                      className="absolute top-0 -left-1/3 w-1/3 h-full bg-white/25 -skew-x-12 pointer-events-none"
+                      style={{ mixBlendMode: "overlay" }}
+                      initial={{ x: "-40%" }}
+                      animate={solarInView ? { x: "480%" } : undefined}
+                      transition={{ duration: 1.7, ease: "easeInOut", delay: 0.4 }}
+                    />
+                  )}
+                </motion.div>
               </motion.div>
 
-              {/* Routines and Modes - Third row (zig-zag) */}
-              <motion.div className="flex flex-row items-center gap-8 lg:gap-10" {...sectionMotionProps}>
-                <div className="flex-1 text-center px-2 sm:text-center sm:px-6">
-                  <h3 className="text-[18px] sm:text-[28px] lg:text-[30px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1.2px] mb-4">Routines and Modes</h3>
-                  <p className="text-[10px] sm:text-[20px] lg:text-[24px] font-['Poppins'] text-[#4a5565] tracking-[-0.96px] leading-relaxed">
-                    Set your home to match your daily life. Lights, fans, and devices adjust automatically to your routine.
-                  </p>
-                </div>
-                <div className="shrink-0 relative w-40 sm:w-95 lg:w-92.5 aspect-[329/636]">
-                  {/* App Screenshot */}
-                  <img src={APP_IMAGES.solutionsAppPhoneModes} alt="Routines and Modes" className="absolute inset-[11.5%] top-[8.5%] w-[77%] h-[83%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
-                  {/* Phone Frame Overlay */}
-                  <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
-                </div>
+              <motion.div className="space-y-2 sm:space-y-2.5" {...staggerMotionProps}>
+                <SolarRow title="End-to-End" caption="From design to installation to maintenance" />
+                <SolarRow title="Remote performance monitoring" caption="Track your system 24/7" />
+                <SolarRow title="Maintenance & warranty" caption="Guaranteed performance and support" />
+                <SolarRow title="Flexible models" caption="Subscription or purchase options" />
               </motion.div>
+            </div>
 
-              {/* Maintenance and Care - Fourth row (zig-zag) */}
-              <motion.div className="flex flex-row-reverse items-center gap-8 lg:gap-10" {...sectionMotionProps}>
-                <div className="flex-1 text-center px-2 sm:text-center sm:px-6">
-                  <h3 className="text-[18px] sm:text-[28px] lg:text-[30px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1.2px] mb-4">Maintenance and Care</h3>
-                  <p className="text-[10px] sm:text-[20px] lg:text-[24px] font-['Poppins'] text-[#4a5565] tracking-[-0.96px] leading-relaxed">
-                    Easily book service appointments and keep your solar and smart systems performing at their best.
-                  </p>
-                </div>
-                <div className="shrink-0 relative w-44 sm:w-95 lg:w-92.5 aspect-[329/636]">
-                  {/* App Screenshot */}
-                  <img src={APP_IMAGES.solutionsAppPhoneHero} alt="Maintenance and Care" className="absolute inset-[14.5%] top-[9%] bottom-[6%] w-[75%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
-                  {/* Phone Frame Overlay */}
-                  <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-2 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
-                </div>
-              </motion.div>
-
+            <div className="mt-5 md:mt-6 flex justify-center md:justify-start">
+              <a
+                href="#contact-section"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="bg-[#04713a] text-white font-['Urbanist'] font-bold text-[16px] sm:text-[17px] px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+              >
+                Enquire Solar Plans
+              </a>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* CTA Section */}
-        <motion.section className="py-16 sm:py-20 md:py-24 px-4 sm:px-6" {...sectionMotionProps}>
+        {/* Journey — pinned, scroll-scrubbed sun-arc sequence (see JourneySection.tsx) */}
+        <JourneySection />
+
+        {/* Smart Home Solutions — "live status chip" language: this is
+            ambient software watching and adjusting in the background, so its
+            callouts read like notification/presence chips (pulsing dot,
+            glass blur, blue accent) rather than a hardware plate. Same card
+            anchoring as Solar above, different material — the pairing is
+            the point. */}
+        <motion.section id="smart-home" className="px-4 sm:px-6 py-8 sm:py-10 md:py-12" {...sectionMotionProps}>
+          <div className="w-full max-w-6xl mx-auto">
+            <motion.div className="text-center md:text-right space-y-1.5 mb-5 md:mb-6 max-w-2xl mx-auto md:ml-auto md:mr-0" variants={revealVariant}>
+              <span className="eyebrow text-[#2563eb]">In your home</span>
+              <p className="text-[26px] sm:text-[32px] md:text-[38px] font-['Urbanist'] text-[#0a0a0a] font-bold">Smart home solutions</p>
+              <p className="text-[13px] sm:text-[14px] md:text-[15px] font-['Poppins'] text-[#4a5565]">
+                Our intelligent automation connects your home's devices to your solar flow.
+              </p>
+            </motion.div>
+
+            {/* image on the right on desktop (mirrors Solar's left placement — a
+                real zig-zag between the two products, not decoration), stacks
+                image-first on mobile */}
+            <div className="grid md:grid-cols-2 gap-5 md:gap-8 items-center">
+              <motion.div className="space-y-2 sm:space-y-2.5 order-2 md:order-1" {...staggerMotionProps}>
+                <StatusRow title="Device Scheduling" caption="Automate based on your routine" />
+                <StatusRow title="Seamless Integration" caption="Works with existing smart devices" />
+                <StatusRow title="Cross Device Automation" caption="All devices work together" />
+                <StatusRow title="Predictive Energy Routines" caption="AI learns your patterns" />
+              </motion.div>
+
+              <motion.div ref={homeImgRef} variants={revealVariant} style={tiltHome.wrapperStyle} className="relative w-full max-w-sm md:max-w-none mx-auto md:mx-0 order-1 md:order-2">
+                <motion.div
+                  style={tiltHome.cardStyle}
+                  onMouseMove={tiltHome.onMouseMove}
+                  onMouseLeave={tiltHome.onMouseLeave}
+                  className="relative h-[269px] sm:h-[307px] md:h-[346px] rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]"
+                >
+                  <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: homeImgY }}>
+                    <img
+                      src={APP_IMAGES.solutionsSmartHomeScene}
+                      alt="Smart home"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            </div>
+
+            <div className="mt-5 md:mt-6 flex justify-center md:justify-end">
+              <a
+                href="#contact-section"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="bg-[#2563eb] text-white font-['Urbanist'] font-bold text-[16px] sm:text-[17px] px-5 py-2.5 rounded-[10px] hover:opacity-90 transition-opacity"
+              >
+                Enquire Smart Home
+              </a>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* "Smarter Living" used to live here as its own rail, re-describing the
+            same smart-home setup flow already covered by HowItWorksSection's
+            Smart Home column — folded in there instead of existing twice. */}
+
+        <AppScreensSection />
+
+        {/* CTA Section — eases back to #f7fff9 by its own bottom so the seam
+            into AboutSection (flat bg-[#f7fff9]) matches exactly; the parent
+            wrapper's gradient is still deepening toward #e3f3ea at this
+            depth, which would otherwise leave a visible mismatch at the
+            SolutionsSection/AboutSection boundary. */}
+        <motion.section className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 bg-linear-to-b from-transparent to-[#f7fff9]" {...sectionMotionProps}>
           <motion.div className="w-full max-w-4xl mx-auto text-center" variants={revealVariant}>
             <h2 className="text-[28px] sm:text-[36px] md:text-[40px] lg:text-5xl font-bold text-[#0a0a0a] font-['Urbanist'] mb-4 sm:mb-6">
               Want to explore the future?
@@ -494,5 +360,50 @@ export function SolutionsSection() {
       </div>
     </section>
 
+  );
+}
+
+/** Solar's "equipment nameplate" row — mono caption, corner notch, amber
+ *  accent bar: a physical spec plate, not an app tooltip. Real stacked
+ *  content (not an absolutely-positioned label) so the section has honest,
+ *  un-skippable scroll weight of its own. */
+function SolarRow({ title, caption }: { title: string; caption: string }) {
+  return (
+    <motion.div
+      variants={revealVariant}
+      className="relative overflow-hidden flex items-center gap-3 bg-[#fdf8ee] border border-black/10 rounded-xl px-4 py-2.5"
+    >
+      <span className="absolute top-0 left-0 w-3 h-3 bg-[#0c1e14] [clip-path:polygon(0_0,100%_0,0_100%)]" />
+      <div className="h-6 w-[3px] bg-[#E9B949] rounded-full shrink-0" />
+      <div>
+        <p className="font-['Urbanist'] font-bold uppercase tracking-[0.02em] text-[14px] sm:text-[15px] text-[#0a0a0a]">{title}</p>
+        <p className="font-mono text-[11px] sm:text-[12px] text-[#0a0a0a]/60 mt-1">{caption}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+/** Smart Home's "live status" row — glass blur, blue accent, a pulsing
+ *  presence dot: software watching in the background, not a static label. */
+function StatusRow({ title, caption }: { title: string; caption: string }) {
+  return (
+    <motion.div
+      variants={revealVariant}
+      className="flex items-start gap-3 bg-white/70 backdrop-blur-md border border-[#3B82F6]/25 rounded-2xl px-4 py-2.5 shadow-[0_8px_20px_rgba(37,99,235,0.08)]"
+    >
+      <span className="relative mt-1.5 shrink-0 w-2 h-2 rounded-full bg-[#3B82F6]">
+        {!reduceMotion && (
+          <motion.span
+            className="absolute inset-0 rounded-full bg-[#3B82F6]"
+            animate={{ scale: [1, 2.4], opacity: [0.6, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+          />
+        )}
+      </span>
+      <div>
+        <p className="font-['Urbanist'] font-bold text-[14px] sm:text-[15px] text-[#0a0a0a]">{title}</p>
+        <p className="font-['Poppins'] text-[12px] sm:text-[13px] text-[#0a0a0a]/60 mt-0.5">{caption}</p>
+      </div>
+    </motion.div>
   );
 }

@@ -628,7 +628,20 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
 
                     <motion.div
                       className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
-                      {...(reduceMotion ? {} : staggerMotionProps)}
+                      {...(reduceMotion
+                        ? {}
+                        : {
+                            initial: "hidden" as const,
+                            whileInView: "visible" as const,
+                            viewport: { once: true, amount: 0.1 },
+                            // Big numbers land first, detail cascades in after — not two
+                            // staggers racing in parallel. delayChildren waits out the
+                            // primary grid's own stagger + reveal duration before starting.
+                            variants: {
+                              hidden: {},
+                              visible: { transition: { staggerChildren: 0.1, delayChildren: primaryStats.length * 0.1 + 0.45 } },
+                            },
+                          })}
                     >
                       {secondaryStats.map((stat) => {
                         const Icon = stat.icon;

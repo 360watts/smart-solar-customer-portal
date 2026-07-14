@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { useCalculatorModal } from "../lib/CalculatorModalContext";
 
 const navItems = [
   { label: "Home", href: "/", sectionId: "hero-section" },
@@ -22,6 +23,13 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { open: openCalculator } = useCalculatorModal();
+
+  const handleCalculatorClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    openCalculator();
+    setMobileMenuOpen(false);
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -103,14 +111,13 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
           >
             360watts Login
           </Link>
-          <a
-            href="#solar-calculator"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, "solar-calculator")}
+          <button
+            onClick={handleCalculatorClick}
             className="inline-flex items-center gap-2 px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 bg-linear-to-r from-[#04713a] to-[#015c40] text-white font-medium rounded-lg hover:opacity-90 transition-all font-['Poppins'] text-sm xl:text-base cursor-pointer"
             aria-label="Calculate your solar savings"
           >
             Calculate Savings <ArrowRight className="w-4 h-4" />
-          </a>
+          </button>
         </div>
 
         {/* Mobile Menu Button */}
@@ -151,14 +158,13 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
             >
               360watts Login
             </Link>
-            <a
-              href="#solar-calculator"
-              onClick={(e: React.MouseEvent) => handleNavClick(e, "solar-calculator")}
+            <button
+              onClick={handleCalculatorClick}
               className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-linear-to-r from-[#04713a] to-[#015c40] text-white font-semibold rounded-xl font-['Poppins'] cursor-pointer"
               aria-label="Calculate your solar savings"
             >
               Calculate Savings <ArrowRight className="w-5 h-5" />
-            </a>
+            </button>
           </div>
         </div>
       </div>

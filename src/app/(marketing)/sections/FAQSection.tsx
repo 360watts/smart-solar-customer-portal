@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { faqSections } from "../data";
 import { FAQSectionComponent } from "../components/FAQSection";
-import { sectionMotionProps, staggerMotionProps, revealVariant } from "../lib/motion";
+import { sectionMotionProps, staggerMotionProps, revealVariant, reduceMotion } from "../lib/motion";
 
 export function FAQSection() {
   return (
@@ -13,7 +13,17 @@ export function FAQSection() {
       {...sectionMotionProps}
     >
       <div className="relative isolate overflow-hidden rounded-[50px] sm:rounded-[60px] md:rounded-[80px] px-4 sm:px-6 w-full min-w-0">
-        <div className="absolute inset-0 bg-linear-to-r from-[rgba(4, 113, 58,0.09)] to-[rgba(1,92,64,0.09)] rounded-[50px] sm:rounded-[60px] md:rounded-[80px]" />
+        {/* Slow ambient drift — a loop, not scroll-linked, so the panel doesn't feel inert while reading */}
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 rounded-[50px] sm:rounded-[60px] md:rounded-[80px]"
+          style={{
+            backgroundImage: "linear-gradient(90deg, rgba(4,113,58,0.09), rgba(1,92,64,0.09), rgba(4,113,58,0.09))",
+            backgroundSize: "200% 100%",
+          }}
+          animate={reduceMotion ? undefined : { backgroundPosition: ["0% 50%", "100% 50%"] }}
+          transition={reduceMotion ? undefined : { duration: 10, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+        />
         <header className="relative h-70 sm:h-80 md:h-95 flex items-center justify-center px-0">
           <motion.div className="w-full max-w-240 mx-auto min-w-0 text-center space-y-2" variants={revealVariant}>
             <h2 className="text-[26px] sm:text-[30px] md:text-[36px] font-bold tracking-[-0.04em] font-['Urbanist'] text-[#0a0a0a]">

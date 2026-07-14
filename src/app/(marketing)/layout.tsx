@@ -1,4 +1,6 @@
 import MarketingNav from "./components/MarketingNav";
+import { CalculatorModal } from "./components/CalculatorModal";
+import { CalculatorModalProvider } from "./lib/CalculatorModalContext";
 
 export default function MarketingLayout({
   children,
@@ -6,9 +8,12 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="marketing">
-      <MarketingNav transparent />
-      {children}
-    </div>
+    <CalculatorModalProvider>
+      <div className="marketing">
+        <MarketingNav transparent />
+        {children}
+        <CalculatorModal />
+      </div>
+    </CalculatorModalProvider>
   );
 }

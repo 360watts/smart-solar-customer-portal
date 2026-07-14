@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { appFeatures } from "../data";
 import { reduceMotion } from "../lib/motion";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 /** One phone mockup per feature, maps 1-to-1 with appFeatures. */
 const slides = [
@@ -46,23 +50,81 @@ function getBreakpoint(width: number): Breakpoint {
 
 export function AppShowcaseSection() {
   const [currentAppSlide, setCurrentAppSlide] = useState(0);
-  const [isPageVisible, setIsPageVisible] = useState(true);
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
-  const [appShowcaseRef, appShowcaseInView] = useInView({ triggerOnce: false, threshold: 0.2 });
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>(() =>
+    typeof window !== "undefined" ? getBreakpoint(window.innerWidth) : "desktop",
+  );
   const touchStartX = useRef<number | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Pinned via GSAP ScrollTrigger (not CSS `position: sticky`) on
+  // desktop/tablet so each slide gets real dwell time instead of flying past
+  // within the section's own short height. ScrollTrigger's pin uses
+  // `position: fixed` under the hood, which — unlike `sticky` — isn't broken
+  // by the `overflow-x-hidden` on <main> in page.tsx (any ancestor with a
+  // non-visible overflow silently breaks `position: sticky` for all
+  // descendants in every major browser; `fixed` doesn't have that problem).
+  // Mobile/reduced-motion keep the original short section, click/swipe-only
+  // control (matches every other pinned section's convention).
+  const [enabled, setEnabled] = useState(false);
+  // Pinned content otherwise renders flush at the viewport top, right behind
+  // the fixed MarketingNav — measure its real height and reserve that much
+  // space instead (same fix as JourneySection's nav-overlap bug).
+  const [navH, setNavH] = useState(0);
+  useLayoutEffect(() => {
+    setEnabled(!reduceMotion && window.matchMedia("(min-width: 768px)").matches);
+    const updateNavH = () => setNavH(document.querySelector("nav")?.getBoundingClientRect().height ?? 0);
+    updateNavH();
+    window.addEventListener("resize", updateNavH);
+    return () => window.removeEventListener("resize", updateNavH);
+  }, []);
 
   useEffect(() => {
     const update = () => setBreakpoint(getBreakpoint(window.innerWidth));
-    update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  useGSAP(
+    () => {
+      if (!enabled || !sectionRef.current) return;
+      const section = sectionRef.current;
+
+      const st = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: () => "+=" + (slides.length - 1) * window.innerHeight * 0.6,
+        scrub: 0.3,
+        pin: true,
+        anticipatePin: 1,
+        onUpdate(self) {
+          const p = self.progress;
+          setCurrentAppSlide(Math.min(slides.length - 1, Math.max(0, Math.floor(p * slides.length))));
+        },
+      });
+
+      return () => st.kill();
+    },
+    { dependencies: [enabled] },
+  );
+
   const { phoneW, radius, perspective, viewportW } = SIZING[breakpoint];
   const phoneH = useMemo(() => Math.round(phoneW * (636 / 329)), [phoneW]);
 
-  const goTo = (index: number) => {
+  /** Direct, immediate slide set — used for touch swipe and the non-pinned fallback. */
+  const setSlide = (index: number) => {
     setCurrentAppSlide((Math.max(0, index) + slides.length) % slides.length);
+  };
+
+  /** Scrolls the page to the point in the pinned scroll range that lands on `index` —
+   *  scroll stays the single source of truth; clicking just moves the scrollbar there. */
+  const goTo = (index: number) => {
+    const st = ScrollTrigger.getAll().find((t) => t.trigger === sectionRef.current);
+    if (!st) {
+      setSlide(index);
+      return;
+    }
+    const targetProgress = (index + 0.5) / slides.length;
+    window.scrollTo({ top: st.start + targetProgress * (st.end - st.start), behavior: "smooth" });
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -73,28 +135,16 @@ export function AppShowcaseSection() {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     touchStartX.current = null;
     if (Math.abs(dx) >= SWIPE_THRESHOLD) {
-      goTo(currentAppSlide + (dx > 0 ? -1 : 1));
+      setSlide(currentAppSlide + (dx > 0 ? -1 : 1));
     }
   };
 
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const handleVisibility = () => setIsPageVisible(!document.hidden);
-    handleVisibility();
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  useEffect(() => {
-    if (reduceMotion || !isPageVisible || !appShowcaseInView) return;
-    const timer = setInterval(() => {
-      setCurrentAppSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [appShowcaseInView, isPageVisible]);
-
   return (
-    <section ref={appShowcaseRef} className="py-12 sm:py-20 px-4 sm:px-6 bg-linear-to-r from-[#04713a] to-[#015c40] overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="pt-12 sm:pt-20 pb-12 sm:pb-20 px-4 sm:px-6 bg-linear-to-b from-[#0f2418] via-[#0c1e14] to-[#0f2f1e] overflow-hidden"
+      style={enabled ? { paddingTop: navH + 48 } : undefined}
+    >
       <div className="w-full max-w-7xl mx-auto min-w-0">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
@@ -107,7 +157,7 @@ export function AppShowcaseSection() {
               {appFeatures.map((feature, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentAppSlide(index)}
+                  onClick={() => goTo(index)}
                   className={`flex items-start gap-4 w-full text-left transition-opacity duration-500 ease-out min-h-11 py-1 ${
                     index === currentAppSlide ? "opacity-100" : "opacity-50 hover:opacity-75"
                   }`}
@@ -116,7 +166,7 @@ export function AppShowcaseSection() {
                     <img src={feature.icon} alt="" className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-black text-xl font-['Poppins']">
+                    <h3 className="font-extrabold text-white text-xl font-['Poppins']">
                       {feature.title}
                     </h3>
                     <p className="text-white font-['Poppins']">{feature.description}</p>
@@ -214,7 +264,7 @@ export function AppShowcaseSection() {
                   role="tab"
                   aria-selected={i === currentAppSlide}
                   aria-label={slide.alt}
-                  onClick={() => setCurrentAppSlide(i)}
+                  onClick={() => goTo(i)}
                   className="group min-w-11 min-h-11 flex items-center justify-center transition-transform duration-300 ease-out hover:scale-110 active:scale-95"
                 >
                   <span
