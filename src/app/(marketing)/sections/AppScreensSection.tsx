@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState, useLayoutEffect } from "react";
+import { useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion } from "framer-motion";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { appScreens } from "../data";
-import { reduceMotion, sectionMotionProps } from "../lib/motion";
+import { sectionMotionProps } from "../lib/motion";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -30,19 +30,21 @@ export function AppScreensSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [enabled, setEnabled] = useState(false);
   const steps = appScreens.length;
 
-  useLayoutEffect(() => {
-    setEnabled(!reduceMotion && window.matchMedia("(min-width: 768px)").matches);
-  }, []);
+  // Both the pinned track and the static fallback are always in the DOM,
+  // switched by CSS (motion-safe:md:*) instead of a post-mount JS state flip
+  // — see JourneySection.tsx for the full rationale (a client-only `enabled`
+  // boolean produces two different rendered frames across the SSR→hydration
+  // boundary, which Chrome's Layout Instability API counts as a real CLS
+  // shift; this section's pinned tree scored a perfect 1.0 in a CLS trace).
+  useGSAP(() => {
+    if (!trackRef.current || !sectionRef.current) return;
+    const track = trackRef.current;
+    const section = sectionRef.current;
+    const mm = gsap.matchMedia();
 
-  useGSAP(
-    () => {
-      if (!enabled || !trackRef.current || !sectionRef.current) return;
-      const track = trackRef.current;
-      const section = sectionRef.current;
-
+    mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
       const ctx = gsap.context(() => {
         const getScrollDistance = () => track.scrollWidth - section.clientWidth;
 
@@ -67,9 +69,10 @@ export function AppScreensSection() {
       }, section);
 
       return () => ctx.revert();
-    },
-    { dependencies: [enabled] },
-  );
+    });
+
+    return () => mm.revert();
+  }, []);
 
   const goTo = (index: number) => {
     const st = ScrollTrigger.getAll().find((t) => t.trigger === sectionRef.current);
@@ -78,9 +81,12 @@ export function AppScreensSection() {
     window.scrollTo({ top: st.start + targetProgress * (st.end - st.start), behavior: "smooth" });
   };
 
-  if (!enabled) {
-    return (
-      <section id="app" className="px-3 sm:px-4 md:px-6 py-12 sm:py-16">
+  return (
+    <div id="app">
+      {/* Static fallback — mobile + reduced-motion. Visible by default,
+          hidden only once BOTH md+ and motion-safe apply (matches the GSAP
+          matchMedia condition above exactly). */}
+      <section className="motion-safe:md:hidden px-3 sm:px-4 md:px-6 py-12 sm:py-16">
         <Header />
         <div className="space-y-10 max-w-md mx-auto">
           {appScreens.map((screen, i) => (
@@ -95,62 +101,61 @@ export function AppScreensSection() {
           ))}
         </div>
       </section>
-    );
-  }
 
-  return (
-    <section
-      id="app"
-      ref={sectionRef}
-      className="relative h-screen overflow-hidden flex flex-col pt-20 md:pt-24"
-      style={{
-        background:
-          "radial-gradient(1200px 520px at 50% -18%, rgba(15,23,42,0.06), transparent 60%), radial-gradient(900px 520px at 110% 12%, rgba(59,130,246,0.10), transparent 66%), linear-gradient(180deg, #f7fff9 0%, #f6fdf8 36%, #eef9f3 72%, #e3f3ea 100%)",
-      }}
-      aria-label="360watts App"
-    >
-      <Header compact />
+      {/* Pinned horizontal track — hidden by default, shown only once BOTH
+          md+ and motion-safe apply. */}
+      <section
+        ref={sectionRef}
+        className="hidden motion-safe:md:flex relative h-screen overflow-hidden flex-col pt-20 md:pt-24"
+        style={{
+          background:
+            "radial-gradient(1200px 520px at 50% -18%, rgba(15,23,42,0.06), transparent 60%), radial-gradient(900px 520px at 110% 12%, rgba(59,130,246,0.10), transparent 66%), linear-gradient(180deg, #f7fff9 0%, #f6fdf8 36%, #eef9f3 72%, #e3f3ea 100%)",
+        }}
+        aria-label="360watts App"
+      >
+        <Header compact />
 
-      {/* Bounded row — every panel below centers its content into exactly
-          this much space, so phone sizing is just "a fraction of this row's
-          height," not several layers of grid/flex stretch math. */}
-      <div className="flex-1 min-h-0 overflow-hidden relative">
-        <div ref={trackRef} className="flex h-full">
-          {appScreens.map((screen, i) => (
-            <div key={i} className="shrink-0 w-screen h-full flex items-center justify-center px-6">
-              <div className="flex flex-col md:flex-row items-center gap-6 md:gap-16 max-w-5xl">
-                <div className="shrink-0 relative h-[50vh] md:h-[60vh] max-h-125 w-auto aspect-[329/636]">
-                  <img src={screen.image} alt={screen.title} className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading={i === 0 ? "eager" : "lazy"} decoding="async" />
-                  <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" loading="lazy" decoding="async" />
-                </div>
-                <div className="text-center md:text-left max-w-sm">
-                  <h3 className="text-xl sm:text-2xl md:text-[32px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1px] mb-3">{screen.title}</h3>
-                  <p className="text-sm sm:text-base md:text-xl font-['Poppins'] text-[#4a5565] leading-relaxed">{screen.description}</p>
+        {/* Bounded row — every panel below centers its content into exactly
+            this much space, so phone sizing is just "a fraction of this row's
+            height," not several layers of grid/flex stretch math. */}
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          <div ref={trackRef} className="flex h-full">
+            {appScreens.map((screen, i) => (
+              <div key={i} className="shrink-0 w-screen h-full flex items-center justify-center px-6">
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-16 max-w-5xl">
+                  <div className="shrink-0 relative h-[50vh] md:h-[60vh] max-h-125 w-auto aspect-[329/636]">
+                    <img src={screen.image} alt={screen.title} className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading={i === 0 ? "eager" : "lazy"} decoding="async" />
+                    <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" loading="lazy" decoding="async" />
+                  </div>
+                  <div className="text-center md:text-left max-w-sm">
+                    <h3 className="text-xl sm:text-2xl md:text-[32px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1px] mb-3">{screen.title}</h3>
+                    <p className="text-sm sm:text-base md:text-xl font-['Poppins'] text-[#4a5565] leading-relaxed">{screen.description}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Markers — click to jump, same convention as JourneySection's horizon markers */}
+        <div className="shrink-0 flex justify-center gap-2 py-4 md:py-6">
+          {appScreens.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              aria-label={`Jump to ${appScreens[i].title}`}
+              className="group relative flex items-center justify-center w-6 h-6 -mx-1"
+            >
+              <span
+                className={`block rounded-full transition-colors duration-200 ${
+                  i === activeIndex ? "w-6 h-2 bg-[#04713a]" : "w-2 h-2 bg-black/15 group-hover:bg-black/30"
+                }`}
+              />
+            </button>
           ))}
         </div>
-      </div>
-
-      {/* Markers — click to jump, same convention as JourneySection's horizon markers */}
-      <div className="shrink-0 flex justify-center gap-2 py-4 md:py-6">
-        {appScreens.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => goTo(i)}
-            aria-label={`Jump to ${appScreens[i].title}`}
-            className="group relative flex items-center justify-center w-6 h-6 -mx-1"
-          >
-            <span
-              className={`block rounded-full transition-colors duration-200 ${
-                i === activeIndex ? "w-6 h-2 bg-[#04713a]" : "w-2 h-2 bg-black/15 group-hover:bg-black/30"
-              }`}
-            />
-          </button>
-        ))}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 

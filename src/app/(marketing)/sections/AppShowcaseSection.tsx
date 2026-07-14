@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -65,30 +65,28 @@ export function AppShowcaseSection() {
   // descendants in every major browser; `fixed` doesn't have that problem).
   // Mobile/reduced-motion keep the original short section, click/swipe-only
   // control (matches every other pinned section's convention).
-  const [enabled, setEnabled] = useState(false);
-  // Pinned content otherwise renders flush at the viewport top, right behind
-  // the fixed MarketingNav — measure its real height and reserve that much
-  // space instead (same fix as JourneySection's nav-overlap bug).
-  const [navH, setNavH] = useState(0);
-  useLayoutEffect(() => {
-    setEnabled(!reduceMotion && window.matchMedia("(min-width: 768px)").matches);
-    const updateNavH = () => setNavH(document.querySelector("nav")?.getBoundingClientRect().height ?? 0);
-    updateNavH();
-    window.addEventListener("resize", updateNavH);
-    return () => window.removeEventListener("resize", updateNavH);
-  }, []);
-
+  //
+  // The pin condition is gated with gsap.matchMedia() below rather than a
+  // client-only `enabled` boolean: a state flip that starts false on every
+  // load (no `window` during SSR) means the SSR paint and the
+  // hydration-corrected paint are two different rendered frames, which
+  // Chrome's Layout Instability API counts as a real CLS shift (confirmed
+  // via a CLS trace: this section scored two perfect 1.0 shifts — one for
+  // the pin gate, one for the nav-height padding below). matchMedia
+  // resolves synchronously against the same CSS breakpoint, so there's only
+  // ever one rendered layout, and it also re-evaluates live on resize.
   useEffect(() => {
     const update = () => setBreakpoint(getBreakpoint(window.innerWidth));
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  useGSAP(
-    () => {
-      if (!enabled || !sectionRef.current) return;
-      const section = sectionRef.current;
+  useGSAP(() => {
+    if (!sectionRef.current) return;
+    const section = sectionRef.current;
+    const mm = gsap.matchMedia();
 
+    mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
       const st = ScrollTrigger.create({
         trigger: section,
         start: "top top",
@@ -103,9 +101,10 @@ export function AppShowcaseSection() {
       });
 
       return () => st.kill();
-    },
-    { dependencies: [enabled] },
-  );
+    });
+
+    return () => mm.revert();
+  }, []);
 
   const { phoneW, radius, perspective, viewportW } = SIZING[breakpoint];
   const phoneH = useMemo(() => Math.round(phoneW * (636 / 329)), [phoneW]);
@@ -142,8 +141,7 @@ export function AppShowcaseSection() {
   return (
     <section
       ref={sectionRef}
-      className="pt-12 sm:pt-20 pb-12 sm:pb-20 px-4 sm:px-6 bg-linear-to-b from-[#0f2418] via-[#0c1e14] to-[#0f2f1e] overflow-hidden"
-      style={enabled ? { paddingTop: navH + 48 } : undefined}
+      className="pt-12 sm:pt-20 md:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 bg-linear-to-b from-[#0f2418] via-[#0c1e14] to-[#0f2f1e] overflow-hidden"
     >
       <div className="w-full max-w-7xl mx-auto min-w-0">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">

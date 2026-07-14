@@ -126,10 +126,6 @@ export const processSteps = {
   ],
 };
 
-/** Shared theme per step index — ties the Solar and Smart Home columns into
- *  one parallel story instead of two unrelated lists (see ProcessStorySection). */
-export const processStoryThemes = ["Plan", "Install & Connect", "Ongoing Care"];
-
 /** The four states of one phone (see AppScreensSection) — one device, one app, everything happens here. */
 export const appScreens = [
   { title: "Real-time Insights", description: "Monitor your energy generation, consumption, and savings live, all in one intuitive dashboard.", image: APP_IMAGES.solutionsAppPhoneInsights },
