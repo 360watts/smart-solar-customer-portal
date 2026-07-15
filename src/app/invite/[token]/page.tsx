@@ -124,10 +124,20 @@ export default function AcceptInvitePage() {
     try {
       await loginWithPassword(loginEmail, loginPassword);
       await refreshSession();
-      await acceptAndRedirect();
     } catch (err) {
+      setLoginLoading(false);
       if (err instanceof AuthRequestError) setLoginError(err.message);
       else setLoginError("Sign in failed. Please try again.");
+      return;
+    }
+    // Sign-in succeeded — any failure past this point is an accept-invite
+    // problem (e.g. the owner scanning their own link, or an already-used
+    // invite), not a bad password. Surface it on the invite card, not the
+    // login form.
+    try {
+      await acceptAndRedirect();
+    } catch (err) {
+      setState(classifyAcceptError(err));
     } finally {
       setLoginLoading(false);
     }
@@ -146,10 +156,20 @@ export default function AcceptInvitePage() {
         last_name: signupLastName,
       });
       await refreshSession();
-      await acceptAndRedirect();
     } catch (err) {
+      setSignupLoading(false);
       if (err instanceof AuthRequestError) setSignupError(err.message);
       else setSignupError("Registration failed. Please try again.");
+      return;
+    }
+    // Account was created — any failure past this point is an accept-invite
+    // problem, not a registration problem. The account already exists, so
+    // re-showing the signup form with a "registration failed" message would
+    // be actively misleading (retrying would then fail on "email exists").
+    try {
+      await acceptAndRedirect();
+    } catch (err) {
+      setState(classifyAcceptError(err));
     } finally {
       setSignupLoading(false);
     }
