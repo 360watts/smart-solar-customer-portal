@@ -268,7 +268,10 @@ export const portalApi = {
     api.patch<SiteMember>(`/api/backend/sites/${siteId}/members/${memberId}/`, data),
 
   resendSiteInvite: (siteId: string, memberId: number) =>
-    api.post(`/api/backend/sites/${siteId}/members/${memberId}/resend/`, {}),
+    api.post<{ detail: string; invite_link: string; qr_code: string; expires_at: string }>(
+      `/api/backend/sites/${siteId}/members/${memberId}/resend/`,
+      {},
+    ),
 
   getInviteDetails: (token: string, signal?: AbortSignal) =>
     api.get<InviteDetails>(`/api/backend/site-invites/${token}/`, sig(signal)),

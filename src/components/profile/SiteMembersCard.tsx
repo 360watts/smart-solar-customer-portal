@@ -28,6 +28,7 @@ export default function SiteMembersCard({ siteId }: { siteId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [resendModalFor, setResendModalFor] = useState<SiteMember | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
@@ -87,8 +88,15 @@ export default function SiteMembersCard({ siteId }: { siteId: string }) {
   async function handleResend(m: SiteMember) {
     setActionLoading(m.id);
     try {
-      await portalApi.resendSiteInvite(siteId, m.id);
-      flash("success", "Invite resent.");
+      const { data } = await portalApi.resendSiteInvite(siteId, m.id);
+      const refreshed: SiteMember = {
+        ...m,
+        invite_link: data.invite_link,
+        qr_code: data.qr_code,
+        expires_at: data.expires_at,
+      };
+      setMembers((prev) => prev.map((x) => (x.id === m.id ? refreshed : x)));
+      setResendModalFor(refreshed);
     } catch {
       flash("error", "Failed to resend invite. Please try again.");
     } finally {
@@ -198,6 +206,15 @@ export default function SiteMembersCard({ siteId }: { siteId: string }) {
           onInvited={(m) =>
             setMembers((prev) => (prev.find((member) => member.id === m.id) ? prev : [...prev, m]))
           }
+        />
+      )}
+
+      {resendModalFor && (
+        <InviteMemberModal
+          siteId={siteId}
+          preloaded={resendModalFor}
+          onClose={() => setResendModalFor(null)}
+          onInvited={() => {}}
         />
       )}
     </>

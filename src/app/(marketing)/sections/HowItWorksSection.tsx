@@ -82,7 +82,7 @@ export function HowItWorksSection() {
         <div className="inline-block px-3 md:px-6 py-1 md:py-2 bg-linear-to-r from-[#dcfce7] to-[#ddefff] rounded-full mb-3 md:mb-4">
           <span className="text-xs md:text-sm font-semibold text-[#0a0a0a] font-['Urbanist']">Simple &amp; Effective</span>
         </div>
-        <h2 className="text-3xl md:text-5xl font-bold text-[#0a0a0a] font-['Urbanist'] tracking-[-1.5px] mb-2 bg-linear-to-r from-[#0a0a0a] to-[#4a5565] bg-clip-text text-transparent">
+        <h2 className="text-3xl md:text-5xl font-bold font-['Urbanist'] tracking-[-1.5px] mb-2 bg-linear-to-r from-[#0a0a0a] to-[#4a5565] bg-clip-text text-transparent">
           How Does It Work?
         </h2>
         <p className="text-sm md:text-lg text-[#4a5565] font-['Poppins']">

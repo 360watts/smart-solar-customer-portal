@@ -479,7 +479,12 @@ export async function buildBackendRequest(input: {
     }
   }
 
-  if (!accessToken) {
+  // GET /site-invites/<token>/ is AllowAny on the Django side — an invitee
+  // clicking a link/QR code has no session yet, so this must reach the
+  // backend without a token instead of being short-circuited to a 401 here.
+  const isPublicPath = input.method === "GET" && /^site-invites\/[^/]+\/?$/.test(input.path);
+
+  if (!accessToken && !isPublicPath) {
     // No usable token at all — the session has genuinely expired.
     return {
       response: new Response(JSON.stringify({ detail: "Authentication required." }), {
@@ -491,13 +496,13 @@ export async function buildBackendRequest(input: {
     };
   }
 
-  const send = (token: string) =>
+  const send = (token: string | null) =>
     backendFetch(`/api/${input.path}${input.search}`, {
       method: input.method,
       headers: {
         ...(input.contentType ? { "Content-Type": input.contentType } : {}),
         ...(input.forwardHeaders ?? {}),
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: input.body,
     });
