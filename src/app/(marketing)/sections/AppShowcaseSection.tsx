@@ -50,9 +50,11 @@ function getBreakpoint(width: number): Breakpoint {
 
 export function AppShowcaseSection() {
   const [currentAppSlide, setCurrentAppSlide] = useState(0);
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>(() =>
-    typeof window !== "undefined" ? getBreakpoint(window.innerWidth) : "desktop",
-  );
+  // Always starts at "desktop" so the first client render matches the SSR
+  // output exactly (no `window` at SSR time) — same hydration-mismatch class
+  // as the GSAP pin gate below, just for inline carousel sizing instead of
+  // the pin condition. Corrected to the real viewport immediately on mount.
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>("desktop");
   const touchStartX = useRef<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -77,6 +79,7 @@ export function AppShowcaseSection() {
   // ever one rendered layout, and it also re-evaluates live on resize.
   useEffect(() => {
     const update = () => setBreakpoint(getBreakpoint(window.innerWidth));
+    update(); // sync to the real viewport once on mount — was previously only wired to resize
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);

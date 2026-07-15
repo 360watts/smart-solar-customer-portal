@@ -114,12 +114,8 @@
     @apply border-border;
   }
 
-  /* Bumps every rem-based Tailwind text/spacing utility ~6% app-wide (17px
-     base instead of 16px) — the single highest-leverage fix for text that
-     reads as too small/dense, without hand-editing every component's
-     hardcoded text-[Npx] size. */
   html {
-    font-size: 106.25%;
+    font-size: 100%;
   }
 
   body {
@@ -127,10 +123,13 @@
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Default line-height was unset (browser "normal", ~1.2) — every
-       paragraph/label in the app inherits this, so leaving it unset was the
-       main source of the cramped feel on wrapped text. */
-    line-height: 1.6;
+    /* 1.5 is the dense-UI baseline (Linear/Primer/GitHub territory) — enough
+       to keep wrapped labels and paragraphs from feeling cramped without
+       inflating every stat tile, table row, and nav item in the portal to
+       article-reading spacing. Long-form marketing copy gets its own taller
+       value below, scoped to .marketing, where that spacing is earned by
+       actual paragraphs instead of one-line UI labels. */
+    line-height: 1.5;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -339,6 +338,9 @@ nav.sidebar-nav::-webkit-scrollbar-thumb:active { background: linear-gradient(18
   background: #ffffff;
   color: #0a0a0a;
   font-family: var(--font-poppins), system-ui, sans-serif;
+  /* Long-form landing copy earns taller line-height than dense dashboard UI —
+     see the .marketing-scoped rationale in the base `body` rule above. */
+  line-height: 1.7;
 }
 
 .marketing h1,
