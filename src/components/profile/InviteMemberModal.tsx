@@ -68,7 +68,7 @@ export default function InviteMemberModal({
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
-        className="w-full max-w-sm rounded-2xl bg-[#0b1119] border border-border p-6"
+        className="w-full max-w-sm rounded-2xl bg-card border border-border p-6"
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-semibold text-foreground">Invite a site member</h3>

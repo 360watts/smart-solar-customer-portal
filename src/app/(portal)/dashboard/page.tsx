@@ -50,6 +50,7 @@ interface DashboardData {
   performanceRatio: number | null;
   hourly: HourlyPoint[];
   nowIndex: number;
+  todayForecastKwh: number | null;
 }
 
 function deviceTypeLabel(deviceType?: string): string {
@@ -99,6 +100,8 @@ interface DetailedKpiCardProps {
   footer: string;
   loading: boolean;
   delay?: number;
+  cornerLabel?: string;
+  cornerValue?: string;
 }
 
 const KPI_COLOR_MAP = {
@@ -110,7 +113,7 @@ const KPI_COLOR_MAP = {
 function DetailedKpiCard({
   label, icon: Icon, color, badge, badgeTone = "neutral",
   bigValue, bigDecimals = 1, bigUnit, progressPct, progressLabel, progressValueLabel,
-  rows, footer, loading, delay = 0,
+  rows, footer, loading, delay = 0, cornerLabel, cornerValue,
 }: DetailedKpiCardProps) {
   const cm = KPI_COLOR_MAP[color];
   const badgeStyle =
@@ -131,10 +134,21 @@ function DetailedKpiCard({
         <div className={`w-10 h-10 rounded-xl ${cm.bg} flex items-center justify-center shrink-0`}>
           <Icon size={18} className={cm.text} />
         </div>
-        {badge && !loading && (
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={badgeStyle}>
-            {badge}
-          </span>
+        {!loading && (badge || cornerValue) && (
+          <div className="flex flex-col items-end gap-1">
+            {badge && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={badgeStyle}>
+                {badge}
+              </span>
+            )}
+            {cornerValue && (
+              <span className="flex items-center gap-1 text-xs font-semibold tabular-nums" style={{ color: cm.hex }}>
+                <TrendingUp size={11} />
+                {cornerValue}
+                {cornerLabel && <span className="font-normal text-muted-foreground">{cornerLabel}</span>}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -336,14 +350,29 @@ export default function OverviewPage() {
   const { data, loading, isStale, error, noSite, refresh } = useSiteQuery<DashboardData>(
     user?.site_id,
     async (siteId, signal) => {
-      const summary = await portalApi.getPortalOverview(
-        siteId,
-        { date: new Date().toISOString().slice(0, 10) },
-        signal,
-      );
+      const today = new Date().toISOString().slice(0, 10);
+      const [summary, forecastRes] = await Promise.all([
+        portalApi.getPortalOverview(siteId, { date: today }, signal),
+        portalApi.getForecast(siteId, { date: today }, signal),
+      ]);
       signal.throwIfAborted();
 
       const payload = summary.data.data;
+
+      // Today's forecast total — sum P50 (median) rows for the site's local
+      // calendar day. Rows are 15-min cadence, so divide kW by 4 for kWh.
+      const forecastRows: Array<{ forecast_for: string; p50_kw?: number }> =
+        Array.isArray(forecastRes.data) ? forecastRes.data
+        : (forecastRes.data?.results ?? []);
+      const siteToday = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const todayForecastKwh = forecastRows.length
+        ? parseFloat(
+            forecastRows
+              .filter((r) => new Date(r.forecast_for).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) === siteToday)
+              .reduce((sum, r) => sum + (Number(r.p50_kw) || 0) / 4, 0)
+              .toFixed(1),
+          )
+        : null;
 
       // Telemetry rows — plain array, most-recent 96 rows ordered ascending
       // Fields in Watts: pv1_power_w, pv2_power_w, load_power_w, grid_power_w
@@ -560,6 +589,7 @@ export default function OverviewPage() {
         performanceRatio,
         hourly,
         nowIndex,
+        todayForecastKwh,
       };
     },
     {
@@ -777,6 +807,7 @@ export default function OverviewPage() {
               const todayGenKwh = d?.todayGenKwh ?? 0;
               const monthGenKwh = d?.monthGenKwh ?? 0;
               const co2AvoidedKg = d?.co2AvoidedKg ?? 0;
+              const todayForecastKwh = d?.todayForecastKwh ?? null;
               const headroomKw = Math.max(0, capacityKwp - peakTodayKw);
               const onlineDevices = d?.devices.filter((dev) => dev.status === "online").length ?? 0;
               const totalDevices = d?.devices.length ?? 0;
@@ -839,6 +870,8 @@ export default function OverviewPage() {
                     bigUnit="kWh"
                     progressPct={potentialPct}
                     progressLabel="Of estimated daily potential"
+                    cornerLabel="forecast"
+                    cornerValue={todayForecastKwh != null ? `${todayForecastKwh.toFixed(1)} kWh` : undefined}
                     rows={[
                       { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "var(--muted)", glow: "transparent" },
                       { label: "CO₂ Avoided", value: `${co2AvoidedKg} kg`, dot: "#34d399", glow: "rgba(52,211,153,0.4)" },

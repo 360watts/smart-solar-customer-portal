@@ -11,7 +11,7 @@ import { portalApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
-import { formatHourLabel, formatDayLabel, getSiteHour, SITE_TIMEZONE } from "@/lib/utils";
+import { formatHourLabel, formatDayLabel, getSiteHour, isInSolarDayWindow, SITE_TIMEZONE } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -301,7 +301,7 @@ export default function SolarPage() {
 
   const forecastChartData = useMemo(() => {
     const rows = (data?.forecastRows ?? []).filter((r) =>
-      forecastRange === "today" ? isToday(r.forecast_for) : isTomorrow(r.forecast_for),
+      forecastRange === "today" ? isInSolarDayWindow(r.forecast_for) : isTomorrow(r.forecast_for),
     );
     if (rows.length === 0) return null;
 

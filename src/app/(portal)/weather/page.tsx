@@ -10,10 +10,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
-import { formatHourLabel, SITE_TIMEZONE } from "@/lib/utils";
+import { formatHourLabel, isInSolarDayWindow, SITE_TIMEZONE } from "@/lib/utils";
 
 interface WeatherHourly {
   forecast_for: string;
+  ghi_wm2: number;
+  temperature_c: number;
+  humidity_pct: number;
+  wind_speed_ms: number;
+  cloud_cover_pct: number;
+}
+interface WeatherActual {
+  obs_timestamp: string;
   ghi_wm2: number;
   temperature_c: number;
   humidity_pct: number;
@@ -119,8 +127,7 @@ export default function WeatherPage() {
     user?.site_id,
     async (siteId) => {
       const res = await portalApi.getWeather(siteId);
-      const raw = res.data as { current: WeatherCurrent; hourly_forecast: WeatherHourly[] };
-      const now = new Date();
+      const raw = res.data as { current: WeatherCurrent; hourly_actual?: WeatherActual[]; hourly_forecast: WeatherHourly[] };
 
       // No fallback to mock data here — showing MOCK_GHI_DATA when the API
       // returns nothing would silently present fabricated numbers as real
@@ -128,16 +135,29 @@ export default function WeatherPage() {
       let ghiChart: Parameters<typeof DataChart>[0]["data"] | null = null;
       let forecast: DayForecast[] = [];
 
-      if (raw.hourly_forecast?.length) {
-        const labels = raw.hourly_forecast.map((h) => formatHour(h.forecast_for));
+      // Trim both series to the site-local 6am-6am solar day — matches the
+      // solar and consumption Day charts so the x-axis isn't dominated by
+      // dead overnight hours with no sunlight.
+      const actualRows = (raw.hourly_actual ?? []).filter((a) => isInSolarDayWindow(a.obs_timestamp));
+      const forecastRows = (raw.hourly_forecast ?? []).filter((h) => isInSolarDayWindow(h.forecast_for));
+
+      if (actualRows.length || forecastRows.length) {
+        // Merge into one chronological timeline — hourly_actual (real measured
+        // GHI, elapsed hours) and hourly_forecast (future hours) never overlap
+        // in time, so each point is either actual or forecast, never both.
+        const combined = [
+          ...actualRows.map((a) => ({ ts: a.obs_timestamp, actual: a.ghi_wm2 as number | null, forecast: null as number | null })),
+          ...forecastRows.map((f) => ({ ts: f.forecast_for, actual: null as number | null, forecast: f.ghi_wm2 as number | null })),
+        ].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
         ghiChart = {
-          labels,
+          labels: combined.map((c) => formatHour(c.ts)),
           datasets: [
-            { label: "Actual GHI W/m²", data: raw.hourly_forecast.map((h) => new Date(h.forecast_for) <= now ? h.ghi_wm2 : null) as number[], borderColor: COLORS.amber, backgroundColor: COLORS.amberMuted, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: COLORS.amber },
-            { label: "Forecast GHI W/m²", data: raw.hourly_forecast.map((h) => new Date(h.forecast_for) > now ? h.ghi_wm2 : null) as number[], borderColor: "rgba(233,185,73,0.5)", backgroundColor: "rgba(233,185,73,0.06)", fill: true, tension: 0.4, pointRadius: 2, pointBackgroundColor: "rgba(233,185,73,0.5)" },
+            { label: "Actual GHI W/m²", data: combined.map((c) => c.actual), borderColor: COLORS.amber, backgroundColor: COLORS.amberMuted, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: COLORS.amber },
+            { label: "Forecast GHI W/m²", data: combined.map((c) => c.forecast), borderColor: "rgba(233,185,73,0.5)", backgroundColor: "rgba(233,185,73,0.06)", fill: true, tension: 0.4, pointRadius: 2, pointBackgroundColor: "rgba(233,185,73,0.5)" },
           ],
         } as Parameters<typeof DataChart>[0]["data"];
-        forecast = groupByDay(raw.hourly_forecast);
+        forecast = groupByDay(raw.hourly_forecast ?? []);
       }
 
       return { current: raw.current ?? null, ghiChart, forecast, fetchedAt: raw.current?.fetched_at ?? null };

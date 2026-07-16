@@ -180,8 +180,8 @@ export const portalApi = {
   getForecast: (siteId: string, params?: { date?: string; start_date?: string; end_date?: string }, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/forecast/`, { params, ...sig(signal) }),
 
-  getLoadForecast: (siteId: string, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/load-forecast/`, sig(signal)),
+  getLoadForecast: (siteId: string, params?: { days?: number }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/load-forecast/`, { params, ...sig(signal) }),
 
   getWeather: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),

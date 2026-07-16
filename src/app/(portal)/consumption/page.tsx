@@ -1,6 +1,6 @@
 "use client";
 
-import { formatHourLabel, formatDayLabel, SITE_TIMEZONE } from "@/lib/utils";
+import { formatHourLabel, formatDayLabel, isInSolarDayWindow, SITE_TIMEZONE } from "@/lib/utils";
 
 import React, { useState } from "react";
 import { Home, Sun, Zap, Wind, Car, Lightbulb } from "lucide-react";
@@ -19,7 +19,7 @@ import { TTL } from "@/lib/portalCache";
 
 interface ChartDataset {
   label: string;
-  data: number[];
+  data: Array<number | null>;
   backgroundColor?: string;
   borderColor?: string;
   borderWidth?: number;
@@ -108,13 +108,41 @@ function buildAggChart(
   };
 }
 
-function buildForecastChart(rows: Array<{ forecast_for: string; predicted_kw: number; p10_kw: number; p90_kw: number }>): ChartData {
+/** Buckets raw telemetry load readings into 15-min site-local slots — matches
+ * the Load Forecast's own cadence so actual (elapsed hours) and forecast
+ * (future hours) sit on one continuous x-axis. */
+function bucketActualLoad15min(telRows: Array<{ timestamp: string; load_power_w?: number }>): Array<{ ts: string; kw: number }> {
+  const SLOT_MS = 15 * 60 * 1000;
+  const buckets = new Map<number, number[]>();
+  for (const r of telRows) {
+    const slotMs = Math.floor(new Date(r.timestamp).getTime() / SLOT_MS) * SLOT_MS;
+    if (!buckets.has(slotMs)) buckets.set(slotMs, []);
+    buckets.get(slotMs)!.push((Number(r.load_power_w) || 0) / 1000);
+  }
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([slotMs, vals]) => ({ ts: new Date(slotMs).toISOString(), kw: vals.reduce((s, v) => s + v, 0) / vals.length }));
+}
+
+function buildForecastChart(
+  actualRows: Array<{ ts: string; kw: number }>,
+  forecastRows: Array<{ forecast_for: string; predicted_kw: number; p10_kw: number; p90_kw: number }>,
+): ChartData {
+  // Actual (elapsed hours, from telemetry) and forecast (future hours, from
+  // the load model) never overlap in time — merge into one chronological
+  // timeline so the chart reads as a single continuous line crossing "now".
+  const combined = [
+    ...actualRows.map((a) => ({ ts: a.ts, actual: a.kw as number | null, p50: null as number | null, p10: null as number | null, p90: null as number | null })),
+    ...forecastRows.map((f) => ({ ts: f.forecast_for, actual: null as number | null, p50: Number(f.predicted_kw) || 0, p10: Number(f.p10_kw) || 0, p90: Number(f.p90_kw) || 0 })),
+  ].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
   return {
-    labels: rows.map((r) => hourLabel(r.forecast_for)),
+    labels: combined.map((c) => hourLabel(c.ts)),
     datasets: [
-      { label: "P90 (High)",   data: rows.map((r) => Number(r.p90_kw)       || 0), borderColor: "transparent",          backgroundColor: "rgba(96,165,250,0.3)", fill: "+1",         tension: 0.4, pointRadius: 0 },
-      { label: "P50 (Median)", data: rows.map((r) => Number(r.predicted_kw)  || 0), borderColor: "#60a5fa",              backgroundColor: "transparent",          borderWidth: 2,     tension: 0.4, pointRadius: 0 },
-      { label: "P10 (Low)",    data: rows.map((r) => Number(r.p10_kw)        || 0), borderColor: "rgba(96,165,250,0.5)", backgroundColor: "transparent",          borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+      { label: "P90 (High)",   data: combined.map((c) => c.p90),    borderColor: "transparent",          backgroundColor: "rgba(96,165,250,0.3)", fill: "+1",         tension: 0.4, pointRadius: 0 },
+      { label: "P50 (Median)", data: combined.map((c) => c.p50),    borderColor: "#60a5fa",              backgroundColor: "transparent",          borderWidth: 2,     tension: 0.4, pointRadius: 0 },
+      { label: "P10 (Low)",    data: combined.map((c) => c.p10),    borderColor: "rgba(96,165,250,0.5)", backgroundColor: "transparent",          borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+      { label: "Actual",       data: combined.map((c) => c.actual), borderColor: "#2FBF71",              backgroundColor: "transparent",          borderWidth: 2.5,   tension: 0.3, pointRadius: 0 },
     ],
   };
 }
@@ -137,7 +165,7 @@ export default function ConsumptionPage() {
         portalApi.getTelemetry(siteId, { days: 1 }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "monthly", start: twelveMonthsAgoISO, end: todayISO }, signal),
-        portalApi.getLoadForecast(siteId, signal),
+        portalApi.getLoadForecast(siteId, { days: 1 }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: todayISO, end: todayISO, summary: "true" }, signal),
       ]);
 
@@ -147,8 +175,11 @@ export default function ConsumptionPage() {
         ? (summaryS.value.data?.totals ?? summaryS.value.data ?? {})
         : {};
 
-      // Telemetry: plain array with Watts fields
-      const telRows = telDayS.status === "fulfilled" && Array.isArray(telDayS.value.data) ? telDayS.value.data : [];
+      // Telemetry: plain array with Watts fields, trimmed to the site-local
+      // 6am-6am solar day so the Day chart doesn't waste its x-axis on dead
+      // overnight hours.
+      const telRowsRaw = telDayS.status === "fulfilled" && Array.isArray(telDayS.value.data) ? telDayS.value.data : [];
+      const telRows = telRowsRaw.filter((r: { timestamp: string }) => isInSolarDayWindow(r.timestamp));
       // Week / month: plain arrays from energy-summary
       const weekRows: EnergySummaryRow[]  = weekS.status  === "fulfilled" ? (Array.isArray(weekS.value.data)  ? weekS.value.data  : (weekS.value.data?.results  ?? [])) : [];
       const monthRows: EnergySummaryRow[] = monthS.status === "fulfilled" ? (Array.isArray(monthS.value.data) ? monthS.value.data : (monthS.value.data?.results ?? [])) : [];
@@ -175,8 +206,10 @@ export default function ConsumptionPage() {
 
       // site_daily_energy lags by ~1 day; fall back to integrating 5-min telemetry
       // when the summary entry for today is missing (each row ≈ 5 min = 1/12 h).
-      const telGenKwh  = telRows.reduce((s, r) => s + ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000 / 12, 0);
-      const telLoadKwh = telRows.reduce((s, r) => s + (Number(r.load_power_w) || 0) / 1000 / 12, 0);
+      // Uses the unfiltered rows — the window-trimmed telRows exists only for the
+      // Day chart's x-axis and must not silently drop overnight load from totals.
+      const telGenKwh  = telRowsRaw.reduce((s, r) => s + ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000 / 12, 0);
+      const telLoadKwh = telRowsRaw.reduce((s, r) => s + (Number(r.load_power_w) || 0) / 1000 / 12, 0);
       const generationKwh = Number(todayTotals.pv_gen_kwh) || parseFloat(telGenKwh.toFixed(2));
       const gridExportKwh = Number(todayTotals.grid_export_kwh) || 0;
 
@@ -191,7 +224,7 @@ export default function ConsumptionPage() {
         weekChart:     weekRows.length  ? buildAggChart(weekRows, weekLabel)                          : { labels: [], datasets: [] },
         weekTrend,
         monthChart:    monthRows.length ? buildAggChart(monthRows, (ts) => new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: SITE_TIMEZONE }))  : { labels: [], datasets: [] },
-        forecastChart: fRows.length     ? buildForecastChart(fRows)                                  : { labels: [], datasets: [] },
+        forecastChart: (telRowsRaw.length || fRows.length) ? buildForecastChart(bucketActualLoad15min(telRowsRaw), fRows) : { labels: [], datasets: [] },
       };
     },
     { cacheKey: `consumption:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 120 },
@@ -325,10 +358,11 @@ export default function ConsumptionPage() {
           <h2 className="text-lg font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
             Load Forecast — Next 24h
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">P10 / P50 / P90 probabilistic bands</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Actual so far, then P10 / P50 / P90 probabilistic bands</p>
         </div>
         <div className="flex items-center gap-6 mb-4">
           {[
+            { label: "Actual",     color: "#2FBF71", dash: false },
             { label: "P50 Median", color: "#60a5fa", dash: false },
             { label: "P90 High",   color: "rgba(96,165,250,0.5)", dash: false },
             { label: "P10 Low",    color: "rgba(96,165,250,0.5)", dash: true  },

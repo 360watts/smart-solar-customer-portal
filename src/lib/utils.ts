@@ -48,6 +48,21 @@ export function formatHourOfDay(hour: number): string {
   return `${String(h12).padStart(2, "0")}:00 ${period}`;
 }
 
+/** True if `ts` falls within the site-local "solar day" window: 6:00 AM
+ * today through 6:00 AM tomorrow. Used to trim Day-view charts (solar,
+ * consumption, weather) to sunrise-anchored bounds instead of the
+ * midnight-midnight calendar day, so the empty overnight hours don't eat
+ * into the plotted range. */
+export function isInSolarDayWindow(ts: string, startHour = 6): boolean {
+  const rowDay = new Date(ts).toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE });
+  const hour = getSiteHour(ts);
+  const now = new Date();
+  const today = now.toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE });
+  const tomorrow = new Date(now.getTime() + 86_400_000).toLocaleDateString("en-CA", { timeZone: SITE_TIMEZONE });
+  if (hour >= startHour) return rowDay === today;
+  return rowDay === tomorrow;
+}
+
 export interface PlanTierMeta {
   label: string;
   textClass: string;

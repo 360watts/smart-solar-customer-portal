@@ -31,7 +31,7 @@ function Card({ children }: { children: React.ReactNode }) {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl bg-[#0b1119] border border-border p-8 text-center"
+        className="w-full max-w-md rounded-2xl bg-card border border-border p-8 text-center"
       >
         {children}
       </motion.div>
