@@ -418,6 +418,65 @@ export async function registerCustomerFromInvite(data: {
   return { ...sessionResolution, tokens };
 }
 
+// ── Password setup (staff-created accounts — see api/password_setup.py) ───────
+
+export async function getPasswordSetupInfo(
+  token: string,
+): Promise<{ email: string; first_name: string; expires_at: string } | null> {
+  const response = await backendFetch(`/api/auth/password-setup/${token}/`, { method: "GET" });
+  if (!response.ok) return null;
+  return (await response.json()) as { email: string; first_name: string; expires_at: string };
+}
+
+export async function completePasswordSetup(
+  token: string,
+  password: string,
+): Promise<SessionResolution & { tokens?: Partial<TokenPair> }> {
+  let response: Response;
+  try {
+    response = await backendFetch(`/api/auth/password-setup/${token}/`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+  } catch (err) {
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    throw Object.assign(
+      new Error(isTimeout ? "Request timed out. Please try again." : "Cannot reach the server. Please try again later."),
+      { isNetworkError: true },
+    );
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const message =
+      (data as { error?: string; detail?: string }).error ??
+      (data as { error?: string; detail?: string }).detail ??
+      "Unable to set password.";
+    throw new Error(message);
+  }
+
+  const setupData = (await response.json()) as { tokens?: TokenPair };
+  const tokens = setupData.tokens;
+
+  if (!tokens?.access || !tokens.refresh) {
+    throw new Error("Backend did not return session tokens.");
+  }
+
+  const sessionResolution = await resolveSessionFromTokens(tokens);
+  if (sessionResolution.kind === "authenticated") {
+    return {
+      ...sessionResolution,
+      tokens: {
+        refresh: tokens.refresh,
+        ...(sessionResolution.tokens ?? {}),
+        access: sessionResolution.tokens?.access ?? tokens.access,
+      },
+    };
+  }
+
+  return { ...sessionResolution, tokens };
+}
+
 // ── Logout ─────────────────────────────────────────────────────────────────────
 
 export async function logoutCustomer(): Promise<void> {
