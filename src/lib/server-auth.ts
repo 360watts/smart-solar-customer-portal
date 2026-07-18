@@ -423,7 +423,12 @@ export async function registerCustomerFromInvite(data: {
 export async function getPasswordSetupInfo(
   token: string,
 ): Promise<{ email: string; first_name: string; expires_at: string } | null> {
-  const response = await backendFetch(`/api/auth/password-setup/${token}/`, { method: "GET" });
+  let response: Response;
+  try {
+    response = await backendFetch(`/api/auth/password-setup/${token}/`, { method: "GET" });
+  } catch {
+    return null;
+  }
   if (!response.ok) return null;
   return (await response.json()) as { email: string; first_name: string; expires_at: string };
 }
