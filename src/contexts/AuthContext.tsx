@@ -13,6 +13,7 @@ import {
   type AuthUser,
   AuthRequestError,
 } from "@/lib/auth";
+import { cacheClear } from "@/lib/portalCache";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -57,6 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await logoutSession();
+    // router.push/refresh is a client-side transition, not a full reload —
+    // portalCache's module-level store would otherwise survive into the next
+    // session on this tab. Cache keys aren't scoped by account, so a
+    // different user logging into a shared site here within the TTL window
+    // could briefly see the previous session's cached data.
+    cacheClear();
     setUser(null);
     setStatus("unauthenticated");
     router.push("/auth/login");

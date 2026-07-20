@@ -4,7 +4,7 @@
  * Slab Definition (TANGEDCO Domestic Tariff 2026 Model)
  * Ordered Low to High for correct integration
  */
-export const SLABS = [
+const SLABS = [
     { limit: 100, rate: 0.0 },    // First 100 units free
     { limit: 100, rate: 2.35 },   // Next 100 (101-200)
     { limit: 200, rate: 4.70 },   // Next 200 (201-400)
@@ -22,7 +22,7 @@ export interface BillInputs {
     estimatedUnits?: number; // Direct monthly units estimate (optional if using totalBillAmount)
     billingCycle: 'Bi-Monthly'; // Hardcoded for TANGEDCO context
 }
-export const PHYSICS = {
+const PHYSICS = {
     AREA_PER_KW: 60, // sq.ft (Includes safety factor for maintenance walkways)
     PANEL_WATTAGE: 600, // Wp (Modern PERC/TopCon Mono)
     PANEL_LENGTH_M: 2.38, // meters
@@ -53,7 +53,7 @@ export const PHYSICS = {
  * Decompose total bill into energy charge.
  * Removes only the Service Charge, assuming No Tax.
  */
-export function estimateEnergyCharge(bill: BillInputs): number {
+function estimateEnergyCharge(bill: BillInputs): number {
     return Math.max(0, bill.totalBillAmount ? bill.totalBillAmount - PHYSICS.FIXED_CHARGE_DEDUCTION : 0);
 }
 
@@ -61,7 +61,7 @@ export function estimateEnergyCharge(bill: BillInputs): number {
  * Estimate units from energy charge using slabs (bottom-up, telescopic)
  * Fixed: Properly handles free slab - bill amount represents only paid consumption
  */
-export function estimateUnitsFromEnergyCharge(energyCharge: number): number {
+function estimateUnitsFromEnergyCharge(energyCharge: number): number {
     let units = 0;
     let remainingBill = energyCharge;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BadgeCheck, Cpu, KeyRound, Mail, MessageSquare, Pencil, ShieldCheck, Zap,
@@ -8,6 +8,7 @@ import {
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import SiteMembersCard from "@/components/profile/SiteMembersCard";
+import EditProfileModal from "@/components/profile/EditProfileModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
@@ -151,23 +152,15 @@ export default function ProfilePage() {
     { cacheKey: `profile:${user?.site_id}`, ttl: TTL.static },
   );
 
-  const profile = data?.profile ?? null;
+  // Local overrides for fields changed via the edit modal — the loaded
+  // `profile` comes from a cached query, so we layer confirmed edits on top
+  // rather than refetching.
+  const [overrides, setOverrides] = useState<Partial<Profile>>({});
+  const profile = data?.profile ? { ...data.profile, ...overrides } : null;
   const site = data?.site ?? null;
   const equipment = data?.equipment ?? [];
 
-  // Edit form — seeded from loaded profile
-  const [editFirst, setEditFirst] = useState("");
-  const [editLast, setEditLast] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  useEffect(() => {
-    if (profile && !editFirst && !editLast) {
-      setEditFirst(profile.first_name);
-      setEditLast(profile.last_name);
-      setEditPhone(profile.phone ?? "");
-    }
-  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Password form
   const [currentPw, setCurrentPw] = useState("");
@@ -176,36 +169,10 @@ export default function ProfilePage() {
   const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [pwError, setPwError] = useState("");
 
-  const isDirty =
-    profile !== null &&
-    (editFirst !== profile.first_name ||
-      editLast !== profile.last_name ||
-      editPhone !== (profile.phone ?? ""));
-
   const initials =
     profile
       ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase()
       : "";
-
-  async function handleSave() {
-    if (!isDirty) return;
-    setSaveState("saving");
-    try {
-      await portalApi.updateProfile({
-        first_name: editFirst,
-        last_name: editLast,
-        mobile_number: editPhone,
-      });
-      setEditFirst(editFirst);
-      setEditLast(editLast);
-      setEditPhone(editPhone);
-      setSaveState("saved");
-      setTimeout(() => setSaveState("idle"), 2000);
-    } catch {
-      setSaveState("error");
-      setTimeout(() => setSaveState("idle"), 3000);
-    }
-  }
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -223,6 +190,7 @@ export default function ProfilePage() {
       await portalApi.changePassword({
         current_password: currentPw,
         new_password: newPw,
+        confirm_password: confirmPw,
       });
       setPwState("saved");
       setCurrentPw("");
@@ -510,72 +478,18 @@ export default function ProfilePage() {
 
           {/* Edit profile */}
           <GlassCard>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <CardTitle icon={<Pencil size={13} className="text-emerald-400" />} className="mb-0">Edit profile</CardTitle>
               <button
-                onClick={handleSave}
-                disabled={!isDirty || saveState === "saving"}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary"
+                onClick={() => setShowEditModal(true)}
+                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary cursor-pointer"
               >
-                {saveState === "saving" ? "Saving…" : "Save"}
+                Edit
               </button>
             </div>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">First name</label>
-                  <input
-                    type="text"
-                    value={editFirst}
-                    onChange={(e) => setEditFirst(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1.5">Last name</label>
-                  <input
-                    type="text"
-                    value={editLast}
-                    onChange={(e) => setEditLast(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Phone</label>
-                <input
-                  type="tel"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className={inputClass}
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-            </div>
-
-            <AnimatePresence>
-              {saveState === "saved" && (
-                <motion.p
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="mt-3 text-sm text-emerald-400"
-                >
-                  Saved ✓
-                </motion.p>
-              )}
-              {saveState === "error" && (
-                <motion.p
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="mt-3 text-sm text-red-400"
-                >
-                  Failed to save. Please try again.
-                </motion.p>
-              )}
-            </AnimatePresence>
+            <p className="text-sm text-muted-foreground mt-2">
+              Update your name, email, or phone number. Email and phone changes require a verification code.
+            </p>
           </GlassCard>
 
           {/* Change password */}
@@ -647,6 +561,22 @@ export default function ProfilePage() {
           </GlassCard>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showEditModal && profile && (
+          <EditProfileModal
+            initialFirst={profile.first_name}
+            initialLast={profile.last_name}
+            currentEmail={profile.email}
+            currentPhone={profile.phone}
+            onClose={() => setShowEditModal(false)}
+            onSaved={(updates) => {
+              setOverrides((prev) => ({ ...prev, ...updates }));
+              setShowEditModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
       )}
     </AnimatePresence>

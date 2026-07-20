@@ -89,7 +89,3 @@ export function getChartDefaults(theme: "dark" | "light") {
     },
   };
 }
-
-// Dark-mode literal, kept as the default export for any call site not yet
-// migrated to getChartDefaults(theme) — never add a new usage of this.
-export const CHART_DEFAULTS = getChartDefaults("dark");

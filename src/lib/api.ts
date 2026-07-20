@@ -234,7 +234,19 @@ export const portalApi = {
     api.put(`/api/backend/profile/update/`, data),
 
   changePassword: (data: Record<string, unknown>) =>
-    api.post(`/api/backend/profile/change-password/`, data),
+    api.put(`/api/backend/profile/change-password/`, data),
+
+  requestEmailChangeOtp: (newEmail: string) =>
+    api.post(`/api/backend/profile/email/request-otp/`, { new_email: newEmail }),
+
+  confirmEmailChangeOtp: (newEmail: string, otp: string) =>
+    api.post(`/api/backend/profile/email/confirm-otp/`, { new_email: newEmail, otp }),
+
+  requestPhoneChangeOtp: (newMobile: string) =>
+    api.post(`/api/backend/profile/phone/request-otp/`, { new_mobile: newMobile }),
+
+  confirmPhoneChangeOtp: (newMobile: string, otp: string) =>
+    api.post(`/api/backend/profile/phone/confirm-otp/`, { new_mobile: newMobile, otp }),
 
   getSite: (siteId: string) =>
     api.get(`/api/backend/sites/${siteId}/profile/`),
