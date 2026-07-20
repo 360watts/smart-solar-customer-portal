@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
+// TODO: replace with real store URLs once the apps are published.
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.greenenergy.solar_app";
+const APP_STORE_URL = "https://apps.apple.com/app/id0000000000";
+
 type PageState =
   | { type: "loading" }
   | { type: "form"; email: string; firstName: string }
@@ -85,7 +89,6 @@ export default function SetPasswordPage() {
       }
       await refreshSession();
       setState({ type: "success" });
-      setTimeout(() => router.push("/dashboard"), 1800);
     } catch {
       setFormError("Unable to set password. Please try again.");
       setSubmitting(false);
@@ -121,7 +124,33 @@ export default function SetPasswordPage() {
         <Wordmark />
         <CheckCircle2 size={44} className="text-emerald-400 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-foreground mb-2">You&apos;re all set</h2>
-        <p className="text-muted-foreground text-sm">Password created. Redirecting to your dashboard…</p>
+        <p className="text-muted-foreground text-sm mb-6">Password created.</p>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold py-3 transition-colors cursor-pointer mb-4"
+        >
+          Continue to dashboard
+        </button>
+        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Or get the 360Watts app</p>
+        <div className="flex gap-3">
+          <a
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 rounded-lg border border-border py-2 text-sm text-foreground hover:border-primary/50 transition-colors"
+          >
+            Google Play
+          </a>
+          <a
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 rounded-lg border border-border py-2 text-sm text-foreground hover:border-primary/50 transition-colors"
+          >
+            App Store
+          </a>
+        </div>
       </Card>
     );
   }

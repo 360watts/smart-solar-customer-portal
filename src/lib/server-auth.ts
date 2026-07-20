@@ -322,7 +322,12 @@ export async function loginCustomer(
   try {
     loginResponse = await backendFetch("/api/auth/login/", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      // client_app tells the backend this is a customer-only surface (see
+      // CUSTOMER_ONLY_CLIENTS in api/views/auth.py) so staff/superuser
+      // accounts are rejected server-side, before any tokens are issued —
+      // not just via the redirect-employee check further down this file,
+      // which only runs after the backend has already authenticated them.
+      body: JSON.stringify({ email, password, client_app: "customer-portal" }),
     });
   } catch (err) {
     // Network-level failure (timeout, DNS, Railway down) — not a credential error.
@@ -335,11 +340,17 @@ export async function loginCustomer(
 
   if (!loginResponse.ok) {
     const data = await loginResponse.json().catch(() => ({}));
-    const message =
-      (data as { error?: string; detail?: string }).error ??
-      (data as { error?: string; detail?: string }).detail ??
-      "Login failed.";
-    throw new Error(message);
+    const { error, detail, code } = data as { error?: string; detail?: string; code?: string };
+
+    // Backend rejected via client_app (see api/views/auth.py) before issuing
+    // any tokens — same outcome as the post-login redirect-employee check
+    // below, just caught earlier. Route through the same "kind" so callers
+    // (the login route handler) don't need a separate branch.
+    if (code === "STAFF_LOGIN_BLOCKED") {
+      return { kind: "redirect-employee" };
+    }
+
+    throw new Error(error ?? detail ?? "Login failed.");
   }
 
   const loginData = (await loginResponse.json()) as { tokens?: TokenPair };
