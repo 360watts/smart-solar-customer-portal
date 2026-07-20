@@ -25,3 +25,11 @@ Plan: /home/ubuntu/.claude/plans/shimmying-yawning-crayon.md
 - [x] Task 6: complete (commits 4e2e40d..7cde80f, review clean)
 - [x] Task 7: complete (commits 7cde80f..f00fa62, review clean)
 - [x] Task 8: complete (commits f00fa62..c609a8e, review clean)
+# SDD Progress — Password-Setup Link (frontend tasks, smart-solar-customer-portal)
+Working in place on master (user-approved, low-risk scoped task).
+
+Task 5: complete (commit c5c3bb5, review clean)
+  - Minor finding (deferred to final review): src/lib/server-auth.ts:417-421 getPasswordSetupInfo has no try/catch around backendFetch — unhandled network error surfaces as raw 500 in the GET route instead of a friendly envelope like the POST path gets.
+Task 6: complete (commit 69e83f7, review clean)
+  - Minor findings (deferred to final review, both non-actionable per analysis): pre-existing repo-wide react-hooks/set-state-in-effect lint pattern shared with mirrored invite page; no JS-level password length check beyond native minLength (matches invite page convention).
+ALL FRONTEND TASKS COMPLETE
