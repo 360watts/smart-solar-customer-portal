@@ -37,6 +37,7 @@ interface DashboardData {
   todayConKwh: number;
   monthGenKwh: number;
   selfUsePct: number;
+  gridExportKwh: number;
   activeAlerts: number;
   alertsCounts: { critical: number; warning: number; info: number };
   devices: Device[];
@@ -248,8 +249,11 @@ function SelfUseArc({ pct }: { pct: number }) {
 function SelfConsumptionCard({ data, loading }: { data: DashboardData | null; loading: boolean }) {
   const pct         = Math.round(data?.selfUsePct ?? 0);
   const genKwh      = data?.todayGenKwh ?? 0;
-  const selfUsedKwh = parseFloat((genKwh * pct / 100).toFixed(1));
-  const exportedKwh = parseFloat((genKwh - selfUsedKwh).toFixed(1));
+  // Derive kWh straight from the actual export figure, not from re-multiplying
+  // the already-rounded percentage — that double-rounds and can visibly
+  // disagree with the real grid_export_kwh it was computed from.
+  const exportedKwh = parseFloat((data?.gridExportKwh ?? 0).toFixed(1));
+  const selfUsedKwh = parseFloat((genKwh - exportedKwh).toFixed(1));
   const exportPct   = 100 - pct;
 
   return (
@@ -351,9 +355,10 @@ export default function OverviewPage() {
     user?.site_id,
     async (siteId, signal) => {
       const today = new Date().toISOString().slice(0, 10);
-      const [summary, forecastRes] = await Promise.all([
+      const [summary, forecastRes, healthRes] = await Promise.all([
         portalApi.getPortalOverview(siteId, { date: today }, signal),
         portalApi.getForecast(siteId, { date: today }, signal),
+        portalApi.getHardwareHealth(siteId, 7, signal).catch(() => null),
       ]);
       signal.throwIfAborted();
 
@@ -472,7 +477,13 @@ export default function OverviewPage() {
       const selfUsePct   = todayGenKwh > 0
         ? Math.round(Math.min(100, ((todayGenKwh - gridExportKwh) / todayGenKwh) * 100))
         : 0;
-      const performanceRatio: number | null = null;
+      // Real PR: actual pv1 output vs physics-modelled baseline (see
+      // api/services/hardware_health.py::_score_pv), not a flat capacity
+      // heuristic. Falls back to null (UI shows the capacity-based estimate)
+      // only if the health endpoint itself failed.
+      const solarHealth = (healthRes?.data as Record<string, unknown> | null)?.solar_panel as
+        { health_score?: number } | undefined;
+      const performanceRatio: number | null = solarHealth?.health_score ?? null;
 
       const monthTotals = (payload.energy_month ?? {}) as Record<string, unknown>;
       // site_daily_energy lags ~1 day; fall back to today's yield when month total
@@ -576,6 +587,7 @@ export default function OverviewPage() {
         todayConKwh,
         monthGenKwh,
         selfUsePct,
+        gridExportKwh,
         activeAlerts,
         alertsCounts,
         devices,
@@ -876,7 +888,7 @@ export default function OverviewPage() {
                       { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "var(--muted)", glow: "transparent" },
                       { label: "CO₂ Avoided", value: `${co2AvoidedKg} kg`, dot: "#34d399", glow: "rgba(52,211,153,0.4)" },
                     ]}
-                    footer="Generation compared against a clear-sky reference day for this system size."
+                    footer="Generation compared against a flat ~5 peak-sun-hour/day estimate for this system's capacity."
                     loading={loading}
                     delay={1}
                   />
@@ -905,7 +917,11 @@ export default function OverviewPage() {
                       { label: "Today's Yield", value: `${todayGenKwh.toFixed(1)} kWh`, dot: "#60a5fa", glow: "rgba(96,165,250,0.4)" },
                       { label: "Capacity", value: `${capacityKwp.toFixed(1)} kWp`, dot: "var(--muted)", glow: "transparent" },
                     ]}
-                    footer="Performance ratio compares real output against theoretical maximum for your installed capacity."
+                    footer={
+                      d?.performanceRatio != null
+                        ? "7-day average of actual output vs. a physics-modelled irradiance baseline (IEC 61724-1 PR)."
+                        : "Estimate only — actual vs. baseline PR unavailable, showing generation vs. a flat capacity heuristic instead."
+                    }
                     loading={loading}
                     delay={3}
                   />

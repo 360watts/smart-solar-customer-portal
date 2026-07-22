@@ -183,6 +183,14 @@ export const portalApi = {
   getLoadForecast: (siteId: string, params?: { days?: number }, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/load-forecast/`, { params, ...sig(signal) }),
 
+  // `timeseries` in the response joins actuals to whatever prediction was
+  // made for that slot (past) plus the live rolling forecast (future) — the
+  // only endpoint that has both actual_kw and predicted_kw for past hours,
+  // which is what the "Load Forecast" chart needs to show forecast-vs-actual
+  // for elapsed hours today, not just a forward-only forecast line.
+  getLoadForecastAccuracy: (siteId: string, params?: { days?: number }, signal?: AbortSignal) =>
+    api.get(`/api/backend/sites/${siteId}/load-forecast-accuracy/`, { params, ...sig(signal) }),
+
   getWeather: (siteId: string, signal?: AbortSignal) =>
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
 

@@ -119,6 +119,13 @@ export function useSiteQuery<T>(
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load data.");
+        // A failed refresh leaves the old `data` displayed as-is (better than
+        // blanking the screen) — but the viewer needs to know it's no longer
+        // current, so surface the same staleness signal a slow cache entry
+        // would. Without this, a run of silent background-poll failures could
+        // leave stale (possibly zero/misleading) values on screen with no
+        // visible indication anything's wrong.
+        setIsStale(true);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }

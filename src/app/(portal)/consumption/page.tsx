@@ -108,41 +108,22 @@ function buildAggChart(
   };
 }
 
-/** Buckets raw telemetry load readings into 15-min site-local slots — matches
- * the Load Forecast's own cadence so actual (elapsed hours) and forecast
- * (future hours) sit on one continuous x-axis. */
-function bucketActualLoad15min(telRows: Array<{ timestamp: string; load_power_w?: number }>): Array<{ ts: string; kw: number }> {
-  const SLOT_MS = 15 * 60 * 1000;
-  const buckets = new Map<number, number[]>();
-  for (const r of telRows) {
-    const slotMs = Math.floor(new Date(r.timestamp).getTime() / SLOT_MS) * SLOT_MS;
-    if (!buckets.has(slotMs)) buckets.set(slotMs, []);
-    buckets.get(slotMs)!.push((Number(r.load_power_w) || 0) / 1000);
-  }
-  return Array.from(buckets.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([slotMs, vals]) => ({ ts: new Date(slotMs).toISOString(), kw: vals.reduce((s, v) => s + v, 0) / vals.length }));
-}
-
+/** Built from `load-forecast-accuracy`'s `timeseries`, which — unlike the
+ * plain `load-forecast` endpoint — joins each past 15-min slot to whatever
+ * prediction was actually made for it (falling back to the snapshot table
+ * when the live forecast has since rolled past it), so "Actual" and
+ * "P10/P50/P90" both have real values through elapsed hours today, not just
+ * from "now" forward. Future slots naturally have actual_kw = null. */
 function buildForecastChart(
-  actualRows: Array<{ ts: string; kw: number }>,
-  forecastRows: Array<{ forecast_for: string; predicted_kw: number; p10_kw: number; p90_kw: number }>,
+  rows: Array<{ ts: string; predicted_kw: number | null; actual_kw: number | null; p10_kw: number | null; p90_kw: number | null }>,
 ): ChartData {
-  // Actual (elapsed hours, from telemetry) and forecast (future hours, from
-  // the load model) never overlap in time — merge into one chronological
-  // timeline so the chart reads as a single continuous line crossing "now".
-  const combined = [
-    ...actualRows.map((a) => ({ ts: a.ts, actual: a.kw as number | null, p50: null as number | null, p10: null as number | null, p90: null as number | null })),
-    ...forecastRows.map((f) => ({ ts: f.forecast_for, actual: null as number | null, p50: Number(f.predicted_kw) || 0, p10: Number(f.p10_kw) || 0, p90: Number(f.p90_kw) || 0 })),
-  ].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
-
   return {
-    labels: combined.map((c) => hourLabel(c.ts)),
+    labels: rows.map((r) => hourLabel(r.ts)),
     datasets: [
-      { label: "P90 (High)",   data: combined.map((c) => c.p90),    borderColor: "transparent",          backgroundColor: "rgba(96,165,250,0.3)", fill: "+1",         tension: 0.4, pointRadius: 0 },
-      { label: "P50 (Median)", data: combined.map((c) => c.p50),    borderColor: "#60a5fa",              backgroundColor: "transparent",          borderWidth: 2,     tension: 0.4, pointRadius: 0 },
-      { label: "P10 (Low)",    data: combined.map((c) => c.p10),    borderColor: "rgba(96,165,250,0.5)", backgroundColor: "transparent",          borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
-      { label: "Actual",       data: combined.map((c) => c.actual), borderColor: "#2FBF71",              backgroundColor: "transparent",          borderWidth: 2.5,   tension: 0.3, pointRadius: 0 },
+      { label: "P90 (High)",   data: rows.map((r) => r.p90_kw),      borderColor: "transparent",          backgroundColor: "rgba(96,165,250,0.3)", fill: "+1",         tension: 0.4, pointRadius: 0 },
+      { label: "P50 (Median)", data: rows.map((r) => r.predicted_kw), borderColor: "#60a5fa",              backgroundColor: "transparent",          borderWidth: 2,     tension: 0.4, pointRadius: 0 },
+      { label: "P10 (Low)",    data: rows.map((r) => r.p10_kw),      borderColor: "rgba(96,165,250,0.5)", backgroundColor: "transparent",          borderDash: [4, 4], borderWidth: 1.5, tension: 0.4, pointRadius: 0 },
+      { label: "Actual",       data: rows.map((r) => r.actual_kw),   borderColor: "#2FBF71",              backgroundColor: "transparent",          borderWidth: 2.5,   tension: 0.3, pointRadius: 0 },
     ],
   };
 }
@@ -165,7 +146,7 @@ export default function ConsumptionPage() {
         portalApi.getTelemetry(siteId, { days: 1 }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "monthly", start: twelveMonthsAgoISO, end: todayISO }, signal),
-        portalApi.getLoadForecast(siteId, { days: 1 }, signal),
+        portalApi.getLoadForecastAccuracy(siteId, { days: 1 }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: todayISO, end: todayISO, summary: "true" }, signal),
       ]);
 
@@ -183,8 +164,13 @@ export default function ConsumptionPage() {
       // Week / month: plain arrays from energy-summary
       const weekRows: EnergySummaryRow[]  = weekS.status  === "fulfilled" ? (Array.isArray(weekS.value.data)  ? weekS.value.data  : (weekS.value.data?.results  ?? [])) : [];
       const monthRows: EnergySummaryRow[] = monthS.status === "fulfilled" ? (Array.isArray(monthS.value.data) ? monthS.value.data : (monthS.value.data?.results ?? [])) : [];
-      // Load forecast: plain array
-      const fRows = forecastS.status === "fulfilled" && Array.isArray(forecastS.value.data) ? forecastS.value.data : [];
+      // Load forecast vs-actual: { daily, hourly, overall, timeseries }.
+      // Trimmed to the same 6am-6am site-local solar day as the Day chart
+      // above, rather than the raw "past 24h / next 24h from now" window
+      // the endpoint returns.
+      const forecastTimeseriesRaw: Array<{ ts: string; predicted_kw: number | null; actual_kw: number | null; p10_kw: number | null; p90_kw: number | null }> =
+        forecastS.status === "fulfilled" ? (forecastS.value.data?.timeseries ?? []) : [];
+      const forecastTimeseries = forecastTimeseriesRaw.filter((r) => isInSolarDayWindow(r.ts));
       // Matches the staff dashboard's date-axis format exactly ("Jul 7", no
       // weekday name) and is pinned to site-local time — the previous
       // `toLocaleDateString("en-IN", {...})` here had no timeZone at all.
@@ -224,7 +210,7 @@ export default function ConsumptionPage() {
         weekChart:     weekRows.length  ? buildAggChart(weekRows, weekLabel)                          : { labels: [], datasets: [] },
         weekTrend,
         monthChart:    monthRows.length ? buildAggChart(monthRows, (ts) => new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: SITE_TIMEZONE }))  : { labels: [], datasets: [] },
-        forecastChart: (telRowsRaw.length || fRows.length) ? buildForecastChart(bucketActualLoad15min(telRowsRaw), fRows) : { labels: [], datasets: [] },
+        forecastChart: forecastTimeseries.length ? buildForecastChart(forecastTimeseries) : { labels: [], datasets: [] },
       };
     },
     { cacheKey: `consumption:${user?.site_id}`, ttl: TTL.summary, autoRefreshSec: 120 },
