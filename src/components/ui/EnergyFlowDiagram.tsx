@@ -8,6 +8,10 @@ export interface FlowData {
   batteryKw: number;   // >0 = charging, <0 = discharging
   batterySoc: number;  // 0–100
   gridKw: number;      // >0 = importing, <0 = exporting
+  /** True when there's an active "Grid Power Outage" incident — distinguishes
+   * a genuinely dead grid connection from gridKw just reading 0 kW (e.g.
+   * battery covering load with the grid idle but present). */
+  gridDisconnected?: boolean;
   loads?: { label: string; kw: number; color: string }[];
 }
 
@@ -45,7 +49,7 @@ const DEFAULT: FlowData = {
 // Memoized: the SVG rebuilds expensive bezier paths and arc strings on every render.
 // Only re-render when actual power values change, not on every parent state update.
 const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT }: { data?: FlowData }) {
-  const { solarKw, homeKw, batteryKw, batterySoc, gridKw } = data;
+  const { solarKw, homeKw, batteryKw, batterySoc, gridKw, gridDisconnected = false } = data;
 
   const W = 520, H = 300, VT = -10;
   const gwX = 260, gwY = 150, gwR = 26;
@@ -64,14 +68,14 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
 
   const sCol  = "#2FBF71";
   const bCol  = charging  ? "#2FBF71" : "#E9B949";
-  const gCol  = exporting ? "#E9B949" : "#6B7A99";
+  const gCol  = gridDisconnected ? "#F87171" : exporting ? "#E9B949" : "#6B7A99";
   const hCol  = "#93C5FD";
   const gwCol = "#F0F6FF";
 
   const sAR = sR + 7, bAR = bR + 7, gAR = gR + 7, hAR = hR + 7;
   const sArcPct = Math.min(solarKw / 6.5, 1);
   const bArcPct = batterySoc / 100;
-  const gArcPct = Math.min(Math.abs(gridKw) / 5.0, 1);
+  const gArcPct = gridDisconnected ? 0 : Math.min(Math.abs(gridKw) / 5.0, 1);
   const hArcPct = Math.min(homeKw / 8.0, 1);
 
   const beamS = beam(sX, sY, sR, gwX, gwY, gwR);
@@ -166,13 +170,16 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
         {/* ══ BEAMS ══ */}
         <Beam d={beamS.path} col={sCol} dir="fwd"  speed={beamSpeed(solarKw)}              active={solarKw > 0} />
         <Beam d={beamB.path} col={bCol} dir={charging ? "rev" : "fwd"} speed={beamSpeed(Math.abs(batteryKw))} active={battActive} />
-        <Beam d={beamG.path} col={gCol} dir={exporting ? "rev" : "fwd"} speed={beamSpeed(Math.abs(gridKw))}  active={true} />
+        <Beam d={beamG.path} col={gCol} dir={exporting ? "rev" : "fwd"} speed={beamSpeed(Math.abs(gridKw))}  active={!gridDisconnected} />
         <Beam d={beamH.path} col={hCol} dir="rev"  speed={beamSpeed(homeKw)}              active={homeKw > 0} />
 
         {/* ── kW labels — exactly at bezier midpoint ── */}
         {solarKw > 0 && <BeamLabel x={beamS.mid.x} y={beamS.mid.y} value={`${solarKw.toFixed(2)} kW`} sub="Generating" col={sCol} />}
         {battActive   && <BeamLabel x={beamB.mid.x} y={beamB.mid.y} value={`${Math.abs(batteryKw).toFixed(2)} kW`} sub={charging ? "Charging" : "Discharging"} col={bCol} />}
-        <BeamLabel x={beamG.mid.x} y={beamG.mid.y} value={`${Math.abs(gridKw).toFixed(2)} kW`} sub={exporting ? "Exporting" : "Importing"} col={gCol} />
+        <BeamLabel x={beamG.mid.x} y={beamG.mid.y}
+          value={gridDisconnected ? "—" : `${Math.abs(gridKw).toFixed(2)} kW`}
+          sub={gridDisconnected ? "Disconnected" : exporting ? "Exporting" : "Importing"}
+          col={gCol} />
         <BeamLabel x={beamH.mid.x} y={beamH.mid.y} value={`${homeKw.toFixed(2)} kW`} sub="Consuming" col={hCol} />
 
         {/* ══ SOLAR NODE ══ */}
@@ -229,12 +236,27 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
 
         {/* ══ GRID NODE ══ */}
         <g>
+          {gridDisconnected && (
+            <circle cx={gX} cy={gY} r={gR + 11} fill="none" stroke="rgba(248,113,113,.3)" strokeWidth="1" className="ef-ring" />
+          )}
           <path d={arc(gX, gY, gAR, 225, 270)} fill="none" stroke={`${gCol}14`} strokeWidth="4.5" strokeLinecap="round" />
           {gArcPct > 0 && <path d={arc(gX, gY, gAR, 225, gArcPct * 270)} fill="none" stroke={gCol} strokeWidth="4.5" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 5px ${gCol})` }} />}
           <circle cx={gX} cy={gY} r={gR} fill={`${gCol}10`} stroke={`${gCol}32`} strokeWidth="1.5" />
-          <path d={`M ${gX+1.5},${gY-6.5} L ${gX-3},${gY+0.5} L ${gX+0.5},${gY+0.5} L ${gX-1.5},${gY+6.5} L ${gX+3},${gY-0.5} L ${gX-0.5},${gY-0.5} Z`}
-            fill={gCol} opacity=".88" />
-          <text x={gX} y={gY + gR + 14} textAnchor="middle" fill={gCol} fontSize="11" fontWeight="700" fontFamily="DM Sans,system-ui">Grid</text>
+          {gridDisconnected ? (
+            // Bolt with a slash through it, matching the "disconnected" reading
+            // rather than the normal solid bolt (which implies live grid power).
+            <g opacity=".9">
+              <path d={`M ${gX+1.5},${gY-6.5} L ${gX-3},${gY+0.5} L ${gX+0.5},${gY+0.5} L ${gX-1.5},${gY+6.5} L ${gX+3},${gY-0.5} L ${gX-0.5},${gY-0.5} Z`}
+                fill={gCol} opacity=".55" />
+              <line x1={gX-7} y1={gY-7} x2={gX+7} y2={gY+7} stroke={gCol} strokeWidth="1.6" strokeLinecap="round" />
+            </g>
+          ) : (
+            <path d={`M ${gX+1.5},${gY-6.5} L ${gX-3},${gY+0.5} L ${gX+0.5},${gY+0.5} L ${gX-1.5},${gY+6.5} L ${gX+3},${gY-0.5} L ${gX-0.5},${gY-0.5} Z`}
+              fill={gCol} opacity=".88" />
+          )}
+          <text x={gX} y={gY + gR + 14} textAnchor="middle" fill={gCol} fontSize="11" fontWeight="700" fontFamily="DM Sans,system-ui">
+            {gridDisconnected ? "Grid · Offline" : "Grid"}
+          </text>
         </g>
 
         {/* ══ GATEWAY NODE — matches staff HubNode: indigo radial, Activity icon, pulse ring ══ */}

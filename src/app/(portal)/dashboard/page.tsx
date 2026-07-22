@@ -40,6 +40,7 @@ interface DashboardData {
   gridExportKwh: number;
   activeAlerts: number;
   alertsCounts: { critical: number; warning: number; info: number };
+  gridDisconnected: boolean;
   devices: Device[];
   isOnline: boolean;
   dataSource: string | null;
@@ -506,6 +507,7 @@ export default function OverviewPage() {
       // Alerts consistent with each other.
       let activeAlerts = 0;
       let alertsCounts = { critical: 0, warning: 0, info: 0 };
+      let gridDisconnected = false;
       const deviceAlertMap = new Map<string, { count: number; severity: "critical" | "warning" | "info" }>();
 
       try {
@@ -535,6 +537,14 @@ export default function OverviewPage() {
         );
 
         activeAlerts = openIncidents.length;
+        // "Grid Power Outage" (GRID-001) is the one grid-category incident that
+        // means the grid connection itself is down, not just a voltage/frequency
+        // wobble — used below to distinguish "grid genuinely disconnected" from
+        // "grid connected but currently 0 kW" on the energy flow diagram, which
+        // otherwise look identical (both report gridKw: 0).
+        gridDisconnected = openIncidents.some(
+          (inc) => inc.category === "grid" && /outage/i.test(inc.title),
+        );
         for (const inc of openIncidents) {
           if (inc.severity === "critical") alertsCounts.critical++;
           else if (inc.severity === "warning") alertsCounts.warning++;
@@ -590,6 +600,7 @@ export default function OverviewPage() {
         gridExportKwh,
         activeAlerts,
         alertsCounts,
+        gridDisconnected,
         devices,
         isOnline,
         dataSource,
@@ -633,6 +644,7 @@ export default function OverviewPage() {
         batteryKw:  0,
         batterySoc: d.batterySoc ?? 0,
         gridKw:     d.currentGridKw,
+        gridDisconnected: d.gridDisconnected,
         loads:      [],
       }
     : null;
