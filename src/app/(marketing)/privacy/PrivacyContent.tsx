@@ -105,7 +105,7 @@ export function PrivacyContent() {
           >
             This policy explains what 360watts collects across our solar
             monitoring platform, customer portal, and service communications
-            — and exactly what we do (and don't do) with it.
+            — and exactly what we do (and don&apos;t do) with it.
           </motion.p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { motion } from "framer-motion";
@@ -125,7 +126,7 @@ export function Why360wattsSection() {
                       }}
                       className="w-20 h-20 sm:w-22.5 sm:h-22.5 md:w-25 md:h-25 bg-linear-to-br from-[#dcfce7] to-[#bbf7d0] rounded-2xl sm:rounded-[20px] flex items-center justify-center mb-4 sm:mb-5 md:mb-6 shadow-[0_4px_20px_rgba(4, 113, 58,0.15)] group-hover:shadow-[0_8px_30px_rgba(4, 113, 58,0.25)] transition-shadow duration-300"
                     >
-                      <img src={benefit.icon} alt="" className="w-9.5 h-9.5 sm:w-11.25 sm:h-11.25 md:w-12.5 md:h-12.5" />
+                      <Image src={benefit.icon} alt="" width={50} height={50} className="w-9.5 h-9.5 sm:w-11.25 sm:h-11.25 md:w-12.5 md:h-12.5" />
                     </div>
                     <h3 className="text-[14px] sm:text-[17px] md:text-[20px] font-bold text-[#0a0a0a] font-['Urbanist'] mb-2 sm:mb-3 leading-tight">
                       {benefit.title}

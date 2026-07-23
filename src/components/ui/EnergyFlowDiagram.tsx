@@ -70,7 +70,6 @@ const EnergyFlowDiagram = React.memo(function EnergyFlowDiagram({ data = DEFAULT
   const bCol  = charging  ? "#2FBF71" : "#E9B949";
   const gCol  = gridDisconnected ? "#F87171" : exporting ? "#E9B949" : "#6B7A99";
   const hCol  = "#93C5FD";
-  const gwCol = "#F0F6FF";
 
   const sAR = sR + 7, bAR = bR + 7, gAR = gR + 7, hAR = hR + 7;
   const sArcPct = Math.min(solarKw / 6.5, 1);

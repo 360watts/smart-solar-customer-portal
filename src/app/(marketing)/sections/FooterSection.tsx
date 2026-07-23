@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { APP_IMAGES } from "../lib/imageRegistry";
@@ -10,6 +12,7 @@ interface FooterSectionProps {
 }
 
 export function FooterSection({ motionProps = {} }: FooterSectionProps) {
+  const [logoSrc, setLogoSrc] = useState<string>(APP_IMAGES.footerLogo);
   return (
     <footer
       className="relative py-14 sm:py-18 md:py-24 px-4 sm:px-6 rounded-t-[30px] sm:rounded-t-[40px] md:rounded-t-[50px] overflow-hidden"
@@ -46,21 +49,19 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
         >
           <div className="col-span-2 sm:col-span-2 md:col-span-4 flex flex-col items-center sm:items-start gap-2 group">
             <div className="relative">
-              <img
-                src={APP_IMAGES.footerLogo}
+              <Image
+                src={logoSrc}
                 alt="360watts"
+                width={logoSrc === localFinalLogo ? 94 : 676}
+                height={logoSrc === localFinalLogo ? 68 : 745}
                 className="h-21.25 sm:h-25 md:h-30 w-auto transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-md"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = localFinalLogo;
-                }}
+                onError={() => setLogoSrc(localFinalLogo)}
               />
               <div className="absolute -inset-4 bg-linear-to-r from-[#04713a]/20 to-[#015c40]/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
             <div className="text-center sm:text-left">
               <div className="text-[13px] sm:text-[15px] md:text-[17px] text-[#4a5565] font-['Figtree',sans-serif] tracking-[-0.3px] sm:tracking-[-0.76px] mb-2 sm:mb-3 md:mb-4">
-                Drive what's next.
+                Drive what&apos;s next.
               </div>
               <p className="text-[12px] sm:text-[13px] md:text-[14px] lg:text-[15px] text-[#4a5565] leading-relaxed max-w-xs">
                 Revolutionizing home energy with smart solar and automation

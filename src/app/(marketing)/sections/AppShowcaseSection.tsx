@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -164,7 +165,7 @@ export function AppShowcaseSection() {
                   }`}
                 >
                   <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
-                    <img src={feature.icon} alt="" className="w-7 h-7" />
+                    <Image src={feature.icon} alt="" width={28} height={28} className="w-7 h-7" />
                   </div>
                   <div>
                     <h3 className="font-extrabold text-white text-xl font-['Poppins']">
@@ -237,19 +238,19 @@ export function AppShowcaseSection() {
                       transition: `opacity ${TRANSITION_DURATION}s cubic-bezier(0.22, 1, 0.36, 1), transform ${TRANSITION_DURATION}s cubic-bezier(0.22, 1, 0.36, 1)`,
                     }}
                   >
-                    <img
+                    <Image
                       src={slide.image}
                       alt={slide.alt}
+                      fill
+                      sizes="(min-width: 768px) 260px, 200px"
                       className="absolute inset-[8%] left-[13%] w-[75%] h-[83%] object-cover rounded-[20px] pointer-events-none"
-                      loading="lazy"
-                      decoding="async"
                     />
-                    <img
+                    <Image
                       src={APP_IMAGES.phone1401}
                       alt="360watts mobile app"
-                      className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10"
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      sizes="(min-width: 768px) 260px, 200px"
+                      className="pointer-events-none z-10 object-cover"
                     />
                   </div>
                   );

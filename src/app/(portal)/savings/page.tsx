@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import {
   IndianRupee, TrendingUp, Zap, Calendar, ChevronRight,

@@ -17,6 +17,8 @@ export function useUptimeScore(siteId: string | null, days = 30): UseUptimeScore
 
   useEffect(() => {
     if (!siteId) {
+      // Resets loading from a previous truthy-siteId fetch if siteId becomes null.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }

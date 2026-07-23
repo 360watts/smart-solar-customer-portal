@@ -13,6 +13,7 @@ import {
   Legend,
   ChartData,
   ChartOptions,
+  TooltipItem,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
 import { getChartDefaults } from "@/lib/tokens";
@@ -32,15 +33,9 @@ ChartJS.register(
 
 // chartjs-plugin-zoom imports hammerjs which touches `document` at module init,
 // making it unsafe to import at the top level in a Next.js environment.
-// Register it once, lazily, after the browser environment is confirmed.
+// Registered once, lazily, in the effect below after the browser environment
+// is confirmed.
 let zoomRegistered = false;
-function ensureZoomPlugin() {
-  if (zoomRegistered || typeof window === "undefined") return;
-  zoomRegistered = true;
-  import("chartjs-plugin-zoom").then((m) => {
-    ChartJS.register(m.default);
-  });
-}
 
 interface DataChartProps {
   type: "line" | "bar";
@@ -70,14 +65,14 @@ function buildBaseOptions(chartDefaults: ReturnType<typeof getChartDefaults>): C
       tooltip: {
         ...chartDefaults.tooltip,
         callbacks: {
-          title: (context: any) => {
+          title: (context: TooltipItem<"line" | "bar">[]) => {
             if (!context[0]) return "";
             const label = String(context[0].label);
             if (/^\d{1,2}[ap]m$/i.test(label)) return `⏱ ${label}`;
             if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/i.test(label)) return `📅 ${label}`;
             return label;
           },
-          label: (context: any) => {
+          label: (context: TooltipItem<"line" | "bar">) => {
             const value = typeof context.parsed.y === "number"
               ? context.parsed.y.toFixed(2)
               : String(context.parsed.y);
@@ -87,7 +82,7 @@ function buildBaseOptions(chartDefaults: ReturnType<typeof getChartDefaults>): C
               : "";
             return `${dataset}: ${value}${unit}`;
           },
-          afterLabel: (context: any) => {
+          afterLabel: (context: TooltipItem<"line" | "bar">) => {
             const label = context.dataset.label || "";
             if (label.includes("P90")) return "🟢 Optimistic";
             if (label.includes("P10")) return "🔵 Conservative";
@@ -95,7 +90,7 @@ function buildBaseOptions(chartDefaults: ReturnType<typeof getChartDefaults>): C
             return "";
           },
         },
-      } as any,
+      },
     },
     scales: {
       x: {
@@ -116,18 +111,24 @@ function buildBaseOptions(chartDefaults: ReturnType<typeof getChartDefaults>): C
   };
 }
 
+// chartjs-plugin-zoom augments the Chart prototype with resetZoom(), which
+// isn't reflected in chart.js's own types.
+type ChartWithZoom = ChartJS<"line" | "bar"> & { resetZoom?: () => void };
+// react-chartjs-2 doesn't export its internal ChartJSOrUndefined ref type
+// (blocked by its package.json "exports" map), so mirror its shape locally.
+type ChartJSOrUndefined<TType extends "line" | "bar"> = ChartJS<TType> | undefined;
+
 export default function DataChart({ type, data, height = 200, options, disableZoom = false }: DataChartProps) {
-  const chartRef = useRef<ChartJS>(null);
+  const chartRef = useRef<ChartWithZoom>(null);
   const { theme } = useTheme();
   // Canvas plugins bake colors in at draw time, so chart chrome must be
   // recomputed (not just option-diffed) whenever the theme flips.
   const baseOptions = useMemo(() => buildBaseOptions(getChartDefaults(theme)), [theme]);
   // Track when zoom plugin has been registered so the chart re-renders with zoom options.
-  const [zoomReady, setZoomReady] = useState(false);
+  const [zoomReady, setZoomReady] = useState(() => !disableZoom && zoomRegistered);
 
   useEffect(() => {
-    if (disableZoom) return;
-    if (zoomRegistered) { setZoomReady(true); return; }
+    if (disableZoom || zoomRegistered) return;
     import("chartjs-plugin-zoom").then((m) => {
       ChartJS.register(m.default);
       zoomRegistered = true;
@@ -147,7 +148,7 @@ export default function DataChart({ type, data, height = 200, options, disableZo
   };
 
   const handleDoubleClick = () => {
-    if (chartRef.current) (chartRef.current as any).resetZoom?.();
+    chartRef.current?.resetZoom?.();
   };
 
   return (
@@ -159,9 +160,9 @@ export default function DataChart({ type, data, height = 200, options, disableZo
       )}
       <div style={{ height }} onDoubleClick={handleDoubleClick}>
         {type === "line" ? (
-          <Line ref={chartRef as any} data={data as ChartData<"line">} options={merged as ChartOptions<"line">} />
+          <Line ref={chartRef as unknown as React.ForwardedRef<ChartJSOrUndefined<"line">>} data={data as ChartData<"line">} options={merged as ChartOptions<"line">} />
         ) : (
-          <Bar ref={chartRef as any} data={data as ChartData<"bar">} options={merged as ChartOptions<"bar">} />
+          <Bar ref={chartRef as unknown as React.ForwardedRef<ChartJSOrUndefined<"bar">>} data={data as ChartData<"bar">} options={merged as ChartOptions<"bar">} />
         )}
       </div>
     </div>

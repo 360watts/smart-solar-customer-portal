@@ -2,6 +2,7 @@
 
 import { ArrowRight, ArrowLeftRight } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { APP_IMAGES } from "../lib/imageRegistry";
 import { processSteps } from "../data";
 import { sectionMotionProps, staggerMotionProps, revealVariant } from "../lib/motion";
@@ -21,7 +22,7 @@ export function HowItWorksSection() {
   const columnHeader = (icon: string, title: string, tagline: string, accentFrom: string, accentTo: string, align: "left" | "right") => (
     <div className={`flex items-center gap-3 ${align === "right" ? "flex-row-reverse text-right" : ""}`}>
       <div className={`w-11 h-11 md:w-14 md:h-14 bg-linear-to-br ${accentFrom} ${accentTo} rounded-xl flex items-center justify-center shadow-lg shrink-0`}>
-        <img src={icon} alt={title} className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+        <Image src={icon} alt={title} width={32} height={32} className="w-6 h-6 md:w-8 md:h-8 object-contain" />
       </div>
       <div>
         <h3 className="text-xl md:text-2xl font-bold text-[#0a0a0a] font-['Urbanist'] tracking-[-0.5px]">{title}</h3>

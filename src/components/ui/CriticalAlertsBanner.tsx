@@ -32,6 +32,8 @@ export const CriticalAlertsBanner: React.FC<CriticalAlertsBannerProps> = ({
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Client-only value (matchMedia unavailable during SSR) — must run post-hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrefersReducedMotion(mq.matches);
     const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener("change", listener);

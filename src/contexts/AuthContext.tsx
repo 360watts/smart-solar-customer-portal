@@ -11,7 +11,6 @@ import {
   logoutSession,
   type AuthStatus,
   type AuthUser,
-  AuthRequestError,
 } from "@/lib/auth";
 import { cacheClear } from "@/lib/portalCache";
 
@@ -70,7 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   }
 
-  logoutRef.current = logout;
+  useEffect(() => {
+    logoutRef.current = logout;
+  });
 
   // Wire up a global axios response interceptor so any BFF proxy 401
   // (session expired mid-use) automatically clears local state and redirects
@@ -99,8 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Mount-time session check against the BFF proxy — genuine external sync,
+    // not derivable from render-time state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function login(email: string, password: string) {

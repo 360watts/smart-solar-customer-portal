@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import Image from "next/image";
 import { useInView } from "react-intersection-observer";
 import { Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { APP_IMAGES } from "../lib/imageRegistry";
@@ -44,6 +45,8 @@ export function SolutionsSection() {
       if (playPromise && typeof playPromise.catch === "function") {
         playPromise.catch(() => {});
       }
+      // Reflects imperative <video> play/pause state, not derivable from render-time data.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsPlaying(true);
     } else {
       video.pause();
@@ -210,12 +213,12 @@ export function SolutionsSection() {
                   className="relative h-[269px] sm:h-[307px] md:h-[346px] rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]"
                 >
                   <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: solarImgY }}>
-                    <img
+                    <Image
                       src={APP_IMAGES.solutionsSolarHouse}
                       alt="Solar house"
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
                     />
                   </motion.div>
                   {!reduceMotion && (
@@ -268,7 +271,7 @@ export function SolutionsSection() {
               <span className="eyebrow text-[#2563eb]">In your home</span>
               <p className="text-[26px] sm:text-[32px] md:text-[38px] font-['Urbanist'] text-[#0a0a0a] font-bold">Smart home solutions</p>
               <p className="text-[13px] sm:text-[14px] md:text-[15px] font-['Poppins'] text-[#4a5565]">
-                Our intelligent automation connects your home's devices to your solar flow.
+                Our intelligent automation connects your home&apos;s devices to your solar flow.
               </p>
             </motion.div>
 
@@ -291,12 +294,12 @@ export function SolutionsSection() {
                   className="relative h-[269px] sm:h-[307px] md:h-[346px] rounded-[20px] md:rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(0,0,0,0.12)]"
                 >
                   <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: homeImgY }}>
-                    <img
+                    <Image
                       src={APP_IMAGES.solutionsSmartHomeScene}
                       alt="Smart home"
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
                     />
                   </motion.div>
                 </motion.div>
@@ -335,7 +338,7 @@ export function SolutionsSection() {
               Want to explore the future?
             </h2>
             <p className="text-[16px] sm:text-[18px] md:text-xl text-[#4a5565] mb-8 sm:mb-10 md:mb-12 max-w-2xl mx-auto font-['Poppins']">
-              Let's discuss how our solutions can transform your home or business.
+              Let&apos;s discuss how our solutions can transform your home or business.
             </p>
             <div className="flex flex-row gap-3 sm:gap-4 justify-center">
               <a

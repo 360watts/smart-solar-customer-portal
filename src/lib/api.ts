@@ -156,7 +156,54 @@ export interface SiteUptimeResponse {
   dailyScores: UptimeDailyScore[];
 }
 
-function _mapIncidentDict(raw: any): IncidentItem {
+interface RawIncidentDict {
+  id: IncidentItem["id"];
+  device_id?: IncidentItem["deviceId"] | null;
+  device_serial?: IncidentItem["deviceSerial"] | null;
+  category: IncidentItem["category"];
+  incident_type: string;
+  incident_type_title: string;
+  severity: IncidentItem["severity"];
+  status: IncidentItem["status"];
+  ts_start: string;
+  ts_end?: string | null;
+  duration_seconds?: number | null;
+  title: string;
+  summary?: string;
+  customer_message?: string | null;
+  detected_by: string;
+  evidence_count?: number;
+}
+
+interface RawSiteIncidentsResponse {
+  count: number;
+  limit: number;
+  offset: number;
+  results: RawIncidentDict[];
+}
+
+interface RawDataQualityGap {
+  ts_start: string;
+  ts_end: string;
+  category: DataQualityGap["category"];
+  incident_type: string;
+  severity: string;
+}
+
+interface RawUptimeDailyScore {
+  report_date: string;
+  uptime_pct: number;
+  total_expected_slots: number;
+  impacted_slots: number;
+  impacted_slots_by_category?: Record<string, number>;
+}
+
+interface RawSiteUptimeResponse {
+  rolling_avg_uptime_pct: number | null;
+  daily_scores: RawUptimeDailyScore[];
+}
+
+function _mapIncidentDict(raw: RawIncidentDict): IncidentItem {
   return {
     id: raw.id, deviceId: raw.device_id ?? null, deviceSerial: raw.device_serial ?? null,
     category: raw.category, incidentType: raw.incident_type, incidentTypeTitle: raw.incident_type_title,
@@ -201,28 +248,28 @@ export const portalApi = {
     api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
 
   getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number; status?: string }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
-    const resp = await api.get(`/api/backend/sites/${siteId}/incidents/`, {
+    const resp = await api.get<RawSiteIncidentsResponse>(`/api/backend/sites/${siteId}/incidents/`, {
       params: { limit: opts?.limit, offset: opts?.offset, status: opts?.status }, ...sig(signal),
     });
-    const raw: any = resp.data;
+    const raw = resp.data;
     return { count: raw.count, limit: raw.limit, offset: raw.offset, results: (raw.results || []).map(_mapIncidentDict) };
   },
 
   getSiteDataQualityGaps: async (siteId: string, start: string, end: string, signal?: AbortSignal): Promise<DataQualityGap[]> => {
-    const resp = await api.get(`/api/backend/sites/${siteId}/data-quality-gaps/`, {
+    const resp = await api.get<RawDataQualityGap[]>(`/api/backend/sites/${siteId}/data-quality-gaps/`, {
       params: { start, end }, ...sig(signal),
     });
-    return (resp.data || []).map((g: any) => ({
+    return (resp.data || []).map((g) => ({
       tsStart: g.ts_start, tsEnd: g.ts_end, category: g.category, incidentType: g.incident_type, severity: g.severity,
     }));
   },
 
   getSiteUptime: async (siteId: string, days = 30, signal?: AbortSignal): Promise<SiteUptimeResponse> => {
-    const resp = await api.get(`/api/backend/sites/${siteId}/uptime/`, { params: { days }, ...sig(signal) });
-    const raw: any = resp.data;
+    const resp = await api.get<RawSiteUptimeResponse>(`/api/backend/sites/${siteId}/uptime/`, { params: { days }, ...sig(signal) });
+    const raw = resp.data;
     return {
       rollingAvgUptimePct: raw.rolling_avg_uptime_pct,
-      dailyScores: (raw.daily_scores || []).map((s: any) => ({
+      dailyScores: (raw.daily_scores || []).map((s) => ({
         reportDate: s.report_date, uptimePct: s.uptime_pct, totalExpectedSlots: s.total_expected_slots,
         impactedSlots: s.impacted_slots, impactedSlotsByCategory: s.impacted_slots_by_category || {},
       })),

@@ -1,3 +1,5 @@
+import type { TooltipItem } from "chart.js";
+
 export const COLORS = {
   primary: "#2FBF71",
   primaryMuted: "rgba(47, 191, 113, 0.15)",
@@ -51,14 +53,14 @@ export function getChartDefaults(theme: "dark" | "light") {
         mode: "index" as const,
         intersect: false,
         usePointStyle: true,
-        animation: { duration: 300 } as any,
+        animation: { duration: 300 },
         // Multi-series charts (forecast bands: P90/P50/P10/Physics Baseline/
         // Actual) put one row per dataset in an index-mode tooltip — with
         // null-valued rows included (future hours with no "Actual" yet,
         // etc.) the box can grow taller than the chart itself. Dropping
         // unfilled points here, on top of the tighter padding above, is
         // what actually keeps the tooltip from covering the chart.
-        filter: (item: any) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
+        filter: (item: TooltipItem<"line" | "bar">) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
       },
     };
   }
@@ -84,8 +86,8 @@ export function getChartDefaults(theme: "dark" | "light") {
       mode: "index" as const,
       intersect: false,
       usePointStyle: true,
-      animation: { duration: 300 } as any,
-      filter: (item: any) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
+      animation: { duration: 300 },
+      filter: (item: TooltipItem<"line" | "bar">) => item.parsed?.y !== null && item.parsed?.y !== undefined && !Number.isNaN(item.parsed?.y),
     },
   };
 }

@@ -79,9 +79,12 @@ export function useSiteQuery<T>(
   // Use a ref so the effect closure always sees the latest fetcher without
   // re-running effects (same pattern as useAutoRefresh in the staff frontend).
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  });
 
   const abortRef = useRef<AbortController | null>(null);
+  const fetchDataRef = useRef<(background: boolean) => Promise<void>>(async () => {});
 
   const fetchData = useCallback(
     async (background: boolean) => {
@@ -115,7 +118,7 @@ export function useSiteQuery<T>(
           // means cacheDedup returned a shared promise that was aborted by a
           // concurrent caller (React Strict Mode double-effect). Retry with a
           // fresh request now that inFlight has been cleared.
-          void fetchData(background);
+          void fetchDataRef.current(background);
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load data.");
@@ -131,9 +134,12 @@ export function useSiteQuery<T>(
       }
     },
     // fetcherRef is stable; only re-create when the key or siteId changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [siteId, cacheKey, ttl],
   );
+
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  });
 
   // Initial load (and re-load on siteId / cacheKey change).
   useEffect(() => {
@@ -141,6 +147,9 @@ export function useSiteQuery<T>(
     if (siteId === undefined) {
       if (isAuthResolved) {
         // Auth resolution completed without a siteId — likely auth error or no user.
+        // Reacts to isAuthResolved transitioning true after mount; not derivable
+        // from a lazy initializer.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(false);
       }
       return;

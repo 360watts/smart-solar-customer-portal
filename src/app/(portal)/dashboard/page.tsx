@@ -65,6 +65,8 @@ function Greeting({ name }: { name: string }) {
   const [greeting, setGreeting] = useState("Good morning");
   useEffect(() => {
     const h = new Date().getHours();
+    // Client-only value (Date() would mismatch server render) — must run post-hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGreeting(h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening");
   }, []);
   return <>{greeting}, <span className="glow-text-green">{name}.</span></>;
@@ -75,6 +77,8 @@ function LiveClock() {
   const [time, setTime] = useState("");
   useEffect(() => {
     const fmt = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    // Client-only value (Date() would mismatch server render) — must run post-hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTime(fmt());
     const id = setInterval(() => setTime(fmt()), 10_000);
     return () => clearInterval(id);
@@ -506,7 +510,7 @@ export default function OverviewPage() {
       // (src/app/(portal)/alerts/page.tsx), so this keeps Overview and
       // Alerts consistent with each other.
       let activeAlerts = 0;
-      let alertsCounts = { critical: 0, warning: 0, info: 0 };
+      const alertsCounts = { critical: 0, warning: 0, info: 0 };
       let gridDisconnected = false;
       const deviceAlertMap = new Map<string, { count: number; severity: "critical" | "warning" | "info" }>();
 
@@ -567,7 +571,7 @@ export default function OverviewPage() {
 
       // Build devices array with status from realtime.devices (all devices on site)
       const devices: Device[] = (
-        ((payload.realtime as Record<string, any>)?.devices ?? []) as Array<{
+        ((payload.realtime as Record<string, unknown> | undefined)?.devices ?? []) as Array<{
           device_serial: string;
           device_type?: string;
           is_online?: boolean;

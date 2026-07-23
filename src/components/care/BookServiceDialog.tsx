@@ -85,7 +85,6 @@ export default function BookServiceDialog({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
           : undefined;
-      // eslint-disable-next-line no-console
       console.error("Booking submission failed:", err);
       setError(backendMessage ?? "Couldn't submit your request. Please try again.");
     } finally {

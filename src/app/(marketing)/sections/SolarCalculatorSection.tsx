@@ -40,14 +40,20 @@ export function SolarCalculatorSection() {
   const [estimatedUnits, setEstimatedUnits] = useState<number | undefined>();
   const [calcResult, setCalcResult] = useState<ReturnType<
     typeof calculateSolarRequirementsFromBill
-  > | null>(null);
+  > | null>(() => {
+    try {
+      return calculateSolarRequirementsFromBill({ billingCycle: "Bi-Monthly" });
+    } catch {
+      return null;
+    }
+  });
   const [hasAttemptedCalculation, setHasAttemptedCalculation] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [isCalcVisible, setIsCalcVisible] = useState(false);
+  const [, setIsCalcVisible] = useState(false);
   const [isResultVisible, setIsResultVisible] = useState(false);
   const [calcGlow, setCalcGlow] = useState({ x: 50, y: 50 });
-  const [isCalcHovering, setIsCalcHovering] = useState(false);
+  const [isCalcHovering] = useState(false);
 
   const calculatorRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -56,15 +62,9 @@ export function SolarCalculatorSection() {
   const resultRafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    try {
-      setCalcResult(calculateSolarRequirementsFromBill({ billingCycle: "Bi-Monthly" }));
-    } catch {
-      setCalcResult(null);
-    }
-  }, []);
-
-  useEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      // Client-only feature detection fallback — must run post-hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsCalcVisible(true);
       setIsResultVisible(true);
       return;
@@ -85,7 +85,10 @@ export function SolarCalculatorSection() {
 
   useEffect(() => {
     return () => {
+      // Intentionally reads each ref's value at unmount time (whatever RAF is
+      // in flight then), not a value captured at effect-setup time.
       if (calcRafRef.current !== null) cancelAnimationFrame(calcRafRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       if (resultRafRef.current !== null) cancelAnimationFrame(resultRafRef.current);
     };
   }, []);
@@ -379,7 +382,7 @@ Feel free to call us at +91 9087610051, via phone call or WhatsApp.`;
               </span>
               <div className="space-y-1.5 sm:space-y-3">
                 <h2 className="font-['Urbanist'] font-bold text-[17px] sm:text-3xl md:text-[34px] leading-tight text-white">
-                  Curious? Calculate your home's solar potential
+                  Curious? Calculate your home&apos;s solar potential
                 </h2>
                 <p className="font-['Poppins'] text-[12px] sm:text-lg text-white max-w-xl">
                   Drop in a few details to preview system size, energy generation, and savings before a site survey.

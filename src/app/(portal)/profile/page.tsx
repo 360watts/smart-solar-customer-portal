@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   BadgeCheck, Bell, KeyRound, Mail, Pencil, ShieldCheck, Zap,
 } from "lucide-react";
@@ -240,9 +241,11 @@ export default function ProfilePage() {
         <div className="relative flex items-center gap-5 flex-wrap">
           <div className="shrink-0">
             {profile.avatar_url ? (
-              <img
+              <Image
                 src={profile.avatar_url}
                 alt={initials}
+                width={80}
+                height={80}
                 className="w-20 h-20 rounded-2xl object-cover border-2 border-border"
               />
             ) : (

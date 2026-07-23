@@ -39,6 +39,8 @@ export function use3DTilt(options: Use3DTiltOptions = {}): Use3DTiltResult {
   const rafId = useRef<number | null>(null);
 
   useEffect(() => {
+    // Client-only value (matchMedia unavailable during SSR) — must run post-hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFinePointer(prefersFinePointerAndHover());
     const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
     const listener = () => {

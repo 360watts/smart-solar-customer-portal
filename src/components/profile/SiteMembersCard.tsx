@@ -43,6 +43,9 @@ export default function SiteMembersCard({ siteId }: { siteId: string }) {
 
   useEffect(() => {
     let cancelled = false;
+    // Resets loading/error from a previous siteId's fetch before this one starts —
+    // not redundant with the useState defaults once siteId changes post-mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
     portalApi

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, ArrowRight } from "lucide-react";
@@ -68,10 +69,13 @@ export default function MarketingNav({ transparent = false }: NavigationProps) {
           onClick={(e: React.MouseEvent) => handleNavClick(e, "hero-section")}
           className="flex items-center gap-2 sm:gap-3 cursor-pointer"
         >
-          <img
+          <Image
             src="/final-logo-png-4x-2.png"
             alt="360watts"
+            width={94}
+            height={68}
             className="h-8 sm:h-10 lg:h-12 w-auto object-contain"
+            priority
           />
           <div className="flex flex-col">
             <span

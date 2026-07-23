@@ -290,7 +290,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
             </button>
             <Link href="/profile" title="My Profile">
               <div
-                className="w-[26px] h-[26px] rounded-lg flex items-center justify-center text-[0.625rem] font-bold text-white shrink-0"
+                className="w-7.5 h-7.5 rounded-lg flex items-center justify-center text-[0.625rem] font-bold text-white shrink-0"
                 style={{ background: "linear-gradient(135deg, var(--primary), #007a55)" }}
               >
                 {initials}
@@ -306,7 +306,7 @@ const PortalSidebar = React.memo(function PortalSidebar() {
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <div
-              className="w-[30px] h-[30px] rounded-lg flex items-center justify-center text-[0.6875rem] font-bold text-white shrink-0"
+              className="w-7.5 h-7.5 rounded-lg flex items-center justify-center text-[0.6875rem] font-bold text-white shrink-0"
               style={{ background: "linear-gradient(135deg, var(--primary), #007a55)" }}
             >
               {initials}

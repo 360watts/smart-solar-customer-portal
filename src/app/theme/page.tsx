@@ -20,7 +20,7 @@
 import { useState } from "react";
 import { Home, Zap, Bell, Settings, Sun } from "lucide-react";
 import {
-  Heading, Text, Button, ButtonGroup, Tag, Avatar, AvatarGroup, Label, Input,
+  Heading, Text, Button, ButtonGroup, Tag, Avatar, AvatarGroup, Input,
   Textarea, Switch, Checkbox, RadioButton, ProgressBar, ProgressCircle,
   Snackbar, MenuItem, TabBar, BottomNav,
 } from "@/components/design-system/DesignSystem";

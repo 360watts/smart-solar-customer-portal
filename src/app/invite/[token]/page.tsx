@@ -52,7 +52,7 @@ export default function AcceptInvitePage() {
   const { user, refreshSession } = useAuth();
   const isAuthenticated = !!user;
 
-  const [state, setState] = useState<PageState>({ type: "loading" });
+  const [state, setState] = useState<PageState>(() => (token ? { type: "loading" } : { type: "not_found" }));
   const [accepting, setAccepting] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("choose");
 
@@ -71,10 +71,7 @@ export default function AcceptInvitePage() {
   const [signupError, setSignupError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      setState({ type: "not_found" });
-      return;
-    }
+    if (!token) return;
     portalApi
       .getInviteDetails(token)
       .then(({ data }) => {

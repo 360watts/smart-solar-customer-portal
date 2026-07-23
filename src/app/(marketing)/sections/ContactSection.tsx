@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { contactMethods } from "../data";
 import { revealVariant, sectionMotionProps, staggerMotionProps, reduceMotion } from "../lib/motion";
 import { InquiryForm } from "../components/InquiryForm";
@@ -33,7 +34,7 @@ export function ContactSection() {
               className="flex flex-col items-center w-30 sm:w-37.5 md:w-45 lg:w-55.5 group"
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-[#dcfce7] rounded-lg sm:rounded-[10px] flex items-center justify-center mb-2 group-hover:shadow-lg transition-shadow">
-                <img src={method.icon} alt="" className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
+                <Image src={method.icon} alt="" width={24} height={24} className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
               </div>
               <h3 className="text-[12px] sm:text-[13px] md:text-[15px] lg:text-[19px] text-[#0a0a0a] tracking-[-0.5px] sm:tracking-[-0.76px] mb-0.5 text-center font-semibold">{method.title}</h3>
               <p className="text-[12px] sm:text-[13px] md:text-[14px] lg:text-[19px] text-[#4a5565] tracking-[-0.5px] sm:tracking-[-0.76px] text-center">{method.value}</p>

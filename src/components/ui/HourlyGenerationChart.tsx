@@ -106,7 +106,7 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
       {/* Chart */}
       <div className="flex-1 flex items-end gap-0.75 min-h-36 overflow-hidden">
         {points.map((pt, i) => {
-          const { hour, solar, load, grid } = pt;
+          const { solar, load, grid } = pt;
           const isExport = grid < 0;
           const gridAbs  = Math.abs(grid);
           const hovered  = hoveredIndex === i;

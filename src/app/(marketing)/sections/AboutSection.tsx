@@ -1,6 +1,21 @@
 "use client";
 
 import { useRef, useState, useLayoutEffect } from "react";
+import Image from "next/image";
+
+function TeamPhoto({ src, alt }: { src: string; alt: string }) {
+  const [imgSrc, setImgSrc] = useState(src);
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      sizes="(min-width: 768px) 112px, 96px"
+      className="object-cover"
+      onError={() => setImgSrc(APP_IMAGES.aboutAvatar)}
+    />
+  );
+}
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -74,19 +89,20 @@ export function AboutSection() {
     <motion.section id="about-section" className="scroll-mt-20 bg-[#f7fff9] min-h-screen text-[#0a0a0a]" {...sectionMotionProps}>
       {/* Hero */}
       <motion.section className="relative h-[50vh] sm:h-[60vh] md:h-[70vh] min-h-100 sm:min-h-112.5 md:min-h-130 w-full overflow-hidden" {...sectionMotionProps}>
-        <img
+        <Image
           src={APP_IMAGES.aboutHero}
           alt="Solar hero"
-          className="absolute inset-0 h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
+          fill
+          sizes="100vw"
+          className="object-cover"
+          priority
         />
         <div className="absolute inset-0 bg-linear-to-b from-black/50 via-black/25 to-black/50" />
         <div className="relative z-10 w-full max-w-5xl mx-auto min-w-0 px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 lg:pt-36 flex items-start">
           <motion.div className="text-white space-y-2 sm:space-y-3 max-w-xl" variants={revealVariant}>
             <p className="text-sm sm:text-base md:text-lg font-['Poppins']">360watts.com | solar + smart home solutions</p>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-['Urbanist'] leading-tight">
-              We're on a mission.
+              We&apos;re on a mission.
             </h1>
             <p className="text-sm sm:text-base md:text-lg font-['Poppins'] text-white">
               To revolutionize how homes consume and manage energy.
@@ -141,12 +157,12 @@ export function AboutSection() {
                     </TiltCard>
                   </div>
                   <div className="w-full md:w-1/2 flex justify-center relative z-10">
-                    <img
+                    <Image
                       src={step.image}
                       alt="Story visual"
+                      width={544}
+                      height={384}
                       className="w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl h-64 sm:h-80 md:h-96 object-contain"
-                      loading="lazy"
-                      decoding="async"
                     />
                   </div>
                 </motion.div>
@@ -158,8 +174,8 @@ export function AboutSection() {
             <h3 className="text-xl sm:text-2xl md:text-3xl font-bold font-['Urbanist']">The sun started it.</h3>
             <p className="text-base sm:text-lg text-[#4a5565] font-['Poppins']">We are just making it smarter.</p>
             <div className="flex flex-col items-center gap-2 sm:gap-3 pt-6 sm:pt-8">
-              <img src={APP_IMAGES.aboutLogo} alt="360watts logo" className="w-24 sm:w-24 md:w-28 h-auto ml-4" loading="lazy" decoding="async" />
-              <p className="text-[#244d65] font-['Figtree'] text-sm sm:text-base">Drive what's next.</p>
+              <Image src={APP_IMAGES.aboutLogo} alt="360watts logo" width={676} height={745} className="w-24 sm:w-24 md:w-28 h-auto ml-4" />
+              <p className="text-[#244d65] font-['Figtree'] text-sm sm:text-base">Drive what&apos;s next.</p>
             </div>
           </motion.div>
         </div>
@@ -177,8 +193,8 @@ export function AboutSection() {
             {teamMembers.map((member, idx) => (
               <TiltCard key={idx} className="flex flex-col items-center">
                 <motion.div variants={revealVariant} className="flex flex-col items-center text-center gap-2 sm:gap-3">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-[#e8f5ed] flex items-center justify-center">
-                    <img src={member.photo} alt={member.name} className="w-full h-full object-cover" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).src = APP_IMAGES.aboutAvatar; }} />
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-[#e8f5ed] flex items-center justify-center">
+                    <TeamPhoto src={member.photo} alt={member.name} />
                   </div>
                   <p className="text-[11px] sm:text-[13px] md:text-base font-semibold font-['Urbanist'] leading-tight">{member.name}</p>
                   <p className="text-[10px] sm:text-[11px] md:text-[12px] lg:text-[13px] text-[#4a5565] font-['Poppins'] leading-snug">{member.role}</p>
@@ -194,7 +210,7 @@ export function AboutSection() {
         <motion.div className="w-full max-w-4xl mx-auto min-w-0 border-2 border-[#04713a] rounded-2xl sm:rounded-[20px] bg-white shadow-sm p-6 sm:p-8 md:p-10 text-center" variants={revealVariant}>
           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold font-['Urbanist'] mb-2 sm:mb-3">Partner with Us</h3>
           <p className="text-base sm:text-lg text-[#4a5565] font-['Poppins'] mb-4 sm:mb-6">
-            Join us in revolutionizing home energy. Whether you're a supplier, installer, or technology partner, let's work together.
+            Join us in revolutionizing home energy. Whether you&apos;re a supplier, installer, or technology partner, let&apos;s work together.
           </p>
           <a
             href="#partnership"

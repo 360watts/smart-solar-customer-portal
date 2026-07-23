@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, Copy, Check, Mail, MessageCircle } from "lucide-react";
 import { portalApi, type SiteMember } from "@/lib/api";
 

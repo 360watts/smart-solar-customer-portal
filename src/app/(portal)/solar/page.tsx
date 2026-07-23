@@ -74,12 +74,6 @@ function siteDateParts(iso: string): { y: number; m: number; d: number } {
   return { y: Number(parts[0]), m: Number(parts[1]), d: Number(parts[2]) };
 }
 
-function isToday(iso: string): boolean {
-  const target = siteDateParts(iso);
-  const now = siteDateParts(new Date().toISOString());
-  return target.y === now.y && target.m === now.m && target.d === now.d;
-}
-
 /** Average actual PV kW for telemetry rows falling within the same site-local hour as `hourIso`. */
 function actualKwForHour(hourIso: string, telRows: TelRow[]): number | null {
   const targetDate = siteDateParts(hourIso);

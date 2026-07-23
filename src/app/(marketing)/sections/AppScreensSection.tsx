@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -92,8 +93,8 @@ export function AppScreensSection() {
           {appScreens.map((screen, i) => (
             <div key={i} className="text-center">
               <div className="relative w-60 sm:w-64 mx-auto aspect-[329/636] mb-4">
-                <img src={screen.image} alt={screen.title} className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading="lazy" decoding="async" />
-                <img src={APP_IMAGES.phone1401} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
+                <Image src={screen.image} alt={screen.title} fill sizes="256px" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" />
+                <Image src={APP_IMAGES.phone1401} alt="" fill sizes="256px" className="pointer-events-none object-cover" />
               </div>
               <h3 className="text-[18px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-0.5px] mb-2">{screen.title}</h3>
               <p className="text-sm font-['Poppins'] text-[#4a5565] leading-relaxed">{screen.description}</p>
@@ -124,8 +125,8 @@ export function AppScreensSection() {
               <div key={i} className="shrink-0 w-screen h-full flex items-center justify-center px-6">
                 <div className="flex flex-col md:flex-row items-center gap-6 md:gap-16 max-w-5xl">
                   <div className="shrink-0 relative h-[50vh] md:h-[60vh] max-h-125 w-auto aspect-[329/636]">
-                    <img src={screen.image} alt={screen.title} className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" loading={i === 0 ? "eager" : "lazy"} decoding="async" />
-                    <img src={APP_IMAGES.phone1401} alt="360watts app on phone" className="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" loading="lazy" decoding="async" />
+                    <Image src={screen.image} alt={screen.title} fill sizes="(min-width: 768px) 40vh, 50vh" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" priority={i === 0} />
+                    <Image src={APP_IMAGES.phone1401} alt="360watts app on phone" fill sizes="(min-width: 768px) 40vh, 50vh" className="pointer-events-none z-10 object-cover" />
                   </div>
                   <div className="text-center md:text-left max-w-sm">
                     <h3 className="text-xl sm:text-2xl md:text-[32px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-1px] mb-3">{screen.title}</h3>

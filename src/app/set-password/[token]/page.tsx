@@ -46,18 +46,14 @@ export default function SetPasswordPage() {
   const router = useRouter();
   const { refreshSession } = useAuth();
 
-  const [state, setState] = useState<PageState>({ type: "loading" });
+  const [state, setState] = useState<PageState>(() => (token ? { type: "loading" } : { type: "not_found" }));
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    if (!token) {
-      setState({ type: "not_found" });
-      return;
-    }
+    if (!token) return;
     fetch(`/api/auth/set-password/${token}`)
       .then(async (res) => {
         if (!res.ok) {

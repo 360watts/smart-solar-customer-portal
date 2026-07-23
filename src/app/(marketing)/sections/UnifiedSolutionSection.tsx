@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useLayoutEffect } from "react";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { APP_IMAGES } from "../lib/imageRegistry";
@@ -74,16 +75,13 @@ export function UnifiedSolutionSection() {
               className="relative rounded-2xl sm:rounded-[20px] overflow-hidden w-full lg:w-141.75 h-55 sm:h-75 md:h-80 lg:h-85.5"
             >
               <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: imgY1 }}>
-                <picture>
-                  <source type="image/webp" srcSet="/solar-panels-house-roof.webp" />
-                  <img
-                    src="/solar-panels-house-roof.jpg"
-                    alt="Solar Solutions"
-                    className="w-full h-full object-cover object-center"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
+                <Image
+                  src="/solar-panels-house-roof.jpg"
+                  alt="Solar Solutions"
+                  fill
+                  sizes="(min-width: 1024px) 567px, 100vw"
+                  className="object-cover object-center"
+                />
               </motion.div>
               <div className="absolute inset-0 bg-linear-to-b from-transparent via-[rgba(204,204,204,0.3)] to-transparent rounded-2xl sm:rounded-[20px]" />
               <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-7.5 flex flex-col justify-start text-left">
@@ -123,18 +121,18 @@ export function UnifiedSolutionSection() {
               className="relative rounded-2xl sm:rounded-[20px] overflow-hidden w-full lg:w-141.75 h-55 sm:h-75 md:h-80 lg:h-85.5"
             >
               <motion.div className="absolute inset-[-6%]" style={reduceMotion ? undefined : { y: imgY2 }}>
-                <img
+                <Image
                   src={APP_IMAGES.digitalTablet}
                   alt="Smart Home Solutions"
-                  className="w-full h-full object-cover object-center"
-                  loading="lazy"
-                  decoding="async"
+                  fill
+                  sizes="(min-width: 1024px) 567px, 100vw"
+                  className="object-cover object-center"
                 />
               </motion.div>
               <div className="absolute inset-0 bg-linear-to-b from-transparent via-[rgba(204,204,204,0.75)] to-transparent rounded-2xl sm:rounded-[20px]" />
               <div className="absolute inset-0 p-2.5 sm:p-4 md:p-6 lg:p-7.5 flex flex-col justify-start text-left">
                 <div className="flex flex-col gap-1.5 sm:gap-3 md:gap-4 lg:gap-4.75 pt-2 sm:pt-4 md:pt-6 lg:pt-6">
-                  <img src={APP_IMAGES.iconSmartHome} alt="" className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12" />
+                  <Image src={APP_IMAGES.iconSmartHome} alt="" width={48} height={48} className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12" />
                   <div className="flex flex-col gap-1 sm:gap-1.75 md:gap-2 mt-4 sm:mt-0">
                     <h3 className="text-[16px] sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] font-bold text-black font-['Urbanist'] leading-tight md:leading-8 lg:leading-9 drop-shadow-lg">
                       Smart Home Solutions
