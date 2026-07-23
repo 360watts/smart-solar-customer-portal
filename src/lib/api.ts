@@ -119,6 +119,11 @@ export interface IncidentItem {
   durationSeconds: number | null;
   title: string;
   summary: string;
+  /** Plain-language explanation of what this incident means and whether the
+   * customer needs to do anything — `summary` is the raw diagnostic reading
+   * (e.g. "Grid frequency 0.00 Hz deviates..."), meant for technical detail,
+   * not as the primary thing a customer reads. */
+  customerMessage: string | null;
   detectedBy: string;
   evidenceCount: number;
 }
@@ -157,6 +162,7 @@ function _mapIncidentDict(raw: any): IncidentItem {
     category: raw.category, incidentType: raw.incident_type, incidentTypeTitle: raw.incident_type_title,
     severity: raw.severity, status: raw.status, tsStart: raw.ts_start, tsEnd: raw.ts_end ?? null,
     durationSeconds: raw.duration_seconds ?? null, title: raw.title, summary: raw.summary ?? "",
+    customerMessage: raw.customer_message ?? null,
     detectedBy: raw.detected_by, evidenceCount: raw.evidence_count ?? 0,
   };
 }
@@ -255,6 +261,24 @@ export const portalApi = {
 
   confirmPhoneChangeOtp: (newMobile: string, otp: string) =>
     api.post(`/api/backend/profile/phone/confirm-otp/`, { new_mobile: newMobile, otp }),
+
+  getSupportInquiries: (signal?: AbortSignal) =>
+    api.get(`/api/backend/support-inquiries/`, sig(signal)),
+
+  createSupportInquiry: (category: string, message: string) =>
+    api.post(`/api/backend/support-inquiries/`, { category, message }),
+
+  getSupportInquiry: (id: number, signal?: AbortSignal) =>
+    api.get(`/api/backend/support-inquiries/${id}/`, sig(signal)),
+
+  replySupportInquiry: (id: number, message: string) =>
+    api.post(`/api/backend/support-inquiries/${id}/reply/`, { message }),
+
+  markSupportInquiryResolved: (id: number, resolved: boolean) =>
+    api.post(`/api/backend/support-inquiries/${id}/resolved/`, { resolved }),
+
+  escalateSupportInquiry: (id: number) =>
+    api.post(`/api/backend/support-inquiries/${id}/escalate/`),
 
   getSite: (siteId: string) =>
     api.get(`/api/backend/sites/${siteId}/profile/`),

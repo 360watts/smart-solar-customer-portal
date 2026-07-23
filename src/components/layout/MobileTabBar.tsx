@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  LayoutDashboard, Sun, Zap, AlertCircle, Menu, TrendingUp, Cloud, PiggyBank, Cpu, ShieldCheck, User, X,
+  LayoutDashboard, Sun, Zap, AlertCircle, Menu, TrendingUp, Cloud, PiggyBank, Cpu, ShieldCheck, User, X, HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ const MORE_ITEMS: TabItem[] = [
   { href: "/device", icon: Cpu, label: "Device" },
   { href: "/care", icon: ShieldCheck, label: "360Care" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/help", icon: HelpCircle, label: "Help" },
 ];
 
 export default function MobileTabBar() {

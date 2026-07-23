@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BadgeCheck, Cpu, KeyRound, Mail, MessageSquare, Pencil, ShieldCheck, Zap,
+  BadgeCheck, Bell, KeyRound, Mail, Pencil, ShieldCheck, Zap,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
 import SiteMembersCard from "@/components/profile/SiteMembersCard";
 import EditProfileModal from "@/components/profile/EditProfileModal";
+import ChangePasswordModal from "@/components/profile/ChangePasswordModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
@@ -31,6 +32,7 @@ interface Profile {
   plan_features: { can_access_ai: boolean; can_view_history_90d: boolean };
   email_notifications_enabled: boolean;
   sms_notifications_enabled: boolean;
+  push_notifications_enabled: boolean;
   timezone: string;
   date_joined: string;
   avatar_url: string | null;
@@ -41,15 +43,6 @@ interface Site {
   site_name: string;
   serial: string | null;
   connectivity_type: string;
-}
-
-interface Equipment {
-  make: string;
-  model_name: string;
-  serial_number: string;
-  installed_at: string | null;
-  warranty_expires_at: string | null;
-  kind: "Inverter" | "Panel" | "Battery";
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -65,9 +58,6 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-const inputClass =
-  "w-full bg-foreground/5 border border-border rounded-lg px-4 py-3 text-foreground text-base focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground";
-
 /** Eyebrow-style card heading — a quiet uppercase label so the data carries the card. */
 function CardTitle({ icon, className, children }: { icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
@@ -81,7 +71,7 @@ function CardTitle({ icon, className, children }: { icon?: React.ReactNode; clas
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
-interface ProfileData { profile: Profile; site: Site | null; equipment: Equipment[] }
+interface ProfileData { profile: Profile; site: Site | null }
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -90,10 +80,9 @@ export default function ProfilePage() {
   const { data, loading, error } = useSiteQuery<ProfileData>(
     user?.site_id,
     async (siteId) => {
-      const [profileRes, gatewayRes, equipmentRes] = await Promise.all([
+      const [profileRes, gatewayRes] = await Promise.all([
         portalApi.getProfile(),
         portalApi.getGatewayStatus(siteId),
-        portalApi.getEquipment(siteId).catch(() => null),
       ]);
       const raw = profileRes.data as {
         first_name?: string; last_name?: string; email?: string; mobile_number?: string;
@@ -101,6 +90,7 @@ export default function ProfilePage() {
         device_limit?: number; total_devices_count?: number;
         plan_features?: { can_access_ai?: boolean; can_view_history_90d?: boolean };
         email_notifications_enabled?: boolean; sms_notifications_enabled?: boolean;
+        push_notifications_enabled?: boolean;
         timezone?: string; date_joined?: string; avatar_url?: string | null;
       };
       const profile: Profile = {
@@ -119,6 +109,7 @@ export default function ProfilePage() {
         },
         email_notifications_enabled: raw.email_notifications_enabled ?? true,
         sms_notifications_enabled: raw.sms_notifications_enabled ?? false,
+        push_notifications_enabled: raw.push_notifications_enabled ?? true,
         timezone: raw.timezone ?? "Asia/Kolkata",
         date_joined: raw.date_joined ?? "",
         avatar_url: raw.avatar_url ?? null,
@@ -136,18 +127,7 @@ export default function ProfilePage() {
           }
         : null;
 
-      const rawEquipment = equipmentRes?.data as {
-        inverters?: Array<{ make: string; model_name: string; serial_number: string; installed_at: string | null; warranty_expires_at: string | null }>;
-        batteries?: Array<{ make: string; model_name: string; serial_number: string; installed_at: string | null; warranty_expires_at: string | null }>;
-        panels?: Array<{ make: string; model_name: string; serial_number: string; installed_at: string | null; warranty_expires_at: string | null }>;
-      } | null;
-      const equipment: Equipment[] = [
-        ...(rawEquipment?.inverters ?? []).map((e) => ({ ...e, kind: "Inverter" as const })),
-        ...(rawEquipment?.panels ?? []).map((e) => ({ ...e, kind: "Panel" as const })),
-        ...(rawEquipment?.batteries ?? []).map((e) => ({ ...e, kind: "Battery" as const })),
-      ];
-
-      return { profile, site, equipment };
+      return { profile, site };
     },
     { cacheKey: `profile:${user?.site_id}`, ttl: TTL.static },
   );
@@ -158,54 +138,29 @@ export default function ProfilePage() {
   const [overrides, setOverrides] = useState<Partial<Profile>>({});
   const profile = data?.profile ? { ...data.profile, ...overrides } : null;
   const site = data?.site ?? null;
-  const equipment = data?.equipment ?? [];
+
+  // Optimistic toggle, same override-layer pattern as the edit-modal flow
+  // above — reverts on a failed save rather than leaving the UI lying.
+  async function toggleNotificationPref(
+    field: "email_notifications_enabled" | "sms_notifications_enabled" | "push_notifications_enabled",
+  ) {
+    if (!profile) return;
+    const next = !profile[field];
+    setOverrides((prev) => ({ ...prev, [field]: next }));
+    try {
+      await portalApi.updateProfile({ [field]: next });
+    } catch {
+      setOverrides((prev) => ({ ...prev, [field]: !next }));
+    }
+  }
 
   const [showEditModal, setShowEditModal] = useState(false);
-
-  // Password form
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [pwState, setPwState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [pwError, setPwError] = useState("");
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const initials =
     profile
       ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase()
       : "";
-
-  async function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setPwError("");
-    if (newPw !== confirmPw) {
-      setPwError("New passwords do not match.");
-      return;
-    }
-    if (newPw.length < 8) {
-      setPwError("Password must be at least 8 characters.");
-      return;
-    }
-    setPwState("saving");
-    try {
-      await portalApi.changePassword({
-        current_password: currentPw,
-        new_password: newPw,
-        confirm_password: confirmPw,
-      });
-      setPwState("saved");
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
-      setTimeout(() => setPwState("idle"), 2500);
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to change password.";
-      setPwError(msg);
-      setPwState("error");
-      setTimeout(() => setPwState("idle"), 3000);
-    }
-  }
 
   const deviceUsagePct = profile && profile.device_limit > 0
     ? Math.min(100, Math.round((profile.total_devices_count / profile.device_limit) * 100))
@@ -331,12 +286,28 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="text-right shrink-0">
-            <p className="text-xs text-muted-foreground uppercase tracking-[0.14em]">Customer since</p>
-            <p className="text-base text-foreground font-mono mt-1">{formatDate(profile.date_joined)}</p>
-            {profile.customer_id && (
-              <p className="text-sm text-muted-foreground font-mono mt-1">{profile.customer_id}</p>
-            )}
+          <div className="text-right shrink-0 flex flex-col items-end gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-[0.14em]">Customer since</p>
+              <p className="text-base text-foreground font-mono mt-1">{formatDate(profile.date_joined)}</p>
+              {profile.customer_id && (
+                <p className="text-sm text-muted-foreground font-mono mt-1">{profile.customer_id}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary cursor-pointer"
+              >
+                <Pencil size={13} /> Edit profile
+              </button>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-foreground/5 hover:bg-foreground/10 border border-border text-foreground cursor-pointer"
+              >
+                <KeyRound size={13} /> Change password
+              </button>
+            </div>
           </div>
         </div>
       </GlassCard>
@@ -377,33 +348,6 @@ export default function ProfilePage() {
               ))}
             </div>
           </GlassCard>
-
-          {/* Equipment */}
-          {equipment.length > 0 && (
-            <GlassCard>
-              <CardTitle icon={<Cpu size={13} className="text-emerald-400" />}>Equipment</CardTitle>
-              <div className="space-y-0">
-                {equipment.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0 gap-3">
-                    <div className="min-w-0">
-                      <p className="text-base text-foreground truncate">
-                        {item.make} {item.model_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground font-mono truncate mt-0.5">{item.serial_number}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="inline-block text-xs uppercase tracking-wide text-muted-foreground bg-foreground/5 border border-border rounded-full px-2.5 py-0.5 mb-1">
-                        {item.kind}
-                      </span>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        Warranty {formatDate(item.warranty_expires_at)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          )}
 
           {/* Site members */}
           {user?.site_id && <SiteMembersCard siteId={user.site_id} />}
@@ -457,108 +401,29 @@ export default function ProfilePage() {
                   <span className="text-sm text-foreground text-right truncate">{value}</span>
                 </div>
               ))}
-              <div className="flex items-center justify-between py-2.5 border-b border-border">
-                <span className="text-sm text-muted-foreground flex items-center gap-1.5"><Mail size={13} /> Email alerts</span>
-                <StatusPill
-                  status={profile.email_notifications_enabled ? "active" : "inactive"}
-                  label={profile.email_notifications_enabled ? "Enabled" : "Disabled"}
-                  animated={false}
-                />
-              </div>
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-sm text-muted-foreground flex items-center gap-1.5"><MessageSquare size={13} /> SMS alerts</span>
-                <StatusPill
-                  status={profile.sms_notifications_enabled ? "active" : "inactive"}
-                  label={profile.sms_notifications_enabled ? "Enabled" : "Disabled"}
-                  animated={false}
-                />
-              </div>
+              {(
+                [
+                  { field: "email_notifications_enabled" as const, icon: <Mail size={13} />, label: "Email alerts" },
+                  { field: "push_notifications_enabled" as const, icon: <Bell size={13} />, label: "Push alerts" },
+                ]
+              ).map(({ field, icon, label }, i, arr) => (
+                <div
+                  key={field}
+                  className={cn("flex items-center justify-between py-2.5", i < arr.length - 1 && "border-b border-border")}
+                >
+                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">{icon} {label}</span>
+                  <button onClick={() => toggleNotificationPref(field)} className="cursor-pointer">
+                    <StatusPill
+                      status={profile[field] ? "active" : "inactive"}
+                      label={profile[field] ? "Enabled" : "Disabled"}
+                      animated={false}
+                    />
+                  </button>
+                </div>
+              ))}
             </div>
           </GlassCard>
 
-          {/* Edit profile */}
-          <GlassCard>
-            <div className="flex items-center justify-between">
-              <CardTitle icon={<Pencil size={13} className="text-emerald-400" />} className="mb-0">Edit profile</CardTitle>
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary cursor-pointer"
-              >
-                Edit
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Update your name, email, or phone number. Email and phone changes require a verification code.
-            </p>
-          </GlassCard>
-
-          {/* Change password */}
-          <GlassCard>
-            <CardTitle icon={<KeyRound size={13} className="text-emerald-400" />}>Change password</CardTitle>
-            <form onSubmit={handleChangePassword} className="space-y-3">
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Current password</label>
-                <input
-                  type="password"
-                  value={currentPw}
-                  onChange={(e) => setCurrentPw(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">New password</label>
-                <input
-                  type="password"
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1.5">Confirm new password</label>
-                <input
-                  type="password"
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </div>
-
-              <AnimatePresence>
-                {pwError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-sm text-red-400"
-                  >
-                    {pwError}
-                  </motion.p>
-                )}
-                {pwState === "saved" && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-sm text-emerald-400"
-                  >
-                    Password changed ✓
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              <button
-                type="submit"
-                disabled={pwState === "saving"}
-                className="mt-2 w-full py-3 rounded-lg text-base font-semibold bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {pwState === "saving" ? "Updating…" : "Update password"}
-              </button>
-            </form>
-          </GlassCard>
         </div>
       </div>
 
@@ -576,6 +441,10 @@ export default function ProfilePage() {
             }}
           />
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       </AnimatePresence>
     </motion.div>
       )}

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Sun, Moon, Zap, TrendingUp, Cloud, AlertCircle, Cpu, ChevronLeft,
-  LogOut, PiggyBank, ShieldCheck, User,
+  LogOut, PiggyBank, ShieldCheck, User, HelpCircle,
 } from "lucide-react";
 import { cn, getPlanTierMeta } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,6 +44,12 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: "/alerts", icon: AlertCircle, label: "Alerts" },
       { href: "/device", icon: Cpu, label: "Device" },
       { href: "/care", icon: ShieldCheck, label: "360Care" },
+    ],
+  },
+  {
+    label: "Support",
+    items: [
+      { href: "/help", icon: HelpCircle, label: "Help & Support" },
     ],
   },
 ];

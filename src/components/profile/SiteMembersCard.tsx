@@ -22,6 +22,13 @@ function displayName(m: SiteMember) {
   return "Pending invite";
 }
 
+// `token_expires_at` gets pushed forward every resend, so a pending invite
+// can look "fresh" by expiry alone while sitting unaccepted for a long time —
+// this shows how long it's actually been pending, independent of resends.
+function daysSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
 export default function SiteMembersCard({ siteId }: { siteId: string }) {
   const { user } = useAuth();
   const [members, setMembers] = useState<SiteMember[]>([]);
@@ -151,7 +158,16 @@ export default function SiteMembersCard({ siteId }: { siteId: string }) {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{displayName(m)}</p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {m.user?.first_name ? "" : "Invite pending — no account yet"}
+                    {m.user?.first_name
+                      ? ""
+                      : m.status === "pending"
+                      ? (() => {
+                          const days = daysSince(m.created_at);
+                          return days > 0
+                            ? `Invited ${days} day${days === 1 ? "" : "s"} ago — no account yet`
+                            : "Invited today — no account yet";
+                        })()
+                      : "Invite pending — no account yet"}
                   </p>
                 </div>
 

@@ -79,7 +79,7 @@ const INCIDENT_FETCH_LIMIT = 200;
 
 export default function AlertsPage() {
   const { user } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [page, setPage] = useState(1);
 
@@ -126,7 +126,7 @@ export default function AlertsPage() {
     .filter((inc) => {
       const matchStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && (inc.status === "active" || inc.status === "acknowledged")) ||
+        (statusFilter === "active" && inc.status === "active") ||
         (statusFilter === "resolved" && inc.status === "resolved");
       const matchSeverity =
         severityFilter === "all" || inc.severity === severityFilter;
@@ -377,8 +377,11 @@ export default function AlertsPage() {
                             </span>
                           )}
                         </div>
-                        {incident.summary && (
-                          <p className="text-sm text-text-3 mt-0.5">{incident.summary}</p>
+                        {/* Customer-facing plain-language explanation only — the raw
+                            diagnostic reading (incident.summary) is staff-only, shown
+                            in the staff frontend's incident detail instead. */}
+                        {incident.customerMessage && (
+                          <p className="text-sm text-text-3 mt-0.5">{incident.customerMessage}</p>
                         )}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
                           <span className="text-sm px-2 py-0.5 rounded bg-surface-4 text-text-2">
