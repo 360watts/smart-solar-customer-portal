@@ -2,7 +2,48 @@
 
 **Date:** 2026-07-24
 **Repo:** `smart-solar-customer-portal`
-**Status:** Approved, ready for implementation plan
+**Status:** Implemented
+
+**Post-review changes** (from an expert-designer + expert-developer parallel
+review before implementation):
+- Orb icon changed from a generic sparkle glyph to `lucide-react`'s `Sun` —
+  already used elsewhere in this app for solar/generation iconography,
+  domain-specific rather than a generic "AI assistant" cliché.
+- Orb idle animation (breathing scale + rotating ring) now caps at 3 cycles
+  after mount/close instead of looping forever — avoids reading as a
+  persistent "look at me" tell on a dashboard left open all day. A distinct
+  unread-badge affordance exists in the component (separate from the idle
+  animation) for future proactive-message support, unused today since
+  nothing in this feature triggers it yet (YAGNI — not wired to a fake
+  trigger).
+- Fourth quick prompt changed from "How am I doing this month?" (redundant
+  with the existing History page charts) to "Will I generate enough
+  tomorrow?" — a better fit for a conversational interface given the backend
+  already exposes forecast data.
+- Mobile: panel is forced fullscreen below a 640px viewport width via
+  `useSyncExternalStore` on a `matchMedia` query, regardless of the
+  fullscreen toggle state.
+- Accessibility added beyond reduced-motion: focus moves into the panel on
+  open and returns to the orb on close, Tab is trapped within the panel,
+  Escape closes it, and a visually-hidden `aria-live="polite"` region
+  announces each completed answer (once per turn, not per token).
+- **Real backend-integration fix:** the streaming route does not use
+  `buildBackendRequest`/`backendFetch` — that helper's 10s `AbortController`
+  timeout would have killed the SSE stream before the backend's own 15s
+  `[KEEPALIVE]` framing ever arrived. A new `getValidAccessToken()` helper
+  was extracted from `buildBackendRequest` (used by both) so token
+  resolution isn't duplicated; the streaming route makes its own
+  timeout-free `fetch` call and sets `export const maxDuration = 60`.
+- Added an explicit `429` (rate-limited) error message — the existing
+  `AiChatThrottle` on the Django endpoint is a real, documented response the
+  original error-handling section didn't account for.
+- `useAssistantStream` aborts its in-flight fetch on unmount and when the
+  panel is closed mid-stream (`cancel()`), avoiding a dangling reader.
+- Testing note: this repo has no testing-library/jsdom setup (confirmed via
+  `TrendChart.test.ts`'s pattern of testing only extractable pure logic) —
+  `parseSSEBuffer` and `parseSessionPayload` were extracted from their hooks
+  specifically so the SSE-parsing and storage-parsing logic is unit-testable
+  without a DOM or a real stream.
 
 ## Purpose
 

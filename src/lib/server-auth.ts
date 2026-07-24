@@ -67,7 +67,7 @@ type SessionResolution =
       reason: "missing" | "invalid" | "expired";
     };
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   const url = process.env.API_BASE_URL ?? "";
   if (!url) {
     throw new Error("API_BASE_URL environment variable is not set.");
@@ -527,6 +527,36 @@ const FORWARDED_RESPONSE_HEADERS = [
   "retry-after",
 ];
 
+/**
+ * Resolves a usable access token from the request's cookies, refreshing it
+ * first if only a refresh token is present. Shared by `buildBackendRequest`
+ * and any route (e.g. the AI chat streaming proxy) that needs a token but
+ * can't route through `buildBackendRequest`'s own `backendFetch` — that
+ * helper hardcodes a 10s timeout meant for ordinary JSON calls, which would
+ * kill a long-running SSE stream well before the backend's own 15s keepalive
+ * ever lands.
+ */
+export async function getValidAccessToken(): Promise<{
+  accessToken: string | null;
+  refreshedAccessToken?: string;
+  refreshToken?: string;
+}> {
+  const store = await cookies();
+  const { access, refresh } = getActiveTokensFromStore(store);
+  let accessToken = access ?? null;
+  let refreshedAccessToken: string | undefined;
+
+  if (!accessToken && refresh) {
+    const refreshed = await refreshAccessToken(refresh);
+    if (refreshed) {
+      accessToken = refreshed;
+      refreshedAccessToken = refreshed;
+    }
+  }
+
+  return { accessToken, refreshedAccessToken, refreshToken: refresh };
+}
+
 export async function buildBackendRequest(input: {
   path: string;
   method: string;
@@ -541,18 +571,10 @@ export async function buildBackendRequest(input: {
   /** True only when the 401 means the JWT itself has expired/invalid (clear cookies). */
   tokenExpired?: boolean;
 }> {
-  const store = await cookies();
-  const { access, refresh } = getActiveTokensFromStore(store);
-  let accessToken = access ?? null;
-  let refreshedAccessToken: string | undefined;
-
-  if (!accessToken && refresh) {
-    const refreshed = await refreshAccessToken(refresh);
-    if (refreshed) {
-      accessToken = refreshed;
-      refreshedAccessToken = refreshed;
-    }
-  }
+  const tokenResolution = await getValidAccessToken();
+  let accessToken = tokenResolution.accessToken;
+  let refreshedAccessToken = tokenResolution.refreshedAccessToken;
+  const refresh = tokenResolution.refreshToken;
 
   // GET /site-invites/<token>/ is AllowAny on the Django side — an invitee
   // clicking a link/QR code has no session yet, so this must reach the

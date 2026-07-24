@@ -381,3 +381,24 @@ nav.sidebar-nav::-webkit-scrollbar-thumb:active { background: linear-gradient(18
 .marketing ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #017c54, #00a63e);
 }
+
+/* AI assistant markdown rendering — react-markdown emits bare tags with no
+   margin under Tailwind's preflight reset, so bot replies need minimal
+   spacing/list styling to read as formatted text rather than a wall of prose. */
+.prose-assistant p { margin: 0 0 0.5em; }
+.prose-assistant p:last-child { margin-bottom: 0; }
+.prose-assistant ul,
+.prose-assistant ol { margin: 0.35em 0 0.5em; padding-left: 1.25em; }
+.prose-assistant li { margin-bottom: 0.2em; }
+.prose-assistant strong { font-weight: 700; }
+.prose-assistant code {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 0.9em;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.prose-assistant table { border-collapse: collapse; margin: 0.4em 0; font-size: 0.95em; }
+.prose-assistant th,
+.prose-assistant td { border: 1px solid var(--border); padding: 0.3em 0.55em; text-align: left; }
+.prose-assistant a { color: var(--primary); text-decoration: underline; }
