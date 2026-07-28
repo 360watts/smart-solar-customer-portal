@@ -227,12 +227,23 @@ export function FooterSection({ motionProps = {} }: FooterSectionProps) {
                 reserved.
               </p>
             </div>
-            <Link
-              href="/privacy"
-              className="text-[12px] sm:text-[13px] text-[#8a9a90] hover:text-[#017c54] font-medium underline decoration-transparent hover:decoration-[#00a63e]/50 underline-offset-4 transition-colors"
-            >
-              Privacy Policy
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/privacy"
+                className="text-[12px] sm:text-[13px] text-[#8a9a90] hover:text-[#017c54] font-medium underline decoration-transparent hover:decoration-[#00a63e]/50 underline-offset-4 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-[#8a9a90]/50 text-[12px]" aria-hidden>
+                ·
+              </span>
+              <Link
+                href="/terms"
+                className="text-[12px] sm:text-[13px] text-[#8a9a90] hover:text-[#017c54] font-medium underline decoration-transparent hover:decoration-[#00a63e]/50 underline-offset-4 transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
           </div>
         </div>
       </div>
