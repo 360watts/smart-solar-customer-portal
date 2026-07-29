@@ -7,16 +7,7 @@ import AnimatedNumber from "@/components/ui/AnimatedNumber";
 import GlassCard from "@/components/ui/GlassCard";
 import { MiniArc, PulseDot, COMPONENT_META, healthStatusColor } from "@/components/care/InstrumentGauge";
 import { statusLabel, type SystemHealthData } from "@/lib/care/types";
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/utils";
 
 function cxy(deg: number, cx: number, cy: number, r: number) {
   const rad = ((deg - 90) * Math.PI) / 180;

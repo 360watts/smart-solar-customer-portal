@@ -9,16 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSystemHealth } from "@/lib/care/useSystemHealth";
 import { useUptimeScore } from "@/lib/care/useUptimeScore";
 import { statusLabel, type ComponentHealth } from "@/lib/care/types";
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/utils";
 
 function InstrumentCard({ compKey, data }: { compKey: keyof typeof COMPONENT_META; data: ComponentHealth }) {
   const meta = COMPONENT_META[compKey];

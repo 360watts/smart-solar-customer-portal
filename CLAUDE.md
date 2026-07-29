@@ -51,7 +51,7 @@ Copy `.env.example` to `.env.local` (gitignored). Key vars:
 - `src/lib/hooks/` — shared data-fetching/UI hooks
 
 ### UI
-- `src/components/layout/` — `PortalHeader.tsx`, `PortalSidebar.tsx` (shared portal chrome)
+- `src/components/layout/` — `PortalSidebar.tsx` (shared portal chrome)
 - `src/components/ui/` — reusable UI primitives (cards, gauges, KPI tiles, charts)
 - `src/components/care/` — 360Care-specific components
 - Charts via `chart.js` / `react-chartjs-2` (+ `chartjs-plugin-zoom`); animation via `framer-motion`; icons via `lucide-react`

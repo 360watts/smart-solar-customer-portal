@@ -63,6 +63,21 @@ export function isInSolarDayWindow(ts: string, startHour = 6): boolean {
   return rowDay === tomorrow;
 }
 
+/** Relative time label ("just now" / "Xm ago" / "Xh ago" / "Xd ago") for a
+ * recency timestamp — e.g. last-seen/last-heartbeat. Returns "never" if `iso`
+ * is falsy. Not for the weather page's forecast-recency label, which
+ * deliberately matches the staff dashboard's own (different) format. */
+export function timeAgo(iso: string): string {
+  if (!iso) return "never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export interface PlanTierMeta {
   label: string;
   textClass: string;

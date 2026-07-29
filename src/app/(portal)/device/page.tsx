@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { portalApi } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
+import { timeAgo } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -169,17 +170,6 @@ function runStateLabel(v: number | string | null): string {
 const SPRING = { type: "spring" as const, stiffness: 280, damping: 28 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string): string {
-  if (!iso) return "never";
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
 
 // Despite the `signal_strength_dbm` field name, firmware actually sends a 0–100
 // RSSI percentage (confirmed against the backend's own severity thresholds in

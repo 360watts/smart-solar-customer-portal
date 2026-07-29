@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { portalApi, type IncidentItem } from "@/lib/api";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
+import { timeAgo } from "@/lib/utils";
 
 interface AlertsDevice {
   serial: string;
@@ -30,17 +31,6 @@ const INCIDENT_CATEGORY_LABELS: Record<IncidentItem["category"], string> = {
   maintenance: "Maintenance",
   grid: "Grid",
 };
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 // Plain-language duration — customers shouldn't need to do minutes→hours math.
 function formatDuration(seconds: number): string {
