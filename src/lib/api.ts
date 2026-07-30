@@ -9,6 +9,14 @@ const api = axios.create({
 
 export default api;
 
+export interface DataQuality {
+  coverage_pct: number;
+  days_with_data: number;
+  days_in_period: number;
+  source: "inverter" | "energy_meter";
+  estimate_status: "estimated" | "reconciled";
+}
+
 export interface SavingsData {
   id: number;
   electricityBill: {
@@ -16,6 +24,8 @@ export interface SavingsData {
     period: string;
     billingMonths: number;
     status: "due" | "paid" | "overdue";
+    estimateAmount?: number | null;
+    actualAmount?: number | null;
   };
   consumption: {
     totalUnitsWithoutSolar: number;
@@ -37,6 +47,7 @@ export interface SavingsData {
     monthsToBreakEven: number;
     breakEvenDate: string;
   };
+  data_quality: DataQuality;
 }
 
 export interface ServiceBooking {
