@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import {
-  IndianRupee, TrendingUp, Zap, Calendar, ChevronRight,
+  IndianRupee, TrendingUp, Zap, Calendar, ChevronRight, ChevronDown, Info,
   Sun, PlugZap, ArrowDownToLine, ArrowUpFromLine,
   type LucideIcon,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
-import { portalApi, SavingsData } from "@/lib/api";
+import { portalApi, SavingsData, DataQuality } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 import { COLORS } from "@/lib/tokens";
+import { getConfidenceTier, formatDataSource, variancePercent } from "@/lib/billConfidence";
 
 // ── Animated number counter ───────────────────────────────────────────────────
 function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "" }: {
@@ -106,10 +107,54 @@ function ConsumptionBar({ label, value, total, color, icon: Icon }: {
   );
 }
 
+// ── Confidence pill ────────────────────────────────────────────────────────────
+function ConfidencePill({ dataQuality }: { dataQuality: DataQuality }) {
+  const tier = getConfidenceTier(dataQuality);
+  const cfg = {
+    reconciled:    { color: "var(--primary)", label: "Reconciled" },
+    estimated:     { color: COLORS.amber, label: "Estimated" },
+    "low-coverage": { color: "var(--destructive)", label: "Low data coverage" },
+  }[tier];
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold"
+      style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, color: cfg.color, border: `1px solid color-mix(in srgb, ${cfg.color} 30%, transparent)` }}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── Data quality disclosure ─────────────────────────────────────────────────────
+function DataQualityDisclosure({ dataQuality }: { dataQuality: DataQuality }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Info size={12} />
+        Data quality
+        <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
+      </button>
+      {open && (
+        <div className="mt-2 pt-2 space-y-1 text-sm text-muted-foreground" style={{ borderTop: "1px solid var(--border)" }}>
+          <p>Coverage: {dataQuality.coverage_pct}% ({dataQuality.days_with_data} of {dataQuality.days_in_period} days)</p>
+          <p>Source: {formatDataSource(dataQuality.source)}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Bill comparison ───────────────────────────────────────────────────────────
-function BillComparison({ withoutSolar, ebBill, savingsPct }: {
+function BillComparison({ withoutSolar, ebBill, savingsPct, dataQuality, estimateAmount, actualAmount }: {
   withoutSolar: number; ebBill: number; savingsPct: number;
+  dataQuality?: DataQuality; estimateAmount?: number | null; actualAmount?: number | null;
 }) {
+  const variance = estimateAmount != null && actualAmount != null
+    ? variancePercent(estimateAmount, actualAmount)
+    : null;
   return (
     <div className="flex items-stretch gap-4">
       {/* Without solar */}
@@ -139,6 +184,17 @@ function BillComparison({ withoutSolar, ebBill, savingsPct }: {
           ₹<AnimatedNumber value={ebBill} decimals={0} />
         </p>
         <p className="text-sm text-muted-foreground mt-1">This billing cycle</p>
+        {dataQuality && (
+          <div className="mt-3">
+            <ConfidencePill dataQuality={dataQuality} />
+            {variance != null && (
+              <p className="text-sm text-muted-foreground mt-2">
+                {variance >= 0 ? "+" : ""}{variance.toFixed(1)}% off latest reconciled bill
+              </p>
+            )}
+            <DataQualityDisclosure dataQuality={dataQuality} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -354,6 +410,9 @@ export default function SavingsPage() {
             withoutSolar={sav.billWithoutSolar}
             ebBill={electricityBill.amount}
             savingsPct={sav.savingsPercentage}
+            dataQuality={savings.data_quality}
+            estimateAmount={electricityBill.estimateAmount}
+            actualAmount={electricityBill.actualAmount}
           />
         </GlassCard>
       </motion.div>
