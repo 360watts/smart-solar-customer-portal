@@ -45,7 +45,15 @@ export const REFRESH_COOKIE = "360w_portal_refresh";
 // Caches the CustomerSession JSON for the lifetime of the access token.
 // Avoids a backend /api/profile/ round-trip on every page load while the token is fresh.
 const SESSION_CACHE_COOKIE = "360w_portal_session";
-const SESSION_CACHE_MAX_AGE = 60 * 4; // 4 min — slightly less than the 5 min access token TTL
+// Must stay under the real access-token TTL (SIMPLE_JWT.ACCESS_TOKEN_LIFETIME = 60 min,
+// localapi/settings.py) — previously hardcoded to 4/5 min against a token that's
+// actually valid for 60, which forced a refresh roughly every 5 min instead of every
+// 60. Combined with ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION on the backend
+// (every refresh call invalidates the refresh token used), and refreshAccessToken()
+// previously discarding the rotated refresh token the backend returns, this made
+// the very next refresh attempt use an already-blacklisted token and fail — logging
+// the user out roughly every 10 minutes instead of every 14 days.
+const SESSION_CACHE_MAX_AGE = 60 * 50; // 50 min — slightly less than the 60 min access token TTL
 
 type TokenPair = {
   access: string;
@@ -104,7 +112,7 @@ export function applySessionCookies<T = unknown>(
   if (tokens.access) {
     response.cookies.set(ACCESS_COOKIE, tokens.access, {
       ...options,
-      maxAge: 60 * 5,
+      maxAge: 60 * 55, // slightly under the real 60 min access-token TTL — see SESSION_CACHE_MAX_AGE comment above
     });
   }
 
@@ -197,9 +205,17 @@ async function fetchProfile(accessToken: string): Promise<Response> {
 // The singleton is cleared immediately after resolution so the next expiry cycle
 // triggers a fresh refresh.
 
-let _refreshPromise: Promise<string | null> | null = null;
+type RefreshResult = { access: string; refresh?: string };
 
-async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+let _refreshPromise: Promise<RefreshResult | null> | null = null;
+
+// The backend has ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION enabled
+// (localapi/settings.py) — every call to this endpoint blacklists the refresh
+// token it was given and returns a NEW one in the response body. That new
+// refresh token MUST be persisted back into the client's cookie, or the next
+// refresh attempt uses an already-blacklisted token and fails, ending the
+// session early (same bug class as mobile's F-050).
+async function refreshAccessToken(refreshToken: string): Promise<RefreshResult | null> {
   if (_refreshPromise) return _refreshPromise;
 
   _refreshPromise = backendFetch("/api/auth/token/refresh/", {
@@ -208,8 +224,8 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
   })
     .then(async (res) => {
       if (!res.ok) return null;
-      const data = (await res.json()) as { access?: string };
-      return data.access ?? null;
+      const data = (await res.json()) as { access?: string; refresh?: string };
+      return data.access ? { access: data.access, refresh: data.refresh } : null;
     })
     .catch(() => null)
     .finally(() => {
@@ -241,11 +257,11 @@ export async function resolveSessionFromTokens(
   }
 
   let workingAccess = accessToken ?? null;
-  let refreshedAccess: string | null = null;
+  let refreshResult: RefreshResult | null = null;
 
   if (!workingAccess && refreshToken) {
-    refreshedAccess = await refreshAccessToken(refreshToken);
-    workingAccess = refreshedAccess;
+    refreshResult = await refreshAccessToken(refreshToken);
+    workingAccess = refreshResult?.access ?? null;
   }
 
   if (!workingAccess) {
@@ -255,11 +271,11 @@ export async function resolveSessionFromTokens(
   let profileResponse = await fetchProfile(workingAccess);
 
   if (profileResponse.status === 401 && refreshToken) {
-    refreshedAccess = await refreshAccessToken(refreshToken);
-    if (!refreshedAccess) {
+    refreshResult = await refreshAccessToken(refreshToken);
+    if (!refreshResult) {
       return { kind: "unauthenticated", reason: "expired" };
     }
-    workingAccess = refreshedAccess;
+    workingAccess = refreshResult.access;
     profileResponse = await fetchProfile(workingAccess);
   }
 
@@ -277,18 +293,22 @@ export async function resolveSessionFromTokens(
     return { kind: "unauthenticated", reason: "invalid" };
   }
 
+  const refreshedTokens: Partial<TokenPair> | undefined = refreshResult
+    ? { access: refreshResult.access, ...(refreshResult.refresh ? { refresh: refreshResult.refresh } : {}) }
+    : undefined;
+
   const accessDecision = getPortalAccessDecision(profile);
   if (accessDecision.kind === "redirect-employee") {
     return {
       kind: "redirect-employee",
-      tokens: refreshedAccess ? { access: refreshedAccess } : undefined,
+      tokens: refreshedTokens,
     };
   }
 
   return {
     kind: "authenticated",
     session: buildCustomerSession(profile),
-    tokens: refreshedAccess ? { access: refreshedAccess } : undefined,
+    tokens: refreshedTokens,
   };
 }
 
@@ -539,22 +559,25 @@ const FORWARDED_RESPONSE_HEADERS = [
 export async function getValidAccessToken(): Promise<{
   accessToken: string | null;
   refreshedAccessToken?: string;
+  refreshedRefreshToken?: string;
   refreshToken?: string;
 }> {
   const store = await cookies();
   const { access, refresh } = getActiveTokensFromStore(store);
   let accessToken = access ?? null;
   let refreshedAccessToken: string | undefined;
+  let refreshedRefreshToken: string | undefined;
 
   if (!accessToken && refresh) {
     const refreshed = await refreshAccessToken(refresh);
     if (refreshed) {
-      accessToken = refreshed;
-      refreshedAccessToken = refreshed;
+      accessToken = refreshed.access;
+      refreshedAccessToken = refreshed.access;
+      refreshedRefreshToken = refreshed.refresh;
     }
   }
 
-  return { accessToken, refreshedAccessToken, refreshToken: refresh };
+  return { accessToken, refreshedAccessToken, refreshedRefreshToken, refreshToken: refresh };
 }
 
 export async function buildBackendRequest(input: {
@@ -567,6 +590,7 @@ export async function buildBackendRequest(input: {
 }): Promise<{
   response: Response;
   refreshedAccessToken?: string;
+  refreshedRefreshToken?: string;
   forwardHeaders: Record<string, string>;
   /** True only when the 401 means the JWT itself has expired/invalid (clear cookies). */
   tokenExpired?: boolean;
@@ -574,6 +598,7 @@ export async function buildBackendRequest(input: {
   const tokenResolution = await getValidAccessToken();
   let accessToken = tokenResolution.accessToken;
   let refreshedAccessToken = tokenResolution.refreshedAccessToken;
+  let refreshedRefreshToken = tokenResolution.refreshedRefreshToken;
   const refresh = tokenResolution.refreshToken;
 
   // GET /site-invites/<token>/ is AllowAny on the Django side — an invitee
@@ -612,8 +637,9 @@ export async function buildBackendRequest(input: {
       // Refresh failed — token is genuinely expired.
       return { response, forwardHeaders: {}, tokenExpired: true };
     }
-    accessToken = refreshed;
-    refreshedAccessToken = refreshed;
+    accessToken = refreshed.access;
+    refreshedAccessToken = refreshed.access;
+    refreshedRefreshToken = refreshed.refresh;
     response = await send(accessToken);
 
     if (response.status === 401) {
@@ -626,6 +652,7 @@ export async function buildBackendRequest(input: {
           headers: { "Content-Type": "application/json" },
         }),
         refreshedAccessToken,
+        refreshedRefreshToken,
         forwardHeaders: {},
         tokenExpired: false,
       };
@@ -639,5 +666,5 @@ export async function buildBackendRequest(input: {
     if (value) forwardHeaders[header] = value;
   }
 
-  return { response, refreshedAccessToken, forwardHeaders, tokenExpired: false };
+  return { response, refreshedAccessToken, refreshedRefreshToken, forwardHeaders, tokenExpired: false };
 }

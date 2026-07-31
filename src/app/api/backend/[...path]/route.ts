@@ -64,7 +64,7 @@ async function handleRequest(
     return NextResponse.json({ error: message }, { status: 503 });
   }
 
-  const { response, refreshedAccessToken, forwardHeaders, tokenExpired } = proxyResult;
+  const { response, refreshedAccessToken, refreshedRefreshToken, forwardHeaders, tokenExpired } = proxyResult;
 
   const proxyResponse = new NextResponse(response.body, {
     status: response.status,
@@ -84,7 +84,7 @@ async function handleRequest(
   }
 
   return refreshedAccessToken
-    ? applySessionCookies(proxyResponse, { access: refreshedAccessToken })
+    ? applySessionCookies(proxyResponse, { access: refreshedAccessToken, refresh: refreshedRefreshToken })
     : proxyResponse;
 }
 

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.text();
 
-  const { accessToken, refreshedAccessToken } = await getValidAccessToken();
+  const { accessToken, refreshedAccessToken, refreshedRefreshToken } = await getValidAccessToken();
   if (!accessToken) {
     const res = NextResponse.json({ detail: "Authentication required." }, { status: 401 });
     res.headers.set("X-Auth-Status", "session-expired");
@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
       status: backendResponse.status,
       headers: { "Content-Type": contentType || "application/json", "Cache-Control": "private, no-store" },
     });
-    return refreshedAccessToken ? applySessionCookies(proxyResponse, { access: refreshedAccessToken }) : proxyResponse;
+    return refreshedAccessToken
+      ? applySessionCookies(proxyResponse, { access: refreshedAccessToken, refresh: refreshedRefreshToken })
+      : proxyResponse;
   }
 
   const proxyResponse = new NextResponse(backendResponse.body, {
@@ -73,5 +75,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return refreshedAccessToken ? applySessionCookies(proxyResponse, { access: refreshedAccessToken }) : proxyResponse;
+  return refreshedAccessToken
+    ? applySessionCookies(proxyResponse, { access: refreshedAccessToken, refresh: refreshedRefreshToken })
+    : proxyResponse;
 }
