@@ -360,10 +360,17 @@ export default function OverviewPage() {
     user?.site_id,
     async (siteId, signal) => {
       const today = new Date().toISOString().slice(0, 10);
-      const [summary, forecastRes, healthRes] = await Promise.all([
+      const [summary, forecastRes, healthRes, energySummaryRes] = await Promise.all([
         portalApi.getPortalOverview(siteId, { date: today }, signal),
         portalApi.getForecast(siteId, { date: today }, signal),
         portalApi.getHardwareHealth(siteId, 7, signal).catch(() => null),
+        // "Today" = the 6am–6am solar day used everywhere else on this page (charts,
+        // forecast window). The inverter's own *_today_kwh registers and portal-overview's
+        // site_daily_energy fallback both key off IST midnight instead — fine 06:00–24:00,
+        // wrong 00:00–06:00 (they show a near-zero post-midnight sliver while the solar-day
+        // total is still accruing). This endpoint computes the true 6am–6am delta from the
+        // inverter's lifetime (never-resetting) counters, so it's correct across the boundary.
+        portalApi.getEnergySummary(siteId, { combined: "true" }, signal).catch(() => null),
       ]);
       signal.throwIfAborted();
 
@@ -468,17 +475,21 @@ export default function OverviewPage() {
           grid:  parseFloat(avg(v.grid).toFixed(3)),
         }));
 
-      // Priority for today's totals:
-      //  1. Inverter's own daily accumulators (pv_today_kwh etc.) — reset at midnight,
-      //     always current, no lag. Available in latest_telemetry after backend restart.
-      //  2. site_daily_energy (energy_today) — accurate but lags ~1 day.
-      //  3. Raw integration of chart rows — last resort; rows are 5-min cadence so
+      // Priority for today's (solar-day, 6am–6am) totals:
+      //  1. energy-summary?combined=true — lifetime-counter delta across the 6am–6am
+      //     window, correct even between midnight and 6am when the inverter's own
+      //     daily accumulators have just reset.
+      //  2. Inverter's own daily accumulators (pv_today_kwh etc.) — reset at midnight,
+      //     always current, no lag, but wrong 00:00–06:00 IST specifically.
+      //  3. site_daily_energy (energy_today) — accurate but lags ~1 day.
+      //  4. Raw integration of chart rows — last resort; rows are 5-min cadence so
       //     divide by 12 (not 4) to convert W → kWh per interval.
+      const solarDayTotals = (energySummaryRes?.data as { summary?: { today?: Record<string, unknown> } } | null)?.summary?.today ?? {};
       const todayTotals = (payload.energy_today ?? {}) as Record<string, unknown>;
       const invToday = ltRaw ?? {} as Record<string, number>;
-      const todayGenKwh  = Number(invToday.pv_today_kwh)       || Number(todayTotals.pv_gen_kwh)     || parseFloat(rows.reduce((s, r) => s + r.solarKw / 12, 0).toFixed(2));
-      const todayConKwh  = Number(invToday.load_today_kwh)     || Number(todayTotals.load_kwh)        || parseFloat(rows.reduce((s, r) => s + r.loadKw  / 12, 0).toFixed(2));
-      const gridExportKwh = Number(invToday.grid_sell_today_kwh) || Number(todayTotals.grid_export_kwh) || 0;
+      const todayGenKwh  = Number(solarDayTotals.pv_gen_kwh)      || Number(invToday.pv_today_kwh)       || Number(todayTotals.pv_gen_kwh)     || parseFloat(rows.reduce((s, r) => s + r.solarKw / 12, 0).toFixed(2));
+      const todayConKwh  = Number(solarDayTotals.load_kwh)        || Number(invToday.load_today_kwh)     || Number(todayTotals.load_kwh)        || parseFloat(rows.reduce((s, r) => s + r.loadKw  / 12, 0).toFixed(2));
+      const gridExportKwh = Number(solarDayTotals.grid_export_kwh) || Number(invToday.grid_sell_today_kwh) || Number(todayTotals.grid_export_kwh) || 0;
       const selfUsePct   = todayGenKwh > 0
         ? Math.round(Math.min(100, ((todayGenKwh - gridExportKwh) / todayGenKwh) * 100))
         : 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,16 @@ export default function StatusPill({
     error: "bg-red-500",
   };
 
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", listener);
+    return () => mq.removeEventListener("change", listener);
+  }, []);
+
   return (
     <div
       className={cn(
@@ -50,8 +60,8 @@ export default function StatusPill({
       {animated && (
         <motion.div
           className={cn("w-2 h-2 rounded-full", pulseColor[status])}
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          animate={prefersReducedMotion ? {} : { scale: [1, 1.2, 1] }}
+          transition={prefersReducedMotion ? undefined : { duration: 2, repeat: Infinity }}
         />
       )}
       {label}

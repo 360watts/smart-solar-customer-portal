@@ -207,7 +207,7 @@ export default function SolarPage() {
   const { data, loading, error } = useSiteQuery<SolarData>(
     user?.site_id,
     async (siteId, signal) => {
-      const [forecastRes, dailyRes, telRes] = await Promise.all([
+      const [forecastRes, dailyRes, telRes, solarDayRes] = await Promise.all([
         // No params defaults to "today, UTC calendar date" server-side (see
         // site_forecast in forecasting.py) — the Tomorrow toggle had nothing
         // to show because tomorrow's rows were never fetched at all, even
@@ -221,6 +221,9 @@ export default function SolarPage() {
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
         // 1-day window → raw/5-min rows; telemetry returns a plain array
         portalApi.getTelemetry(siteId, { days: 1 }, signal),
+        // 6am–6am solar-day total via lifetime-counter delta — see dashboard/page.tsx
+        // for why the raw pv_today_kwh accumulator below is wrong 00:00–06:00 IST.
+        portalApi.getEnergySummary(siteId, { combined: "true" }, signal).catch(() => null),
       ]);
 
       const forecastRows: ForecastRow[] = Array.isArray(forecastRes.data)
@@ -238,10 +241,14 @@ export default function SolarPage() {
       const lastRow = telRows[telRows.length - 1];
       const currentOutputKw = lastRow ? parseFloat(pvKw(lastRow).toFixed(2)) : null;
 
-      // Today's generation: inverter daily accumulator from last row
-      const todayGenKwh = lastRow?.pv_today_kwh != null
-        ? parseFloat(Number(lastRow.pv_today_kwh).toFixed(1))
-        : null;
+      // Today's generation: 6am–6am solar-day total (lifetime-counter delta),
+      // falling back to the inverter's own midnight-reset daily accumulator.
+      const solarDayGenKwh = (solarDayRes?.data as { summary?: { today?: { pv_gen_kwh?: number } } } | null)?.summary?.today?.pv_gen_kwh;
+      const todayGenKwh = solarDayGenKwh != null
+        ? parseFloat(Number(solarDayGenKwh).toFixed(1))
+        : lastRow?.pv_today_kwh != null
+          ? parseFloat(Number(lastRow.pv_today_kwh).toFixed(1))
+          : null;
 
       // Peak: max solar kW seen today
       const peakKw = telRows.length > 0

@@ -48,6 +48,15 @@ export interface SavingsData {
     breakEvenDate: string;
   };
   data_quality: DataQuality;
+  networkCharge: {
+    generatedUnits: number;
+    isEstimated: boolean;
+    ratePerUnit: number;
+    domesticPercentApplied: number | null;
+    chargeBeforeGst: number;
+    gstAmount: number;
+    totalWithGst: number;
+  } | null;
 }
 
 export interface ServiceBooking {
