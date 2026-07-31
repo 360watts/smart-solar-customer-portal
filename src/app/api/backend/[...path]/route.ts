@@ -26,10 +26,13 @@ async function handleRequest(
     return NextResponse.json({ error: "Invalid request path." }, { status: 400 });
   }
 
+  const contentType = request.headers.get("content-type") ?? "";
   const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined
-      : await request.text();
+      : contentType.includes("multipart/form-data")
+        ? await request.arrayBuffer()
+        : await request.text();
 
   // Next.js's own router strips a trailing slash from `params.path` before this
   // handler ever runs (a same-method 308 redirect from `/x/` to `/x` happens at
@@ -49,7 +52,7 @@ async function handleRequest(
       method: request.method,
       search: request.nextUrl.search,
       body,
-      contentType: request.headers.get("content-type"),
+      contentType: contentType || null,
     });
   } catch (err) {
     // Network-level failure (timeout, Railway down, DNS) — return a clean JSON 503

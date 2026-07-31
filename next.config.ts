@@ -50,7 +50,7 @@ const SECURITY_HEADERS = [
       // error for it, so it's scoped out of the production policy.
       `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://d2nmne41sxmvw4.cloudfront.net",
       "font-src 'self' data:",
       "connect-src 'self'",
       // Contact section embeds a Google Maps iframe (ContactSection.tsx) —
@@ -72,6 +72,9 @@ const nextConfig: NextConfig = {
   // Prefer AVIF then WebP for next/image — dramatically smaller than JPEG/PNG.
   images: {
     formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "d2nmne41sxmvw4.cloudfront.net" },
+    ],
   },
   // Forward Cache-Control headers from the Django backend through the BFF proxy
   // to allow Cloudflare to cache read-only API responses at the edge.

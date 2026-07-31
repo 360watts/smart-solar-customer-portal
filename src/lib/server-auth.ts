@@ -561,7 +561,7 @@ export async function buildBackendRequest(input: {
   path: string;
   method: string;
   search: string;
-  body?: string;
+  body?: string | ArrayBuffer;
   contentType?: string | null;
   forwardHeaders?: Record<string, string>;
 }): Promise<{
