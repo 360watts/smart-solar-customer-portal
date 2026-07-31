@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useRef } from "react";
 import {
-  BadgeCheck, Bell, KeyRound, Mail, Pencil, ShieldCheck, Zap,
+  BadgeCheck, Bell, Camera, KeyRound, Mail, Pencil, ShieldCheck, Zap,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
@@ -157,6 +158,24 @@ export default function ProfilePage() {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const res = await portalApi.uploadAvatar(file);
+      const url = (res.data as { avatar_url?: string }).avatar_url;
+      if (url) setOverrides((prev) => ({ ...prev, avatar_url: url }));
+    } catch {
+      // silent — avatar is cosmetic, don't block the page
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  }
 
   const initials =
     profile
@@ -239,29 +258,55 @@ export default function ProfilePage() {
           )}
         />
         <div className="relative flex items-center gap-5 flex-wrap">
-          <div className="shrink-0">
-            {profile.avatar_url ? (
-              <Image
-                src={profile.avatar_url}
-                alt={initials}
-                width={80}
-                height={80}
-                className="w-20 h-20 rounded-2xl object-cover border-2 border-border"
-              />
-            ) : (
-              <div
-                className={cn(
-                  "w-20 h-20 rounded-2xl flex items-center justify-center border",
-                  tier.glow
-                    ? "bg-amber-500/20 border-amber-500/40"
-                    : "bg-emerald-500/20 border-emerald-500/40",
+          <div className="shrink-0 relative group">
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl"
+              aria-label="Change profile photo"
+            >
+              {profile.avatar_url ? (
+                <Image
+                  src={profile.avatar_url}
+                  alt={initials}
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-border"
+                />
+              ) : (
+                <div
+                  className={cn(
+                    "w-20 h-20 rounded-2xl flex items-center justify-center border",
+                    tier.glow
+                      ? "bg-amber-500/20 border-amber-500/40"
+                      : "bg-emerald-500/20 border-emerald-500/40",
+                  )}
+                >
+                  <span className={cn("font-display text-2xl font-bold", tier.glow ? "text-amber-300" : "text-emerald-300")}>
+                    {initials}
+                  </span>
+                </div>
+              )}
+              {/* camera overlay */}
+              <div className={cn(
+                "absolute inset-0 rounded-2xl flex items-center justify-center transition-opacity",
+                "bg-black/50",
+                avatarUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              )}>
+                {avatarUploading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Camera size={20} className="text-white" />
                 )}
-              >
-                <span className={cn("font-display text-2xl font-bold", tier.glow ? "text-amber-300" : "text-emerald-300")}>
-                  {initials}
-                </span>
               </div>
-            )}
+            </button>
           </div>
 
           <div className="min-w-0 flex-1">

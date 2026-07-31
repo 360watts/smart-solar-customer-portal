@@ -314,6 +314,14 @@ export const portalApi = {
   updateProfile: (data: Record<string, unknown>) =>
     api.patch(`/api/backend/profile/`, data),
 
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append("avatar", file);
+    return api.post(`/api/backend/profile-picture/`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
   changePassword: (data: Record<string, unknown>) =>
     api.put(`/api/backend/profile/change-password/`, data),
 
