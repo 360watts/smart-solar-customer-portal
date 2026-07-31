@@ -26,6 +26,7 @@ export interface SavingsData {
     status: "due" | "paid" | "overdue";
     estimateAmount?: number | null;
     actualAmount?: number | null;
+    dueDate?: string | null;
   };
   consumption: {
     totalUnitsWithoutSolar: number;

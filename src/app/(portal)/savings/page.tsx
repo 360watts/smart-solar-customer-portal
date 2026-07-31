@@ -154,9 +154,10 @@ function DataQualityDisclosure({ dataQuality }: { dataQuality: DataQuality }) {
 }
 
 // ── Passbook ledger row ───────────────────────────────────────────────────────
-function LedgerRow({ label, value, unit, tone = "default", indent = false, muted = false }: {
+function LedgerRow({ label, value, unit, tone = "default", indent = false, muted = false, icon: Icon, trailing }: {
   label: string; value: string; unit?: string;
   tone?: "default" | "credit" | "debit"; indent?: boolean; muted?: boolean;
+  icon?: LucideIcon; trailing?: React.ReactNode;
 }) {
   const color = {
     default: "var(--foreground)",
@@ -164,21 +165,54 @@ function LedgerRow({ label, value, unit, tone = "default", indent = false, muted
     debit: "var(--destructive)",
   }[tone];
   return (
-    <div className={`flex items-baseline justify-between py-2 ${indent ? "pl-4" : ""}`}>
-      <span className={`text-sm ${muted ? "text-muted-foreground" : "text-foreground"}`}>{label}</span>
-      <span
-        className="text-sm font-semibold tabular-nums"
-        style={{ fontFamily: "var(--font-jetbrains-mono)", color }}
-      >
-        {value}
-        {unit && <span className="text-xs text-muted-foreground ml-1 font-normal">{unit}</span>}
-      </span>
+    <div className={indent ? "pl-4" : ""}>
+      <div className="flex items-baseline justify-between py-2">
+        <span className={`flex items-center gap-1.5 text-sm ${muted ? "text-muted-foreground" : "text-foreground"}`}>
+          {Icon && <Icon size={13} style={{ color }} />}
+          {label}
+          {trailing}
+        </span>
+        <span
+          className="text-sm font-semibold tabular-nums"
+          style={{ fontFamily: "var(--font-jetbrains-mono)", color }}
+        >
+          {value}
+          {unit && <span className="text-xs text-muted-foreground ml-1 font-normal">{unit}</span>}
+        </span>
+      </div>
     </div>
   );
 }
 
 function LedgerDivider() {
   return <div className="my-1" style={{ borderTop: "1px dashed var(--border)" }} />;
+}
+
+// Ledger convention: a negative *rupee* figure clearly reads as a discount.
+// A negative *kWh* figure reads as "did I use negative electricity?" — so
+// export is shown as a plain positive quantity with a directional icon instead.
+function InfoToggle({ note }: { note: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="What's this?"
+      >
+        <Info size={11} />
+      </button>
+      {open && (
+        <span
+          className="absolute left-0 top-full mt-1.5 w-56 z-10 text-xs font-normal normal-case rounded-lg p-2.5 shadow-lg"
+          style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "var(--font-dm-sans)" }}
+        >
+          {note}
+        </span>
+      )}
+    </span>
+  );
 }
 
 // ── Passbook ledger (hero) ────────────────────────────────────────────────────
@@ -194,6 +228,21 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
   const variance = electricityBill.estimateAmount != null && electricityBill.actualAmount != null
     ? variancePercent(electricityBill.estimateAmount, electricityBill.actualAmount)
     : null;
+
+  // Plain-language translation of the ledger math below — the numbers show
+  // their work, but the takeaway ("why do I owe this") should be stated once
+  // in words rather than left for the reader to subtract themselves.
+  const netMeteringBillIsZero = electricityBill.amount <= 0.01;
+  let summaryLine: string | null = null;
+  if (isReconciled) {
+    summaryLine = networkCharge
+      ? "This is TANGEDCO's reconciled bill, including their networking charge."
+      : "This is TANGEDCO's reconciled bill for this cycle.";
+  } else if (netMeteringBillIsZero && networkCharge && networkCharge.totalWithGst > 0) {
+    summaryLine = `You exported more solar than you used — net-metering bill: ₹0. The ₹${Math.round(totalPayable).toLocaleString("en-IN")} is TANGEDCO's networking charge.`;
+  } else if (networkCharge && networkCharge.totalWithGst > 0) {
+    summaryLine = `Net-metering bill ₹${electricityBill.amount.toLocaleString("en-IN")} + ₹${networkCharge.totalWithGst.toLocaleString("en-IN")} networking charge.`;
+  }
 
   return (
     <GlassCard glow="green">
@@ -225,9 +274,18 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               {variance >= 0 ? "+" : ""}{variance.toFixed(1)}% off latest reconciled bill
             </p>
           )}
+          {isReconciled && electricityBill.dueDate && (
+            <p className="text-sm mt-1" style={{ color: "var(--secondary)" }}>
+              Due {new Date(electricityBill.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+            </p>
+          )}
         </div>
         <ConfidenceStamp dataQuality={savings.data_quality} />
       </div>
+
+      {summaryLine && (
+        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{summaryLine}</p>
+      )}
 
       {/* Line-item breakdown is collapsed by default — tap to reveal */}
       <button
@@ -251,11 +309,11 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
             <div className="pt-4">
               <LedgerDivider />
               <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy this cycle</p>
-              <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" />
-              <LedgerRow label="Grid import" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" />
-              <LedgerRow label="Grid export" value={`−${consumption.ebExportUnits.toFixed(1)}`} unit="kWh" tone="credit" />
+              <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" icon={Sun} />
+              <LedgerRow label="Imported from grid" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" icon={ArrowDownToLine} />
+              <LedgerRow label="Exported to grid" value={consumption.ebExportUnits.toFixed(1)} unit="kWh" tone="credit" icon={ArrowUpFromLine} />
               {consumption.evUnits > 0 && (
-                <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" />
+                <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" icon={PlugZap} />
               )}
 
               <LedgerDivider />
@@ -270,10 +328,13 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               {networkCharge && (
                 <>
                   <LedgerRow
-                    label={`Networking charge${networkCharge.isEstimated ? " (est.)" : ""}${isReconciled ? " (included above)" : ""}`}
+                    label={`Networking charge${networkCharge.isEstimated ? " (projected)" : ""}${isReconciled ? " (included above)" : ""}`}
                     value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
                     muted
                     indent
+                    trailing={
+                      <InfoToggle note="A separate charge TANGEDCO levies on solar generation to cover the electricity network, distinct from your net-metering bill above. Applies to every solar customer, not just this cycle." />
+                    }
                   />
                   <LedgerRow label="GST @ 18%" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
                 </>
