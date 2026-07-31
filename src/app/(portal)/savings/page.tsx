@@ -184,7 +184,13 @@ function LedgerDivider() {
 // ── Passbook ledger (hero) ────────────────────────────────────────────────────
 function PassbookLedger({ savings }: { savings: SavingsData }) {
   const { electricityBill, consumption, savings: sav, networkCharge } = savings;
-  const totalPayable = electricityBill.amount + (networkCharge?.totalWithGst ?? 0);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  // Once reconciled, electricityBill.amount IS TANGEDCO's real due_amount —
+  // it already includes their own networking charge + GST, so adding ours on
+  // top would double-count it. Only layer our estimate on top of our own
+  // slab-only estimate, not on top of a real fetched/entered bill.
+  const isReconciled = savings.data_quality.estimate_status === "reconciled";
+  const totalPayable = electricityBill.amount + (isReconciled ? 0 : networkCharge?.totalWithGst ?? 0);
   const variance = electricityBill.estimateAmount != null && electricityBill.actualAmount != null
     ? variancePercent(electricityBill.estimateAmount, electricityBill.actualAmount)
     : null;
@@ -207,38 +213,8 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
         </span>
       </div>
 
-      {/* Energy entries */}
-      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Energy this cycle</p>
-      <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" />
-      <LedgerRow label="Grid import" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" />
-      <LedgerRow label="Grid export" value={`−${consumption.ebExportUnits.toFixed(1)}`} unit="kWh" tone="credit" />
-      {consumption.evUnits > 0 && (
-        <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" />
-      )}
-
-      <LedgerDivider />
-
-      {/* Money entries */}
-      <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Bill breakup</p>
-      <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
-      <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
-      <LedgerRow label="EB bill (net units)" value={`₹${electricityBill.amount.toLocaleString("en-IN")}`} />
-      {networkCharge && (
-        <>
-          <LedgerRow
-            label={`Networking charge${networkCharge.isEstimated ? " (est.)" : ""}`}
-            value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
-            muted
-            indent
-          />
-          <LedgerRow label="GST @ 18%" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
-        </>
-      )}
-
-      <LedgerDivider />
-
-      {/* Total + stamp */}
-      <div className="flex items-end justify-between pt-3 gap-4">
+      {/* Total + stamp — always visible summary */}
+      <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Total payable</p>
           <p className="text-4xl font-bold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
@@ -252,6 +228,60 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
         </div>
         <ConfidenceStamp dataQuality={savings.data_quality} />
       </div>
+
+      {/* Line-item breakdown is collapsed by default — tap to reveal */}
+      <button
+        type="button"
+        onClick={() => setBreakdownOpen((o) => !o)}
+        className="flex items-center gap-1 text-sm font-medium mt-4 text-emerald-400 hover:opacity-80 transition-opacity"
+      >
+        {breakdownOpen ? "Hide breakdown" : "View breakdown"}
+        <ChevronDown size={14} style={{ transform: breakdownOpen ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
+      </button>
+
+      <AnimatePresence initial={false}>
+        {breakdownOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <div className="pt-4">
+              <LedgerDivider />
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy this cycle</p>
+              <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" />
+              <LedgerRow label="Grid import" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" />
+              <LedgerRow label="Grid export" value={`−${consumption.ebExportUnits.toFixed(1)}`} unit="kWh" tone="credit" />
+              {consumption.evUnits > 0 && (
+                <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" />
+              )}
+
+              <LedgerDivider />
+
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Bill breakup</p>
+              <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
+              <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
+              <LedgerRow
+                label={isReconciled ? "EB bill (reconciled, total)" : "EB bill (net units, est.)"}
+                value={`₹${electricityBill.amount.toLocaleString("en-IN")}`}
+              />
+              {networkCharge && (
+                <>
+                  <LedgerRow
+                    label={`Networking charge${networkCharge.isEstimated ? " (est.)" : ""}${isReconciled ? " (included above)" : ""}`}
+                    value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
+                    muted
+                    indent
+                  />
+                  <LedgerRow label="GST @ 18%" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mt-4 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
         <DataQualityDisclosure dataQuality={savings.data_quality} />
