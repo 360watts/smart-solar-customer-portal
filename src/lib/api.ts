@@ -312,7 +312,7 @@ export const portalApi = {
     api.get(`/api/backend/profile/`),
 
   updateProfile: (data: Record<string, unknown>) =>
-    api.put(`/api/backend/profile/`, data),
+    api.patch(`/api/backend/profile/`, data),
 
   changePassword: (data: Record<string, unknown>) =>
     api.put(`/api/backend/profile/change-password/`, data),
