@@ -131,24 +131,10 @@ function ConfidenceStamp({ dataQuality }: { dataQuality: DataQuality }) {
 }
 
 function DataQualityDisclosure({ dataQuality }: { dataQuality: DataQuality }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Info size={12} />
-        Data quality
-        <ChevronDown size={12} style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
-      </button>
-      {open && (
-        <div className="mt-2 pt-2 space-y-1 text-sm text-muted-foreground" style={{ borderTop: "1px solid var(--border)" }}>
-          <p>Coverage: {dataQuality.coverage_pct}% ({dataQuality.days_with_data} of {dataQuality.days_in_period} days)</p>
-          <p>Source: {formatDataSource(dataQuality.source)}</p>
-        </div>
-      )}
+    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+      <Info size={12} />
+      Data quality: {dataQuality.coverage_pct}% coverage ({dataQuality.days_with_data} of {dataQuality.days_in_period} days) · {formatDataSource(dataQuality.source)}
     </div>
   );
 }
@@ -188,29 +174,17 @@ function LedgerDivider() {
   return <div className="my-1" style={{ borderTop: "1px dashed var(--border)" }} />;
 }
 
-// Ledger convention: a negative *rupee* figure clearly reads as a discount.
-// A negative *kWh* figure reads as "did I use negative electricity?" — so
-// export is shown as a plain positive quantity with a directional icon instead.
+// Native `title` tooltip: hovers by default and — unlike an absolutely
+// positioned popup — is never clipped by the collapsible breakdown's
+// `overflow: hidden` (needed for the height-collapse animation), since it
+// renders in the browser's own UI layer rather than this DOM subtree.
 function InfoToggle({ note }: { note: string }) {
-  const [open, setOpen] = useState(false);
   return (
-    <span className="relative inline-flex items-center">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="What's this?"
-      >
-        <Info size={11} />
-      </button>
-      {open && (
-        <span
-          className="absolute left-0 top-full mt-1.5 w-56 z-10 text-xs font-normal normal-case rounded-lg p-2.5 shadow-lg"
-          style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)", fontFamily: "var(--font-dm-sans)" }}
-        >
-          {note}
-        </span>
-      )}
+    <span
+      className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+      title={note}
+    >
+      <Info size={11} />
     </span>
   );
 }
@@ -333,7 +307,7 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                     muted
                     indent
                     trailing={
-                      <InfoToggle note="A separate charge TANGEDCO levies on solar generation to cover the electricity network, distinct from your net-metering bill above. Applies to every solar customer, not just this cycle." />
+                      <InfoToggle note="TANGEDCO's fee for using their distribution network to wheel your exported solar power onto the grid — separate from your net-metering bill above. Applies to every solar customer, every cycle." />
                     }
                   />
                   <LedgerRow label="GST @ 18%" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
