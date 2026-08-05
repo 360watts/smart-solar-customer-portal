@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
 import {
-  BadgeCheck, Bell, Camera, KeyRound, Mail, Pencil, ShieldCheck, Zap,
+  BadgeCheck, Bell, Camera, Check, KeyRound, Mail, Pencil, ShieldCheck, X, Zap,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import StatusPill from "@/components/ui/StatusPill";
@@ -45,6 +45,7 @@ interface Site {
   site_name: string;
   serial: string | null;
   connectivity_type: string;
+  eb_consumer_number: string;
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -126,6 +127,7 @@ export default function ProfilePage() {
             connectivity_type:
               ((rawGateway.devices as Array<{ connectivity_type?: string }> | undefined)?.[0]
                 ?.connectivity_type) || "—",
+            eb_consumer_number: String(rawGateway.eb_consumer_number || ""),
           }
         : null;
 
@@ -153,6 +155,22 @@ export default function ProfilePage() {
       await portalApi.updateProfile({ [field]: next });
     } catch {
       setOverrides((prev) => ({ ...prev, [field]: !next }));
+    }
+  }
+
+  const [consumerNumberEdit, setConsumerNumberEdit] = useState<string | null>(null);
+  const [consumerNumberSaving, setConsumerNumberSaving] = useState(false);
+  const [consumerNumberOverride, setConsumerNumberOverride] = useState<string | null>(null);
+
+  async function saveConsumerNumber() {
+    if (!user?.site_id || consumerNumberEdit === null) return;
+    setConsumerNumberSaving(true);
+    try {
+      await portalApi.updateConsumerNumber(user.site_id, consumerNumberEdit);
+      setConsumerNumberOverride(consumerNumberEdit);
+      setConsumerNumberEdit(null);
+    } finally {
+      setConsumerNumberSaving(false);
     }
   }
 
@@ -389,11 +407,44 @@ export default function ProfilePage() {
                 { label: "Connectivity", value: site?.connectivity_type ?? "—" },
                 { label: "Account ID", value: user?.site_id ?? "—" },
               ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                <div key={label} className="flex items-center justify-between py-2.5 border-b border-border">
                   <span className="text-sm text-muted-foreground">{label}</span>
                   <span className="font-mono text-sm text-foreground">{value}</span>
                 </div>
               ))}
+              {/* EB consumer number — customer-editable */}
+              <div className="flex items-center justify-between py-2.5 gap-3">
+                <span className="text-sm text-muted-foreground shrink-0">EB consumer no.</span>
+                {consumerNumberEdit !== null ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      autoFocus
+                      value={consumerNumberEdit}
+                      onChange={(e) => setConsumerNumberEdit(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveConsumerNumber(); if (e.key === "Escape") setConsumerNumberEdit(null); }}
+                      maxLength={50}
+                      placeholder="e.g. 123456789"
+                      className="font-mono text-sm bg-foreground/5 border border-border rounded px-2 py-0.5 text-foreground w-36 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    />
+                    <button onClick={saveConsumerNumber} disabled={consumerNumberSaving} aria-label="Save" className="text-primary hover:opacity-70 disabled:opacity-40 cursor-pointer">
+                      <Check size={14} />
+                    </button>
+                    <button onClick={() => setConsumerNumberEdit(null)} aria-label="Cancel" className="text-muted-foreground hover:opacity-70 cursor-pointer">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConsumerNumberEdit(consumerNumberOverride ?? site?.eb_consumer_number ?? "")}
+                    className="flex items-center gap-1.5 group cursor-pointer"
+                  >
+                    <span className="font-mono text-sm text-foreground">
+                      {consumerNumberOverride ?? site?.eb_consumer_number || <span className="text-muted-foreground italic">Not set</span>}
+                    </span>
+                    <Pencil size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                )}
+              </div>
             </div>
           </GlassCard>
 

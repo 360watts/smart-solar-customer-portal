@@ -309,6 +309,9 @@ export const portalApi = {
   getSavings: (siteId: string, signal?: AbortSignal) =>
     api.get<PortalSummaryMeta<{ savings: SavingsData | null }>>(`/api/backend/sites/${siteId}/portal-savings/`, sig(signal)),
 
+  updateConsumerNumber: (siteId: string, value: string) =>
+    api.patch(`/api/backend/sites/${siteId}/eb-consumer-number/`, { eb_consumer_number: value }),
+
   getProfile: () =>
     api.get(`/api/backend/profile/`),
 
