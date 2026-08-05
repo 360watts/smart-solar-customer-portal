@@ -439,7 +439,7 @@ export default function ProfilePage() {
                     className="flex items-center gap-1.5 group cursor-pointer"
                   >
                     <span className="font-mono text-sm text-foreground">
-                      {consumerNumberOverride ?? site?.eb_consumer_number || <span className="text-muted-foreground italic">Not set</span>}
+                      {(consumerNumberOverride ?? site?.eb_consumer_number) || <span className="text-muted-foreground italic">Not set</span>}
                     </span>
                     <Pencil size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
