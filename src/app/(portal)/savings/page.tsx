@@ -106,9 +106,9 @@ function ConsumptionBar({ label, value, total, color, icon: Icon }: {
 function ConfidenceStamp({ dataQuality }: { dataQuality: DataQuality }) {
   const tier = getConfidenceTier(dataQuality);
   const cfg = {
-    reconciled:     { color: "var(--primary)", label: "Reconciled" },
-    estimated:      { color: COLORS.amber, label: "Estimated" },
-    "low-coverage": { color: "var(--destructive)", label: "Low coverage" },
+    reconciled:     { color: "var(--primary)", label: "Actual bill" },
+    estimated:      { color: COLORS.amber, label: "Estimate" },
+    "low-coverage": { color: "var(--destructive)", label: "Rough estimate" },
   }[tier];
   return (
     <div
@@ -210,8 +210,8 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
   let summaryLine: string | null = null;
   if (isReconciled) {
     summaryLine = networkCharge
-      ? "This is TANGEDCO's reconciled bill, including their networking charge."
-      : "This is TANGEDCO's reconciled bill for this cycle.";
+      ? "This is your actual TANGEDCO bill, including their networking charge."
+      : "This is your actual TANGEDCO bill for this cycle.";
   } else if (netMeteringBillIsZero && networkCharge && networkCharge.totalWithGst > 0) {
     summaryLine = `You exported more solar than you used — net-metering bill: ₹0. The ₹${Math.round(totalPayable).toLocaleString("en-IN")} is TANGEDCO's networking charge.`;
   } else if (networkCharge && networkCharge.totalWithGst > 0) {
@@ -245,7 +245,7 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
           </p>
           {variance != null && (
             <p className="text-sm text-muted-foreground mt-1">
-              {variance >= 0 ? "+" : ""}{variance.toFixed(1)}% off latest reconciled bill
+              {variance >= 0 ? "+" : ""}{variance.toFixed(1)}% vs your last actual bill
             </p>
           )}
           {isReconciled && electricityBill.dueDate && (
@@ -296,7 +296,7 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
               <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
               <LedgerRow
-                label={isReconciled ? "EB bill (reconciled, total)" : "EB bill (net units, est.)"}
+                label={isReconciled ? "EB bill (actual, total)" : "EB bill (net units, estimated)"}
                 value={`₹${electricityBill.amount.toLocaleString("en-IN")}`}
               />
               {networkCharge && (
