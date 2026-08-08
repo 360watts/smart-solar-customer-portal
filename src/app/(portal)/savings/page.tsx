@@ -198,6 +198,11 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
   // top would double-count it. Only layer our estimate on top of our own
   // slab-only estimate, not on top of a real fetched/entered bill.
   const isReconciled = savings.data_quality.estimate_status === "reconciled";
+  // A reconciled ₹0 comes from APIclub's "payment received" response, which
+  // returns no amount. So we know nothing is outstanding, but TANGEDCO's own
+  // networking charge is unknown — ours stays an estimate rather than being
+  // "included above" the way a real fetched total would be.
+  const billSettled = isReconciled && electricityBill.amount <= 0.01;
   const totalPayable = electricityBill.amount + (isReconciled ? 0 : networkCharge?.totalWithGst ?? 0);
   const variance = electricityBill.estimateAmount != null && electricityBill.actualAmount != null
     ? variancePercent(electricityBill.estimateAmount, electricityBill.actualAmount)
@@ -208,7 +213,11 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
   // in words rather than left for the reader to subtract themselves.
   const netMeteringBillIsZero = electricityBill.amount <= 0.01;
   let summaryLine: string | null = null;
-  if (isReconciled) {
+  if (billSettled) {
+    summaryLine = networkCharge
+      ? "TANGEDCO has nothing outstanding for this cycle. The networking charge below is our estimate — their bill doesn't break it out for us."
+      : "TANGEDCO has nothing outstanding for this cycle.";
+  } else if (isReconciled) {
     summaryLine = networkCharge
       ? "This is your actual TANGEDCO bill, including their networking charge."
       : "This is your actual TANGEDCO bill for this cycle.";
@@ -296,13 +305,22 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
               <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
               <LedgerRow
-                label={isReconciled ? "EB bill (actual, total)" : "EB bill (net units, estimated)"}
+                label={
+                  billSettled ? "EB bill (actual, settled)"
+                  : isReconciled ? "EB bill (actual, total)"
+                  : "EB bill (net units, estimated)"
+                }
                 value={`₹${electricityBill.amount.toLocaleString("en-IN")}`}
               />
               {networkCharge && (
                 <>
                   <LedgerRow
-                    label={`Networking charge${networkCharge.isEstimated ? " (projected)" : ""}${isReconciled ? " (included above)" : ""}`}
+                    label={`Networking charge${
+                      billSettled ? " (estimated)"
+                      : isReconciled ? " (included above)"
+                      : networkCharge.isEstimated ? " (projected)"
+                      : ""
+                    }`}
                     value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
                     muted
                     indent
