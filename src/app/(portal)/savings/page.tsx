@@ -315,7 +315,7 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               {networkCharge && (
                 <>
                   <LedgerRow
-                    label={`Networking charge${
+                    label={`Networking charge (excl. GST)${
                       billSettled ? " (estimated)"
                       : isReconciled ? " (included above)"
                       : networkCharge.isEstimated ? " (projected)"
@@ -328,7 +328,11 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                       <InfoToggle note="TANGEDCO's fee for using their distribution network to wheel your exported solar power onto the grid — separate from your net-metering bill above. Applies to every solar customer, every cycle." />
                     }
                   />
-                  <LedgerRow label="GST @ 18%" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
+                  {/* TANGEDCO's own bill shows CGST/SGST as zero on this charge, so the
+                      row only appears if a plan actually configures a GST percentage. */}
+                  {networkCharge.gstAmount > 0 && (
+                    <LedgerRow label="GST" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
+                  )}
                 </>
               )}
             </div>
