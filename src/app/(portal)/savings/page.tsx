@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
-import { portalApi, SavingsData, DataQuality } from "@/lib/api";
+import { portalApi, SavingsData, DataQuality, MeasurementSource } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
@@ -131,10 +131,18 @@ function ConfidenceStamp({ dataQuality }: { dataQuality: DataQuality }) {
 }
 
 function DataQualityDisclosure({ dataQuality }: { dataQuality: DataQuality }) {
+  // coverage_pct describes the inverter alone. Presenting it bare reads as
+  // "100% of everything" while other meters sat at 57% — so when any source
+  // trails, say so here and let the breakdown carry the per-instrument detail.
+  const partial = (dataQuality.sources ?? []).filter(
+    (s) => s.days_in_period > 0 && s.days < s.days_in_period
+  ).length;
   return (
     <div className="flex items-center gap-1 text-sm text-muted-foreground">
       <Info size={12} />
-      Data quality: {dataQuality.coverage_pct}% coverage ({dataQuality.days_with_data} of {dataQuality.days_in_period} days) · {formatDataSource(dataQuality.source)}
+      {formatDataSource(dataQuality.source)}: {dataQuality.coverage_pct}% coverage
+      ({dataQuality.days_with_data} of {dataQuality.days_in_period} days)
+      {partial > 0 && ` · ${partial} other meter${partial > 1 ? "s" : ""} partial — see breakdown`}
     </div>
   );
 }
@@ -172,6 +180,60 @@ function LedgerRow({ label, value, unit, tone = "default", indent = false, muted
 
 function LedgerDivider() {
   return <div className="my-1" style={{ borderTop: "1px dashed var(--border)" }} />;
+}
+
+// ── Instrument provenance ─────────────────────────────────────────────────────
+// The figures above are not one measurement — they come from separate meters
+// installed at different times, each blind to something. A single blended
+// "coverage %" hides that. Each instrument states what it reads, what it
+// misses, and how much of this cycle it actually covered.
+function SourceCoverage({ sources }: { sources: MeasurementSource[] }) {
+  return (
+    <div className="mt-4">
+      <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+        Where these numbers come from
+      </p>
+      <div className="flex flex-col gap-3">
+        {sources.map((s) => {
+          const pct = s.days_in_period > 0
+            ? Math.round((s.days / s.days_in_period) * 100)
+            : 0;
+          // Full coverage reads as measured; partial is still useful but must
+          // not look authoritative; nothing at all is stated plainly, not hidden.
+          const tone =
+            pct >= 95 ? "var(--primary)" :
+            pct > 0   ? COLORS.amber :
+                        "var(--muted-foreground)";
+          return (
+            <div key={s.key}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-sm">{s.label}</span>
+                <span
+                  className="text-xs shrink-0 tabular-nums"
+                  style={{ fontFamily: "var(--font-jetbrains-mono)", color: tone }}
+                >
+                  {s.days === 0 ? "no data" : `${s.days}/${s.days_in_period} days · ${pct}%`}
+                </span>
+              </div>
+              {/* Coverage strip — fraction of the cycle this instrument reported. */}
+              <div
+                className="mt-1 h-[3px] w-full overflow-hidden"
+                style={{ background: "var(--border)", borderRadius: "2px" }}
+                role="img"
+                aria-label={`${s.label}: ${pct}% of the billing cycle`}
+              >
+                <div style={{ width: `${pct}%`, height: "100%", background: tone }} />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {s.measures}
+                {s.blind_to ? <> · <span style={{ color: COLORS.amber }}>Doesn&apos;t see: {s.blind_to}</span></> : null}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Native `title` tooltip: hovers by default and — unlike an absolutely
@@ -335,6 +397,13 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                   )}
                 </>
               )}
+
+              {savings.data_quality.sources?.length ? (
+                <>
+                  <LedgerDivider />
+                  <SourceCoverage sources={savings.data_quality.sources} />
+                </>
+              ) : null}
             </div>
           </motion.div>
         )}

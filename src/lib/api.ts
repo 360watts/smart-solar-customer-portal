@@ -9,12 +9,24 @@ const api = axios.create({
 
 export default api;
 
+export interface MeasurementSource {
+  key: "inverter" | "grid_meter" | "ev_charger";
+  label: string;
+  measures: string;
+  /** What this instrument cannot see, when that matters. */
+  blind_to: string | null;
+  days: number;
+  days_in_period: number;
+}
+
 export interface DataQuality {
   coverage_pct: number;
   days_with_data: number;
   days_in_period: number;
   source: "inverter" | "energy_meter";
   estimate_status: "estimated" | "reconciled";
+  /** Optional — older cached payloads predate per-instrument provenance. */
+  sources?: MeasurementSource[];
 }
 
 export interface SavingsData {
