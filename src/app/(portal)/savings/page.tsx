@@ -309,12 +309,14 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
           <div className="mt-6 pt-5 flex items-center gap-4" style={{ borderTop: "1px dashed var(--border)" }}>
             <PaybackRing pct={investment.paybackPercentage} />
             <div className="space-y-2.5 text-sm">
-              <div>
-                <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
-                  ₹{investment.savedAmount.toLocaleString("en-IN")}
-                </span>
-                <span className="text-muted-foreground"> of ₹{investment.upfrontAmount.toLocaleString("en-IN")} recovered</span>
-              </div>
+              {energyWallet && (
+                <div>
+                  <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
+                    {energyWallet.balanceKwh.toFixed(1)} kWh
+                  </span>
+                  <span className="text-muted-foreground"> banked in your energy wallet</span>
+                </div>
+              )}
               {investment.avgMonthlySavings != null && (
                 <div>
                   <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
@@ -365,11 +367,19 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               </div>
             </div>
 
-            <div className="mt-5 pt-4 flex items-center justify-between text-sm" style={{ borderTop: "1px dashed var(--border)" }}>
-              <span className="text-muted-foreground">Remaining to recover</span>
-              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600 }}>
-                ₹{investment.remainingInvestment.toLocaleString("en-IN")}
-              </span>
+            <div className="mt-5 pt-4 grid grid-cols-2 gap-4 text-sm" style={{ borderTop: "1px dashed var(--border)" }}>
+              <div>
+                <p className="text-muted-foreground">Saved so far</p>
+                <p style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600, color: "var(--primary)" }}>
+                  ₹{investment.savedAmount.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-muted-foreground">Remaining to recover</p>
+                <p style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600 }}>
+                  ₹{investment.remainingInvestment.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
           </div>
         </div>
