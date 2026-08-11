@@ -128,7 +128,7 @@ function SourceCoverage({ sources }: { sources: MeasurementSource[] }) {
               </div>
               {/* Coverage strip — fraction of the cycle this instrument reported. */}
               <div
-                className="mt-1 h-[3px] w-full overflow-hidden"
+                className="mt-1 h-0.75 w-full overflow-hidden"
                 style={{ background: "var(--border)", borderRadius: "2px" }}
                 role="img"
                 aria-label={`${s.label}: ${pct}% of the billing cycle`}
@@ -465,7 +465,7 @@ function StatusPill({ status }: { status: "due" | "paid" | "overdue" }) {
 function SavingsSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-8 w-48 rounded-lg bg-foreground/[0.05]" />
+      <div className="h-8 w-48 rounded-lg bg-foreground/5" />
       <div className="h-96 rounded-xl bg-foreground/[0.04]" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => <div key={i} className="h-40 rounded-xl bg-foreground/[0.04]" />)}
