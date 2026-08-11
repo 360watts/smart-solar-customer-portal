@@ -71,6 +71,11 @@ export interface SavingsData {
     gstAmount: number;
     totalWithGst: number;
   } | null;
+  energyWallet: {
+    balanceKwh: number;
+    projectedBalanceKwh: number;
+    creditAppliedThisCycleKwh: number;
+  };
 }
 
 export interface ServiceBooking {

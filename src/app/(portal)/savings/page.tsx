@@ -253,7 +253,7 @@ function InfoToggle({ note }: { note: string }) {
 
 // ── Passbook ledger (hero) ────────────────────────────────────────────────────
 function PassbookLedger({ savings }: { savings: SavingsData }) {
-  const { electricityBill, consumption, savings: sav, networkCharge } = savings;
+  const { electricityBill, consumption, savings: sav, networkCharge, energyWallet } = savings;
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   // Once reconciled, electricityBill.amount IS TANGEDCO's real due_amount —
   // it already includes their own networking charge + GST, so adding ours on
@@ -406,6 +406,31 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                       row only appears if a plan actually configures a GST percentage. */}
                   {networkCharge.gstAmount > 0 && (
                     <LedgerRow label="GST" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
+                  )}
+                </>
+              )}
+
+              {energyWallet && (
+                <>
+                  <LedgerDivider />
+
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy wallet</p>
+                  <LedgerRow
+                    label="Banked credit (carried in)"
+                    value={energyWallet.balanceKwh.toFixed(1)}
+                    unit="kWh"
+                    icon={Zap}
+                    trailing={<InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />}
+                  />
+                  {Math.round(energyWallet.projectedBalanceKwh * 10) !== Math.round(energyWallet.balanceKwh * 10) && (
+                    <LedgerRow
+                      label="Projected balance (if cycle closed today)"
+                      value={energyWallet.projectedBalanceKwh.toFixed(1)}
+                      unit="kWh"
+                      muted
+                      indent
+                      trailing={<InfoToggle note="Only becomes official once this cycle closes and the next one opens — not yet applied to your balance above." />}
+                    />
                   )}
                 </>
               )}
