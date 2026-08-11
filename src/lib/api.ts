@@ -60,6 +60,7 @@ export interface SavingsData {
     remainingInvestment: number;
     monthsToBreakEven: number;
     breakEvenDate: string;
+    avgMonthlySavings: number;
   };
   data_quality: DataQuality;
   networkCharge: {

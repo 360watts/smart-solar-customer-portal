@@ -316,8 +316,10 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                 <span className="text-muted-foreground"> of ₹{investment.upfrontAmount.toLocaleString("en-IN")} recovered</span>
               </div>
               <div>
-                <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{investment.breakEvenDate}</span>
-                <span className="text-muted-foreground"> · {investment.monthsToBreakEven.toLocaleString("en-IN")} months left</span>
+                <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+                  ₹{investment.avgMonthlySavings.toLocaleString("en-IN")}
+                </span>
+                <span className="text-muted-foreground"> average per month</span>
               </div>
             </div>
           </div>
