@@ -42,6 +42,7 @@ export interface SavingsData {
   };
   consumption: {
     totalUnitsWithoutSolar: number;
+    loadUnits: number;
     solarUnits: number;
     ebImportUnits: number;
     ebExportUnits: number;

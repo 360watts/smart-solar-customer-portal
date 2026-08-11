@@ -354,6 +354,18 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
             <div className="pt-4">
               <LedgerDivider />
               <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy this cycle</p>
+              <LedgerRow
+                label="Household load (measured)"
+                value={consumption.loadUnits != null ? consumption.loadUnits.toFixed(1) : "—"}
+                unit={consumption.loadUnits != null ? "kWh" : undefined}
+                muted
+                icon={Zap}
+                trailing={<InfoToggle note={
+                  consumption.loadUnits != null
+                    ? "Measured directly by the inverter. This is what your bill-without-solar estimate below is based on — not the meter readings below it, which aren't fully trustworthy yet."
+                    : "Not available yet for this cached figure — refresh to load it."
+                } />}
+              />
               <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" icon={Sun} />
               <LedgerRow label="Imported from grid" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" icon={ArrowDownToLine} />
               <LedgerRow label="Exported to grid" value={consumption.ebExportUnits.toFixed(1)} unit="kWh" tone="credit" icon={ArrowUpFromLine} />
@@ -476,6 +488,11 @@ export default function SavingsPage() {
         </motion.div>
       ) : (() => {
         const { electricityBill, consumption, investment } = savings;
+        // Solar/import/export/EV are separate meter readings, not addends of
+        // totalUnits anymore (that's the inverter's load figure now — see
+        // the savings-formula change). Bars below are relative to each other,
+        // not to the load total, so they need their own denominator.
+        const meterTotal = consumption.solarUnits + consumption.ebImportUnits + consumption.evUnits;
         return (
     <motion.div key="content" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="space-y-6">
       {/* Header */}
@@ -572,21 +589,24 @@ export default function SavingsPage() {
         transition={{ duration: 0.4, delay: 0.3 }}
       >
         <GlassCard>
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-1">
             <Zap size={16} className="text-muted-foreground" />
             <h2 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
               Energy breakdown
             </h2>
             <span className="text-sm text-muted-foreground ml-auto">
-              {totalUnits.toFixed(1)} kWh equivalent load
+              {totalUnits.toFixed(1)} kWh household load
             </span>
           </div>
+          <p className="text-xs text-muted-foreground mb-5">
+            Household load is measured directly by the inverter — it&apos;s what your &quot;bill without solar&quot; estimate is based on. The meters below are shown for reference and don&apos;t sum to it.
+          </p>
           <div className="space-y-5">
-            <ConsumptionBar label="Solar Generated" value={consumption.solarUnits} total={totalUnits} color="var(--primary)" icon={Sun} />
-            <ConsumptionBar label="Grid Import" value={consumption.ebImportUnits} total={totalUnits} color={COLORS.amber} icon={ArrowDownToLine} />
-            <ConsumptionBar label="Grid Export" value={consumption.ebExportUnits} total={totalUnits} color="#60a5fa" icon={ArrowUpFromLine} />
+            <ConsumptionBar label="Solar Generated" value={consumption.solarUnits} total={meterTotal} color="var(--primary)" icon={Sun} />
+            <ConsumptionBar label="Grid Import" value={consumption.ebImportUnits} total={meterTotal} color={COLORS.amber} icon={ArrowDownToLine} />
+            <ConsumptionBar label="Grid Export" value={consumption.ebExportUnits} total={meterTotal} color="#60a5fa" icon={ArrowUpFromLine} />
             {consumption.evUnits > 0 && (
-              <ConsumptionBar label="EV Charging" value={consumption.evUnits} total={totalUnits} color="#a78bfa" icon={PlugZap} />
+              <ConsumptionBar label="EV Charging" value={consumption.evUnits} total={meterTotal} color="#a78bfa" icon={PlugZap} />
             )}
           </div>
         </GlassCard>
