@@ -27,49 +27,6 @@ function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "" }: {
   return <motion.span>{display}</motion.span>;
 }
 
-// ── Payback ring ──────────────────────────────────────────────────────────────
-function PaybackRing({ pct }: { pct: number }) {
-  const size = 156;
-  const strokeWidth = 11;
-  const r = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * r;
-  const capped = Math.min(pct, 100);
-
-  const spring = useSpring(0, { stiffness: 40, damping: 20 });
-  const dashOffset = useTransform(spring, (v) => circumference - (v / 100) * circumference);
-
-  useEffect(() => { spring.set(capped); }, [spring, capped]);
-
-  return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} />
-        <motion.circle
-          cx={size / 2} cy={size / 2} r={r}
-          fill="none"
-          stroke="url(#ringGrad)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          style={{ strokeDashoffset: dashOffset }}
-        />
-        <defs>
-          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="var(--primary)" />
-            <stop offset="100%" stopColor="#6EE7B7" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-emerald-400" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-          <AnimatedNumber value={capped} decimals={1} suffix="%" />
-        </span>
-        <span className="text-xs text-muted-foreground mt-1 tracking-wider uppercase">recovered</span>
-      </div>
-    </div>
-  );
-}
-
 // ── Confidence stamp ──────────────────────────────────────────────────────────
 // Signature element: this bill carries a real government levy (TANGEDCO's
 // networking charge) on top of the net-metering math, so the reconciliation
@@ -304,29 +261,63 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
             <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{summaryLine}</p>
           )}
 
-          {/* Inside-cover stats: investment recovery folded into the stamp leaf
-              instead of floating as separate cards below the ledger. */}
-          <div className="mt-6 pt-5 flex items-center gap-4" style={{ borderTop: "1px dashed var(--border)" }}>
-            <PaybackRing pct={investment.paybackPercentage} />
-            <div className="space-y-2.5 text-sm">
-              {energyWallet && (
-                <div>
-                  <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
-                    {energyWallet.balanceKwh.toFixed(1)} kWh
-                  </span>
-                  <span className="text-muted-foreground"> banked in your energy wallet</span>
+          {/* Energy wallet — moved up from the ledger leaf: the stamp leaf is
+              where "what's mine, banked" belongs, next to the total payable
+              it offsets, not buried under the itemized breakdown. */}
+          {energyWallet && (() => {
+            const delta = energyWallet.projectedBalanceKwh - energyWallet.balanceKwh;
+            const willChange = Math.round(delta * 10) !== 0;
+            return (
+              <div className="mt-6 pt-5" style={{ borderTop: "1px dashed var(--border)" }}>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Energy wallet</p>
+                  <InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />
                 </div>
-              )}
-              {investment.avgMonthlySavings != null && (
-                <div>
-                  <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-                    ₹{investment.avgMonthlySavings.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-muted-foreground"> average per month</span>
+
+                {/* Deposit-stub styling: dashed left edge like a torn passbook
+                    counterfoil, credit-toned like every banked-kWh row in the ledger. */}
+                <div
+                  className="rounded-lg p-4 flex items-center gap-4"
+                  style={{
+                    borderLeft: "3px dashed color-mix(in srgb, var(--primary) 45%, transparent)",
+                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                  }}
+                >
+                  <Zap size={18} style={{ color: "var(--primary)" }} className="shrink-0" />
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div>
+                      <p
+                        className="text-2xl font-bold leading-none"
+                        style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}
+                      >
+                        {energyWallet.balanceKwh.toFixed(1)}
+                        <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">carried into this cycle</p>
+                    </div>
+
+                    {willChange && (
+                      <>
+                        <span className="text-muted-foreground" aria-hidden>→</span>
+                        <div>
+                          <p
+                            className="text-2xl font-bold leading-none"
+                            style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--foreground)" }}
+                          >
+                            {energyWallet.projectedBalanceKwh.toFixed(1)}
+                            <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                          </p>
+                          <p className="text-xs mt-1" style={{ color: delta > 0 ? "var(--primary)" : "var(--destructive)" }}>
+                            {delta > 0 ? "+" : ""}{delta.toFixed(1)} projected — not yet official
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Break-even card — fills the leaf's remaining height so the left
               page isn't left visibly shorter than the ledger opposite it. */}
@@ -455,64 +446,6 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               )}
             </>
           )}
-
-          {energyWallet && (() => {
-            const delta = energyWallet.projectedBalanceKwh - energyWallet.balanceKwh;
-            const willChange = Math.round(delta * 10) !== 0;
-            return (
-              <>
-                <LedgerDivider />
-                <div className="mt-3">
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Energy wallet</p>
-                    <InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />
-                  </div>
-
-                  {/* Deposit-stub styling: dashed left edge like a torn passbook
-                      counterfoil, credit-toned like every banked-kWh row above. */}
-                  <div
-                    className="rounded-lg p-4 flex items-center gap-4"
-                    style={{
-                      borderLeft: "3px dashed color-mix(in srgb, var(--primary) 45%, transparent)",
-                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                    }}
-                  >
-                    <Zap size={18} style={{ color: "var(--primary)" }} className="shrink-0" />
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div>
-                        <p
-                          className="text-2xl font-bold leading-none"
-                          style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}
-                        >
-                          {energyWallet.balanceKwh.toFixed(1)}
-                          <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">carried into this cycle</p>
-                      </div>
-
-                      {willChange && (
-                        <>
-                          <span className="text-muted-foreground" aria-hidden>→</span>
-                          <div>
-                            <p
-                              className="text-2xl font-bold leading-none"
-                              style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--foreground)" }}
-                            >
-                              {energyWallet.projectedBalanceKwh.toFixed(1)}
-                              <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
-                            </p>
-                            <p className="text-xs mt-1" style={{ color: delta > 0 ? "var(--primary)" : "var(--destructive)" }}>
-                              {delta > 0 ? "+" : ""}{delta.toFixed(1)} projected — not yet official
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
 
           {savings.data_quality.sources?.length ? (
             <>
