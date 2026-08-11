@@ -456,30 +456,63 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
             </>
           )}
 
-          {energyWallet && (
-            <>
-              <LedgerDivider />
+          {energyWallet && (() => {
+            const delta = energyWallet.projectedBalanceKwh - energyWallet.balanceKwh;
+            const willChange = Math.round(delta * 10) !== 0;
+            return (
+              <>
+                <LedgerDivider />
+                <div className="mt-3">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Energy wallet</p>
+                    <InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />
+                  </div>
 
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy wallet</p>
-              <LedgerRow
-                label="Banked credit (carried in)"
-                value={energyWallet.balanceKwh.toFixed(1)}
-                unit="kWh"
-                icon={Zap}
-                trailing={<InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />}
-              />
-              {Math.round(energyWallet.projectedBalanceKwh * 10) !== Math.round(energyWallet.balanceKwh * 10) && (
-                <LedgerRow
-                  label="Projected balance (if cycle closed today)"
-                  value={energyWallet.projectedBalanceKwh.toFixed(1)}
-                  unit="kWh"
-                  muted
-                  indent
-                  trailing={<InfoToggle note="Only becomes official once this cycle closes and the next one opens — not yet applied to your balance above." />}
-                />
-              )}
-            </>
-          )}
+                  {/* Deposit-stub styling: dashed left edge like a torn passbook
+                      counterfoil, credit-toned like every banked-kWh row above. */}
+                  <div
+                    className="rounded-lg p-4 flex items-center gap-4"
+                    style={{
+                      borderLeft: "3px dashed color-mix(in srgb, var(--primary) 45%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    }}
+                  >
+                    <Zap size={18} style={{ color: "var(--primary)" }} className="shrink-0" />
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div>
+                        <p
+                          className="text-2xl font-bold leading-none"
+                          style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}
+                        >
+                          {energyWallet.balanceKwh.toFixed(1)}
+                          <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">carried into this cycle</p>
+                      </div>
+
+                      {willChange && (
+                        <>
+                          <span className="text-muted-foreground" aria-hidden>→</span>
+                          <div>
+                            <p
+                              className="text-2xl font-bold leading-none"
+                              style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--foreground)" }}
+                            >
+                              {energyWallet.projectedBalanceKwh.toFixed(1)}
+                              <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: delta > 0 ? "var(--primary)" : "var(--destructive)" }}>
+                              {delta > 0 ? "+" : ""}{delta.toFixed(1)} projected — not yet official
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {savings.data_quality.sources?.length ? (
             <>
