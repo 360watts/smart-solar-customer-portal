@@ -254,7 +254,11 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               <div className="mt-6 pt-5" style={{ borderTop: "1px dashed var(--border)" }}>
                 <div className="flex items-center gap-1.5 mb-3">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">Energy wallet</p>
-                  <InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />
+                  <InfoToggle note={
+                    willChange
+                      ? "Surplus exported units banked from past cycles under 1:1 net metering, applied against future grid import before you're billed for it. The projected figure only posts once your NEXT cycle also closes — TANGEDCO bills two months at a time in arrears, so this passbook shows one cycle behind the calendar until then."
+                      : "Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it."
+                  } />
                 </div>
 
                 {/* Deposit-stub styling: dashed left edge like a torn passbook
@@ -291,7 +295,7 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                             <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
                           </p>
                           <p className="text-xs mt-1" style={{ color: delta > 0 ? "var(--primary)" : "var(--destructive)" }}>
-                            {delta > 0 ? "+" : ""}{delta.toFixed(1)} projected — not yet official
+                            {delta > 0 ? "+" : ""}{delta.toFixed(1)} projected — posts after next cycle closes
                           </p>
                         </div>
                       </>
