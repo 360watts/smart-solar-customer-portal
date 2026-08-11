@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSiteQuery } from "@/lib/hooks/useSiteQuery";
 import { TTL } from "@/lib/portalCache";
 import { COLORS } from "@/lib/tokens";
-import { getConfidenceTier, formatDataSource, variancePercent } from "@/lib/billConfidence";
+import { getConfidenceTier, variancePercent } from "@/lib/billConfidence";
 
 // ── Animated number counter ───────────────────────────────────────────────────
 function AnimatedNumber({ value, decimals = 0, prefix = "", suffix = "" }: {
@@ -54,23 +54,6 @@ function ConfidenceStamp({ dataQuality }: { dataQuality: DataQuality }) {
       <span className="text-xs font-bold uppercase" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
         {cfg.label}
       </span>
-    </div>
-  );
-}
-
-function DataQualityDisclosure({ dataQuality }: { dataQuality: DataQuality }) {
-  // coverage_pct describes the inverter alone. Presenting it bare reads as
-  // "100% of everything" while other meters sat at 57% — so when any source
-  // trails, say so here and let the breakdown carry the per-instrument detail.
-  const partial = (dataQuality.sources ?? []).filter(
-    (s) => s.days_in_period > 0 && s.days < s.days_in_period
-  ).length;
-  return (
-    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-      <Info size={12} />
-      {formatDataSource(dataQuality.source)}: {dataQuality.coverage_pct}% coverage
-      ({dataQuality.days_with_data} of {dataQuality.days_in_period} days)
-      {partial > 0 && ` · ${partial} other meter${partial > 1 ? "s" : ""} partial — see breakdown`}
     </div>
   );
 }
@@ -454,10 +437,6 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
             </>
           ) : null}
         </div>
-      </div>
-
-      <div className="px-6 pb-6 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-        <DataQualityDisclosure dataQuality={savings.data_quality} />
       </div>
     </GlassCard>
   );
