@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import {
-  IndianRupee, Zap, Calendar, ChevronDown, Info,
+  Zap, Info,
   Sun, PlugZap, ArrowDownToLine, ArrowUpFromLine,
   type LucideIcon,
 } from "lucide-react";
@@ -65,35 +65,6 @@ function PaybackRing({ pct }: { pct: number }) {
           <AnimatedNumber value={capped} decimals={1} suffix="%" />
         </span>
         <span className="text-xs text-muted-foreground mt-1 tracking-wider uppercase">recovered</span>
-      </div>
-    </div>
-  );
-}
-
-// ── Consumption bar ───────────────────────────────────────────────────────────
-function ConsumptionBar({ label, value, total, color, icon: Icon }: {
-  label: string; value: number; total: number; color: string; icon: LucideIcon;
-}) {
-  const pct = total > 0 ? (value / total) * 100 : 0;
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-base">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Icon size={14} style={{ color }} />
-          <span>{label}</span>
-        </div>
-        <span className="font-medium text-foreground" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-          {value.toFixed(1)} kWh
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.3 }}
-        />
       </div>
     </div>
   );
@@ -253,8 +224,7 @@ function InfoToggle({ note }: { note: string }) {
 
 // ── Passbook ledger (hero) ────────────────────────────────────────────────────
 function PassbookLedger({ savings }: { savings: SavingsData }) {
-  const { electricityBill, consumption, savings: sav, networkCharge, energyWallet } = savings;
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const { electricityBill, consumption, savings: sav, networkCharge, energyWallet, investment } = savings;
   // Once reconciled, electricityBill.amount IS TANGEDCO's real due_amount —
   // it already includes their own networking charge + GST, so adding ours on
   // top would double-count it. Only layer our estimate on top of our own
@@ -290,10 +260,10 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
   }
 
   return (
-    <GlassCard glow="green">
-      {/* Perforated header strip, ticket-stub style */}
+    <GlassCard glow="green" className="p-0 overflow-hidden">
+      {/* Perforated header strip, ticket-stub style — spans the full spread */}
       <div
-        className="flex items-center justify-between pb-4 mb-4"
+        className="flex items-center justify-between px-6 py-4"
         style={{ borderBottom: "1px dashed var(--border)" }}
       >
         <div>
@@ -307,9 +277,10 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
         </span>
       </div>
 
-      {/* Total + stamp — always visible summary */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
+      {/* Open-book spread: left leaf (the stamp) · stitched spine · right leaf (the ledger, always open) */}
+      <div className="grid lg:grid-cols-[1fr_auto_1.35fr]">
+        {/* ── Left leaf ─────────────────────────────────────────────────── */}
+        <div className="p-6">
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Total payable</p>
           <p className="text-4xl font-bold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
             ₹<AnimatedNumber value={totalPayable} decimals={0} />
@@ -324,129 +295,141 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
               Due {new Date(electricityBill.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
             </p>
           )}
+
+          <div className="mt-3">
+            <ConfidenceStamp dataQuality={savings.data_quality} />
+          </div>
+
+          {summaryLine && (
+            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{summaryLine}</p>
+          )}
+
+          {/* Inside-cover stats: investment recovery folded into the stamp leaf
+              instead of floating as separate cards below the ledger. */}
+          <div className="mt-6 pt-5 flex items-center gap-4" style={{ borderTop: "1px dashed var(--border)" }}>
+            <PaybackRing pct={investment.paybackPercentage} />
+            <div className="space-y-2.5 text-sm">
+              <div>
+                <span className="font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
+                  ₹{investment.savedAmount.toLocaleString("en-IN")}
+                </span>
+                <span className="text-muted-foreground"> of ₹{investment.upfrontAmount.toLocaleString("en-IN")} recovered</span>
+              </div>
+              <div>
+                <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{investment.breakEvenDate}</span>
+                <span className="text-muted-foreground"> · {investment.monthsToBreakEven.toLocaleString("en-IN")} months left</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <ConfidenceStamp dataQuality={savings.data_quality} />
+
+        {/* ── Stitched spine — the book's gutter ───────────────────────────── */}
+        <div className="hidden lg:block relative" style={{ borderLeft: "1.5px dashed var(--border)" }}>
+          <div
+            aria-hidden
+            className="absolute inset-y-0"
+            style={{
+              left: "-24px", right: "-24px",
+              background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--background) 45%, transparent) 50%, transparent)",
+              pointerEvents: "none",
+            }}
+          />
+        </div>
+
+        {/* ── Right leaf: the ledger — always open, this is the trust surface ── */}
+        <div className="p-6 border-t lg:border-t-0" style={{ borderColor: "var(--border)", borderStyle: "dashed" }}>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Energy this cycle</p>
+          <LedgerRow
+            label="Household load (measured)"
+            value={consumption.loadUnits != null ? consumption.loadUnits.toFixed(1) : "—"}
+            unit={consumption.loadUnits != null ? "kWh" : undefined}
+            muted
+            icon={Zap}
+            trailing={<InfoToggle note={
+              consumption.loadUnits != null
+                ? "Measured directly by the inverter. This is what your bill-without-solar estimate below is based on — not the meter readings below it, which aren't fully trustworthy yet."
+                : "Not available yet for this cached figure — refresh to load it."
+            } />}
+          />
+          <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" icon={Sun} />
+          <LedgerRow label="Imported from grid" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" icon={ArrowDownToLine} />
+          <LedgerRow label="Exported to grid" value={consumption.ebExportUnits.toFixed(1)} unit="kWh" tone="credit" icon={ArrowUpFromLine} />
+          {consumption.evUnits > 0 && (
+            <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" icon={PlugZap} />
+          )}
+
+          <LedgerDivider />
+
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Bill breakup</p>
+          <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
+          <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
+          <LedgerRow
+            label={
+              billSettled ? "EB bill (actual, settled)"
+              : isReconciled ? "EB bill (actual, total)"
+              : "EB bill (net units, estimated)"
+            }
+            value={`₹${electricityBill.amount.toLocaleString("en-IN")}`}
+          />
+          {networkCharge && (
+            <>
+              <LedgerRow
+                label={`Networking charge (excl. GST)${
+                  billSettled ? " (estimated)"
+                  : isReconciled ? " (included above)"
+                  : networkCharge.isEstimated ? " (projected)"
+                  : ""
+                }`}
+                value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
+                muted
+                indent
+                trailing={
+                  <InfoToggle note="TANGEDCO's fee for using their distribution network to wheel your exported solar power onto the grid — separate from your net-metering bill above. Applies to every solar customer, every cycle." />
+                }
+              />
+              {/* TANGEDCO's own bill shows CGST/SGST as zero on this charge, so the
+                  row only appears if a plan actually configures a GST percentage. */}
+              {networkCharge.gstAmount > 0 && (
+                <LedgerRow label="GST" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
+              )}
+            </>
+          )}
+
+          {energyWallet && (
+            <>
+              <LedgerDivider />
+
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy wallet</p>
+              <LedgerRow
+                label="Banked credit (carried in)"
+                value={energyWallet.balanceKwh.toFixed(1)}
+                unit="kWh"
+                icon={Zap}
+                trailing={<InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />}
+              />
+              {Math.round(energyWallet.projectedBalanceKwh * 10) !== Math.round(energyWallet.balanceKwh * 10) && (
+                <LedgerRow
+                  label="Projected balance (if cycle closed today)"
+                  value={energyWallet.projectedBalanceKwh.toFixed(1)}
+                  unit="kWh"
+                  muted
+                  indent
+                  trailing={<InfoToggle note="Only becomes official once this cycle closes and the next one opens — not yet applied to your balance above." />}
+                />
+              )}
+            </>
+          )}
+
+          {savings.data_quality.sources?.length ? (
+            <>
+              <LedgerDivider />
+              <SourceCoverage sources={savings.data_quality.sources} />
+            </>
+          ) : null}
+        </div>
       </div>
 
-      {summaryLine && (
-        <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{summaryLine}</p>
-      )}
-
-      {/* Line-item breakdown is collapsed by default — tap to reveal */}
-      <button
-        type="button"
-        onClick={() => setBreakdownOpen((o) => !o)}
-        className="flex items-center gap-1 text-sm font-medium mt-4 text-emerald-400 hover:opacity-80 transition-opacity"
-      >
-        {breakdownOpen ? "Hide breakdown" : "View breakdown"}
-        <ChevronDown size={14} style={{ transform: breakdownOpen ? "rotate(180deg)" : undefined, transition: "transform 0.2s" }} />
-      </button>
-
-      <AnimatePresence initial={false}>
-        {breakdownOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="pt-4">
-              <LedgerDivider />
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy this cycle</p>
-              <LedgerRow
-                label="Household load (measured)"
-                value={consumption.loadUnits != null ? consumption.loadUnits.toFixed(1) : "—"}
-                unit={consumption.loadUnits != null ? "kWh" : undefined}
-                muted
-                icon={Zap}
-                trailing={<InfoToggle note={
-                  consumption.loadUnits != null
-                    ? "Measured directly by the inverter. This is what your bill-without-solar estimate below is based on — not the meter readings below it, which aren't fully trustworthy yet."
-                    : "Not available yet for this cached figure — refresh to load it."
-                } />}
-              />
-              <LedgerRow label="Solar generated" value={consumption.solarUnits.toFixed(1)} unit="kWh" tone="credit" icon={Sun} />
-              <LedgerRow label="Imported from grid" value={consumption.ebImportUnits.toFixed(1)} unit="kWh" tone="debit" icon={ArrowDownToLine} />
-              <LedgerRow label="Exported to grid" value={consumption.ebExportUnits.toFixed(1)} unit="kWh" tone="credit" icon={ArrowUpFromLine} />
-              {consumption.evUnits > 0 && (
-                <LedgerRow label="EV charging" value={consumption.evUnits.toFixed(1)} unit="kWh" tone="debit" icon={PlugZap} />
-              )}
-
-              <LedgerDivider />
-
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Bill breakup</p>
-              <LedgerRow label="Bill without solar" value={`₹${sav.billWithoutSolar.toLocaleString("en-IN")}`} muted />
-              <LedgerRow label="Net-metering savings" value={`−₹${sav.savingsAmount.toLocaleString("en-IN")}`} tone="credit" muted />
-              <LedgerRow
-                label={
-                  billSettled ? "EB bill (actual, settled)"
-                  : isReconciled ? "EB bill (actual, total)"
-                  : "EB bill (net units, estimated)"
-                }
-                value={`₹${electricityBill.amount.toLocaleString("en-IN")}`}
-              />
-              {networkCharge && (
-                <>
-                  <LedgerRow
-                    label={`Networking charge (excl. GST)${
-                      billSettled ? " (estimated)"
-                      : isReconciled ? " (included above)"
-                      : networkCharge.isEstimated ? " (projected)"
-                      : ""
-                    }`}
-                    value={`₹${networkCharge.chargeBeforeGst.toLocaleString("en-IN")}`}
-                    muted
-                    indent
-                    trailing={
-                      <InfoToggle note="TANGEDCO's fee for using their distribution network to wheel your exported solar power onto the grid — separate from your net-metering bill above. Applies to every solar customer, every cycle." />
-                    }
-                  />
-                  {/* TANGEDCO's own bill shows CGST/SGST as zero on this charge, so the
-                      row only appears if a plan actually configures a GST percentage. */}
-                  {networkCharge.gstAmount > 0 && (
-                    <LedgerRow label="GST" value={`₹${networkCharge.gstAmount.toLocaleString("en-IN")}`} muted indent />
-                  )}
-                </>
-              )}
-
-              {energyWallet && (
-                <>
-                  <LedgerDivider />
-
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground mt-3 mb-1">Energy wallet</p>
-                  <LedgerRow
-                    label="Banked credit (carried in)"
-                    value={energyWallet.balanceKwh.toFixed(1)}
-                    unit="kWh"
-                    icon={Zap}
-                    trailing={<InfoToggle note="Surplus exported units banked from past cycles under 1:1 net metering — applied against future grid import before you're billed for it." />}
-                  />
-                  {Math.round(energyWallet.projectedBalanceKwh * 10) !== Math.round(energyWallet.balanceKwh * 10) && (
-                    <LedgerRow
-                      label="Projected balance (if cycle closed today)"
-                      value={energyWallet.projectedBalanceKwh.toFixed(1)}
-                      unit="kWh"
-                      muted
-                      indent
-                      trailing={<InfoToggle note="Only becomes official once this cycle closes and the next one opens — not yet applied to your balance above." />}
-                    />
-                  )}
-                </>
-              )}
-
-              {savings.data_quality.sources?.length ? (
-                <>
-                  <LedgerDivider />
-                  <SourceCoverage sources={savings.data_quality.sources} />
-                </>
-              ) : null}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-4 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+      <div className="px-6 pb-6 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
         <DataQualityDisclosure dataQuality={savings.data_quality} />
       </div>
     </GlassCard>
@@ -512,12 +495,7 @@ export default function SavingsPage() {
           </GlassCard>
         </motion.div>
       ) : (() => {
-        const { electricityBill, consumption, investment } = savings;
-        // Solar/import/export/EV are separate meter readings, not addends of
-        // totalUnits anymore (that's the inverter's load figure now — see
-        // the savings-formula change). Bars below are relative to each other,
-        // not to the load total, so they need their own denominator.
-        const meterTotal = consumption.solarUnits + consumption.ebImportUnits + consumption.evUnits;
+        const { electricityBill } = savings;
         return (
     <motion.div key="content" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="space-y-6">
       {/* Header */}
@@ -538,103 +516,12 @@ export default function SavingsPage() {
         <StatusPill status={electricityBill.status} />
       </motion.div>
 
-      {/* Passbook ledger — the hero */}
+      {/* Passbook ledger — the hero, and the whole page now: total payable,
+          confidence stamp, and investment recovery on the left leaf; the
+          full itemized ledger always open on the right. Nothing material
+          left to say twice in a card below it. */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }}>
         <PassbookLedger savings={savings} />
-      </motion.div>
-
-      {/* Investment recovery — secondary panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.16 }}
-          className="glass rounded-xl p-6 flex items-center gap-5"
-          style={{
-            background: "linear-gradient(135deg, color-mix(in srgb, var(--card) 90%, transparent) 0%, color-mix(in srgb, var(--card) 95%, var(--background) 5%) 100%)",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-          }}
-        >
-          <PaybackRing pct={investment.paybackPercentage} />
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                <IndianRupee size={16} className="text-emerald-400" />
-              </div>
-              <p className="text-sm text-muted-foreground">Investment recovered</p>
-            </div>
-            <p className="text-base">
-              <span className="text-emerald-400 font-semibold" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-                ₹{investment.savedAmount.toLocaleString("en-IN")}
-              </span>
-              {" "}of{" "}
-              <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
-                ₹{investment.upfrontAmount.toLocaleString("en-IN")}
-              </span>
-            </p>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.22 }}
-          className="glass rounded-xl p-6 flex flex-col justify-between"
-          style={{
-            background: "linear-gradient(135deg, color-mix(in srgb, var(--card) 90%, transparent) 0%, color-mix(in srgb, var(--card) 95%, var(--background) 5%) 100%)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--secondary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--secondary) 18%, transparent)" }}>
-                <Calendar size={16} style={{ color: "var(--secondary)" }} />
-              </div>
-              <p className="text-sm text-muted-foreground">Break-even projection</p>
-            </div>
-            <p className="text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
-              {investment.breakEvenDate}
-            </p>
-          </div>
-          <div className="mt-4 pt-3 flex items-center justify-between text-sm" style={{ borderTop: "1px solid var(--border)" }}>
-            <span className="text-muted-foreground">
-              {investment.monthsToBreakEven.toLocaleString("en-IN")} months left
-            </span>
-            <span style={{ fontFamily: "var(--font-jetbrains-mono)", color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
-              ₹{investment.remainingInvestment.toLocaleString("en-IN")} to go
-            </span>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Energy breakdown */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-      >
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={16} className="text-muted-foreground" />
-            <h2 className="text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
-              Energy breakdown
-            </h2>
-            <span className="text-sm text-muted-foreground ml-auto">
-              {totalUnits.toFixed(1)} kWh household load
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-5">
-            Household load is measured directly by the inverter — it&apos;s what your &quot;bill without solar&quot; estimate is based on. The meters below are shown for reference and don&apos;t sum to it.
-          </p>
-          <div className="space-y-5">
-            <ConsumptionBar label="Solar Generated" value={consumption.solarUnits} total={meterTotal} color="var(--primary)" icon={Sun} />
-            <ConsumptionBar label="Grid Import" value={consumption.ebImportUnits} total={meterTotal} color={COLORS.amber} icon={ArrowDownToLine} />
-            <ConsumptionBar label="Grid Export" value={consumption.ebExportUnits} total={meterTotal} color="#60a5fa" icon={ArrowUpFromLine} />
-            {consumption.evUnits > 0 && (
-              <ConsumptionBar label="EV Charging" value={consumption.evUnits} total={meterTotal} color="#a78bfa" icon={PlugZap} />
-            )}
-          </div>
-        </GlassCard>
       </motion.div>
     </motion.div>
         );
