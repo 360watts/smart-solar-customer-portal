@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import {
-  Zap, Info,
+  Zap, Info, Calendar,
   Sun, PlugZap, ArrowDownToLine, ArrowUpFromLine,
   type LucideIcon,
 } from "lucide-react";
@@ -278,9 +278,9 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
       </div>
 
       {/* Open-book spread: left leaf (the stamp) · stitched spine · right leaf (the ledger, always open) */}
-      <div className="grid lg:grid-cols-[1fr_auto_1.35fr]">
+      <div className="grid lg:grid-cols-[1fr_auto_1.35fr] items-stretch">
         {/* ── Left leaf ─────────────────────────────────────────────────── */}
-        <div className="p-6">
+        <div className="p-6 flex flex-col">
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Total payable</p>
           <p className="text-4xl font-bold" style={{ fontFamily: "var(--font-jetbrains-mono)", color: "var(--primary)" }}>
             ₹<AnimatedNumber value={totalPayable} decimals={0} />
@@ -319,6 +319,53 @@ function PassbookLedger({ savings }: { savings: SavingsData }) {
                 <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{investment.breakEvenDate}</span>
                 <span className="text-muted-foreground"> · {investment.monthsToBreakEven.toLocaleString("en-IN")} months left</span>
               </div>
+            </div>
+          </div>
+
+          {/* Break-even card — fills the leaf's remaining height so the left
+              page isn't left visibly shorter than the ledger opposite it. */}
+          <div
+            className="mt-6 flex-1 flex flex-col justify-center rounded-lg p-5"
+            style={{
+              border: "1px dashed var(--border)",
+              background: "color-mix(in srgb, var(--secondary) 5%, transparent)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar size={15} style={{ color: "var(--secondary)" }} />
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Break-even projection</p>
+            </div>
+            <p className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--foreground)" }}>
+              {investment.breakEvenDate}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {investment.monthsToBreakEven.toLocaleString("en-IN")} months left on the runway
+            </p>
+
+            {/* Runway — a ruled progress line, not a generic bar, echoing the
+                dashed dividers used throughout the rest of the ledger. */}
+            <div className="mt-5">
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: "linear-gradient(90deg, var(--secondary), var(--primary))" }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(investment.paybackPercentage, 100)}%` }}
+                  transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.4 }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                <span>Installed</span>
+                <span style={{ fontFamily: "var(--font-jetbrains-mono)" }}>{investment.paybackPercentage.toFixed(1)}% recovered</span>
+                <span>Break-even</span>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 flex items-center justify-between text-sm" style={{ borderTop: "1px dashed var(--border)" }}>
+              <span className="text-muted-foreground">Remaining to recover</span>
+              <span style={{ fontFamily: "var(--font-jetbrains-mono)", fontWeight: 600 }}>
+                ₹{investment.remainingInvestment.toLocaleString("en-IN")}
+              </span>
             </div>
           </div>
         </div>
