@@ -466,11 +466,11 @@ function SavingsSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       <div className="h-8 w-48 rounded-lg bg-foreground/5" />
-      <div className="h-96 rounded-xl bg-foreground/[0.04]" />
+      <div className="h-96 rounded-xl bg-foreground/4" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[1, 2].map((i) => <div key={i} className="h-40 rounded-xl bg-foreground/[0.04]" />)}
+        {[1, 2].map((i) => <div key={i} className="h-40 rounded-xl bg-foreground/4" />)}
       </div>
-      <div className="h-64 rounded-xl bg-foreground/[0.04]" />
+      <div className="h-64 rounded-xl bg-foreground/4" />
     </div>
   );
 }
