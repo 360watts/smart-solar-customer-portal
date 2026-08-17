@@ -24,7 +24,12 @@ export default async function PortalLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <PortalSidebar />
-      <main className="flex-1 overflow-auto bg-background bg-atmosphere">
+      {/* min-w-0 is required on a flex-1 child: without it, a flex item won't
+          shrink below its content's intrinsic width, so any page whose content
+          is even slightly wider than the viewport pushes this whole layout
+          wider instead of scrolling within itself — a page-level horizontal
+          scrollbar rather than one contained inside a specific card. */}
+      <main className="flex-1 min-w-0 overflow-auto bg-background bg-atmosphere">
         <div className="relative z-10 p-6 pb-20 md:pb-6">{children}</div>
       </main>
       <MobileTabBar />

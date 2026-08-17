@@ -116,6 +116,13 @@
 
   html {
     font-size: 100%;
+    /* Baseline guard: no page should ever be able to scroll sideways. The
+       portal layout traps its own scroll inside <main overflow-auto>, but a
+       single wide descendant anywhere (a card, a chart, an unwrapped label)
+       is enough to blow past that and force html/body to scroll horizontally
+       instead — this makes that class of bug invisible-clip instead of a
+       viewport-edge scrollbar, on top of fixing overflow at its source. */
+    overflow-x: hidden;
   }
 
   body {
@@ -123,6 +130,7 @@
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
     /* 1.5 is the dense-UI baseline (Linear/Primer/GitHub territory) — enough
        to keep wrapped labels and paragraphs from feeling cramped without
        inflating every stat tile, table row, and nav item in the portal to

@@ -253,10 +253,19 @@ export default function HourlyGenerationChart({ points = [], nowIndex }: Props) 
         )}
       </AnimatePresence>
 
-      {/* Time labels */}
-      <div className="flex justify-between mt-3 text-xs text-muted-foreground font-mono">
+      {/* Time labels — one flex-1 slot per point, mirroring the bar row above
+          it, not justify-between. Without min-w-0 here, every "invisible"
+          (visibility:hidden, still takes up space) label between the shown
+          ones forces this row wider than its intrinsic min-content sum —
+          with dozens of points that overflows the card, and because the
+          chart root is overflow-visible it bleeds out as real scrollable
+          width filled with blank space instead of being clipped. */}
+      <div className="flex mt-3 text-xs text-muted-foreground font-mono">
         {points.map((pt, i) => (
-          <span key={i} className={i % 3 === 0 ? "text-muted-foreground" : "invisible"}>
+          <span
+            key={i}
+            className={`flex-1 min-w-0 text-center truncate ${i % 3 === 0 ? "text-muted-foreground" : "invisible"}`}
+          >
             {pt.hour}
           </span>
         ))}
