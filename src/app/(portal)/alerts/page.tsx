@@ -32,13 +32,17 @@ const INCIDENT_CATEGORY_LABELS: Record<IncidentItem["category"], string> = {
   grid: "Grid",
 };
 
-// Plain-language duration — customers shouldn't need to do minutes→hours math.
+// Plain-language duration — customers shouldn't need to do minutes→hours→days
+// math. Caps out at days: past 24h, minutes stop being meaningful precision.
 function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
   if (mins < 60) return `${mins} min`;
   const hours = Math.floor(mins / 60);
   const remMins = mins % 60;
-  return remMins === 0 ? `${hours}h` : `${hours}h ${remMins}m`;
+  if (hours < 24) return remMins === 0 ? `${hours}h` : `${hours}h ${remMins}m`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours === 0 ? `${days}d` : `${days}d ${remHours}h`;
 }
 
 // Absolute timestamp for the detail row — timeAgo() alone can't answer
