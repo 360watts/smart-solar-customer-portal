@@ -123,6 +123,21 @@ export interface InviteDetails {
   invite_email?: string;
 }
 
+export interface CustomerRecommendation {
+  id: number;
+  rec_type: string;
+  category: "usage_savings" | "billing_financial" | "system_health";
+  title: string;
+  body: string;
+  priority: number;
+  state: "active" | "dismissed" | "acted_on" | "expired";
+  context: Record<string, unknown>;
+  created_at: string;
+  dismissed_at: string | null;
+  acted_on_at: string | null;
+  expires_at: string | null;
+}
+
 export interface PortalSummaryMeta<TData> {
   version: 1;
   site_id: string;
@@ -420,4 +435,10 @@ export const portalApi = {
 
   acceptInvite: (token: string) =>
     api.post(`/api/backend/site-invites/${token}/accept/`),
+
+  getRecommendations: (siteId: string, signal?: AbortSignal) =>
+    api.get<CustomerRecommendation[]>(`/api/backend/sites/${siteId}/recommendations/`, sig(signal)),
+
+  updateRecommendation: (siteId: string, recId: number, state: "dismissed" | "acted_on") =>
+    api.patch<CustomerRecommendation>(`/api/backend/sites/${siteId}/recommendations/${recId}/`, { state }),
 };

@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { Sun, Home, Zap, ArrowRight, TrendingUp, AlertTriangle, Activity, RefreshCw, type LucideIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import AlertsSection from "@/components/ui/AlertsSection";
+import RecommendationsCard from "@/components/ui/RecommendationsCard";
 import CriticalAlertsBanner from "@/components/ui/CriticalAlertsBanner";
 import EnergyFlowDiagram from "@/components/ui/EnergyFlowDiagram";
 import HourlyGenerationChart, { type HourlyPoint } from "@/components/ui/HourlyGenerationChart";
@@ -977,6 +978,9 @@ export default function OverviewPage() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Recommendations */}
+      {user?.site_id && <RecommendationsCard siteId={user.site_id} />}
 
       {/* Quick nav */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
