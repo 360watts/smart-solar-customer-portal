@@ -30,10 +30,12 @@ const mockRec: CustomerRecommendation = {
 describe("RecommendationsCard", () => {
   afterEach(cleanup);
 
-  it("renders fetched recommendations", async () => {
+  it("renders collapsed by default, showing the count but not recommendation content", async () => {
     vi.mocked(portalApi.getRecommendations).mockResolvedValue({ data: [mockRec] } as never);
     render(<RecommendationsCard siteId="test_site" />);
-    await waitFor(() => expect(screen.getByText("Test rec")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Recommendations")).toBeInTheDocument());
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.queryByText("Test rec")).not.toBeInTheDocument();
   });
 
   it("renders nothing when there are no active recommendations", async () => {
@@ -42,17 +44,45 @@ describe("RecommendationsCard", () => {
     await waitFor(() => expect(container.firstChild).toBeNull());
   });
 
+  it("expands to show recommendation content when the header is clicked", async () => {
+    vi.mocked(portalApi.getRecommendations).mockResolvedValue({ data: [mockRec] } as never);
+    render(<RecommendationsCard siteId="test_site" />);
+    await waitFor(() => expect(screen.getByText("Recommendations")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /recommendations/i }));
+
+    await waitFor(() => expect(screen.getByText("Test rec")).toBeInTheDocument());
+  });
+
   it("dismisses a recommendation and removes it from the list", async () => {
     vi.mocked(portalApi.getRecommendations).mockResolvedValue({ data: [mockRec] } as never);
     vi.mocked(portalApi.updateRecommendation).mockResolvedValue({
       data: { ...mockRec, state: "dismissed" },
     } as never);
     render(<RecommendationsCard siteId="test_site" />);
+    await waitFor(() => expect(screen.getByText("Recommendations")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /recommendations/i }));
     await waitFor(() => expect(screen.getByText("Test rec")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /dismiss/i }));
 
     await waitFor(() => expect(screen.queryByText("Test rec")).not.toBeInTheDocument());
     expect(portalApi.updateRecommendation).toHaveBeenCalledWith("test_site", 1, "dismissed");
+  });
+
+  it("marks a recommendation helpful and removes it from the list", async () => {
+    vi.mocked(portalApi.getRecommendations).mockResolvedValue({ data: [mockRec] } as never);
+    vi.mocked(portalApi.updateRecommendation).mockResolvedValue({
+      data: { ...mockRec, state: "acted_on" },
+    } as never);
+    render(<RecommendationsCard siteId="test_site" />);
+    await waitFor(() => expect(screen.getByText("Recommendations")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /recommendations/i }));
+    await waitFor(() => expect(screen.getByText("Test rec")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /mark helpful/i }));
+
+    await waitFor(() => expect(screen.queryByText("Test rec")).not.toBeInTheDocument());
+    expect(portalApi.updateRecommendation).toHaveBeenCalledWith("test_site", 1, "acted_on");
   });
 });
