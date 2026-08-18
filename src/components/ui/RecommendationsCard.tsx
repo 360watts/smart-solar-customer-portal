@@ -1,21 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ChevronDown, Lightbulb, ThumbsUp, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Lightbulb } from "lucide-react";
 import { motion } from "framer-motion";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import GlassCard from "@/components/ui/GlassCard";
+import { StoryCard } from "@/components/ui/recommendations/StoryCard";
 import { portalApi, type CustomerRecommendation } from "@/lib/api";
-
-const CATEGORY_LABELS: Record<CustomerRecommendation["category"], string> = {
-  usage_savings: "Usage & Savings",
-  billing_financial: "Billing & Financial",
-  system_health: "System Health",
-};
 
 export function RecommendationsCard({ siteId }: { siteId: string }) {
   const [recs, setRecs] = useState<CustomerRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+  const [activeDot, setActiveDot] = useState(0);
+  const stripRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,16 +38,42 @@ export function RecommendationsCard({ siteId }: { siteId: string }) {
     }
   }
 
+  useGSAP(
+    () => {
+      const cards = stripRef.current?.querySelectorAll("[data-story-card]");
+      if (!cards || cards.length === 0) return;
+      const reduced =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      gsap.fromTo(
+        cards,
+        { autoAlpha: 0, y: 20, scale: 0.96 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: reduced ? 0 : 0.55,
+          stagger: reduced ? 0 : 0.08,
+          ease: "back.out(1.6)",
+        },
+      );
+    },
+    { dependencies: [recs.length], scope: stripRef },
+  );
+
+  function handleScroll() {
+    const strip = stripRef.current;
+    if (!strip || !strip.firstElementChild) return;
+    const cardWidth = (strip.firstElementChild as HTMLElement).offsetWidth + 12; // + gap-3
+    setActiveDot(Math.round(strip.scrollLeft / cardWidth));
+  }
+
   if (loading || recs.length === 0) return null;
 
   return (
     <GlassCard>
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="w-full flex items-center gap-2"
-      >
+      <div className="w-full flex items-center gap-2">
         <motion.div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: "color-mix(in srgb, var(--glow-amber) 12%, transparent)" }}
@@ -77,48 +101,35 @@ export function RecommendationsCard({ siteId }: { siteId: string }) {
         >
           {recs.length}
         </span>
-        <ChevronDown
-          size={16}
-          className="shrink-0 transition-transform duration-200"
-          style={{ color: "var(--muted-foreground)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-        />
-      </button>
+      </div>
 
-      {expanded && (
-        <ul className="flex flex-col gap-3 mt-4">
-          {recs.map((rec) => (
-            <li
+      <ul
+        ref={stripRef}
+        onScroll={handleScroll}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory mt-4 -mx-2 px-2 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{
+          scrollSnapType: "x mandatory",
+          maskImage: "linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)",
+          WebkitMaskImage: "linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)",
+        }}
+      >
+        {recs.map((rec) => (
+          <StoryCard key={rec.id} rec={rec} onFeedback={handleFeedback} />
+        ))}
+      </ul>
+
+      {recs.length > 1 && (
+        <div className="flex justify-center gap-1.5 mt-1">
+          {recs.map((rec, i) => (
+            <span
               key={rec.id}
-              className="p-3 rounded-lg bg-foreground/[0.03] border border-border flex items-start justify-between gap-3"
-            >
-              <div className="flex-1 min-w-0">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {CATEGORY_LABELS[rec.category] ?? rec.category}
-                </span>
-                <h3 className="text-base font-medium text-foreground mt-0.5 break-words">{rec.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 break-words">{rec.body}</p>
-              </div>
-              <div className="shrink-0 flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleFeedback(rec.id, "acted_on")}
-                  aria-label={`Mark helpful: ${rec.title}`}
-                  className="p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ThumbsUp size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFeedback(rec.id, "dismissed")}
-                  aria-label={`Dismiss: ${rec.title}`}
-                  className="p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </li>
+              className="w-1.5 h-1.5 rounded-full transition-colors"
+              style={{
+                background: i === activeDot ? "var(--glow-amber)" : "color-mix(in srgb, var(--muted-foreground) 30%, transparent)",
+              }}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </GlassCard>
   );
