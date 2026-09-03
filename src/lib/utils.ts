@@ -48,6 +48,15 @@ export function formatHourOfDay(hour: number): string {
   return `${String(h12).padStart(2, "0")}:00 ${period}`;
 }
 
+/** Shared copy for the 6 AM–6 AM "solar day" — the DISPLAY-ONLY window every
+ * live "today" energy figure uses (backend: `docs/energy-day-basis.md`).
+ * Weekly/monthly/history figures use plain calendar days and stay unlabelled. */
+export const SOLAR_DAY_CAPTION = '"Today" = 6 AM–6 AM solar day, updating live';
+export const SOLAR_DAY_HINT =
+  "Your live totals for the current solar day — 6 AM today to 6 AM tomorrow, " +
+  "updating in real time. Weekly and monthly figures use calendar days, so " +
+  "they won't line up exactly with today's figure.";
+
 /** True if `ts` falls within the site-local "solar day" window: 6:00 AM
  * today through 6:00 AM tomorrow. Used to trim Day-view charts (solar,
  * consumption, weather) to sunrise-anchored bounds instead of the

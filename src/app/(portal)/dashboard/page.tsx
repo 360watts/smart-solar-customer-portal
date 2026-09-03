@@ -916,7 +916,7 @@ export default function OverviewPage() {
                       { label: "This Month", value: `${monthGenKwh.toFixed(0)} kWh`, dot: "var(--muted)", glow: "transparent" },
                       { label: "CO₂ Avoided", value: `${co2AvoidedKg} kg`, dot: "#34d399", glow: "rgba(52,211,153,0.4)" },
                     ]}
-                    footer="Generation compared against a flat ~5 peak-sun-hour/day estimate for this system's capacity."
+                    footer={'"Today" is the live 6 AM–6 AM solar day; monthly figures use calendar days. Generation is compared against a flat ~5 peak-sun-hour/day estimate for this system\'s capacity.'}
                     loading={loading}
                     delay={1}
                   />

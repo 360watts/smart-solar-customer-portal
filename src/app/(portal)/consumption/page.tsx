@@ -1,6 +1,6 @@
 "use client";
 
-import { formatHourLabel, formatDayLabel, isInSolarDayWindow, SITE_TIMEZONE } from "@/lib/utils";
+import { formatHourLabel, formatDayLabel, isInSolarDayWindow, SITE_TIMEZONE, SOLAR_DAY_CAPTION, SOLAR_DAY_HINT } from "@/lib/utils";
 
 import React, { useState } from "react";
 import { Home, Sun, Zap, Wind, Car, Lightbulb } from "lucide-react";
@@ -142,18 +142,22 @@ export default function ConsumptionPage() {
       // Monthly: last 12 months so the backend has a valid range
       const twelveMonthsAgoISO = new Date(Date.now() - 365 * 86_400_000).toISOString().slice(0, 10);
 
-      const [telDayS, weekS, monthS, forecastS, summaryS] = await Promise.allSettled([
+      const [telDayS, weekS, monthS, forecastS, combinedS] = await Promise.allSettled([
         portalApi.getTelemetry(siteId, { days: 1 }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "daily", start: weekAgoISO, end: todayISO }, signal),
         portalApi.getEnergySummary(siteId, { granularity: "monthly", start: twelveMonthsAgoISO, end: todayISO }, signal),
         portalApi.getLoadForecastAccuracy(siteId, { days: 1 }, signal),
-        portalApi.getEnergySummary(siteId, { granularity: "daily", start: todayISO, end: todayISO, summary: "true" }, signal),
+        // "Total Today" KPIs are the live 6 AM–6 AM solar-day figure, same as the
+        // Dashboard and Solar pages — NOT the calendar-day `?summary=true` path,
+        // which is a near-zero post-midnight sliver between 00:00 and 06:00 IST.
+        // (Week/Month toggle views still use calendar rows — weekS/monthS above.)
+        portalApi.getEnergySummary(siteId, { combined: "true" }, signal),
       ]);
 
       signal.throwIfAborted();
 
-      const todayTotals = summaryS.status === "fulfilled"
-        ? (summaryS.value.data?.totals ?? summaryS.value.data ?? {})
+      const todayTotals: Record<string, unknown> = combinedS.status === "fulfilled"
+        ? ((combinedS.value.data as { summary?: { today?: Record<string, unknown> } })?.summary?.today ?? {})
         : {};
 
       // Telemetry: plain array with Watts fields, trimmed to the site-local
@@ -190,12 +194,12 @@ export default function ConsumptionPage() {
         })()
         : null;
 
-      // site_daily_energy lags by ~1 day; fall back to integrating 5-min telemetry
-      // when the summary entry for today is missing (each row ≈ 5 min = 1/12 h).
-      // Uses the unfiltered rows — the window-trimmed telRows exists only for the
-      // Day chart's x-axis and must not silently drop overnight load from totals.
-      const telGenKwh  = telRowsRaw.reduce((s, r) => s + ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000 / 12, 0);
-      const telLoadKwh = telRowsRaw.reduce((s, r) => s + (Number(r.load_power_w) || 0) / 1000 / 12, 0);
+      // Fallback for when the combined endpoint fails: integrate the 6 AM–6 AM
+      // solar-day telemetry rows (each ≈ 5 min = 1/12 h). Uses telRows (the same
+      // window-trimmed set as the Day chart) so the estimate stays on the 6 AM–6 AM
+      // basis — overnight (00:00–06:00) load belongs to the previous solar day.
+      const telGenKwh  = telRows.reduce((s, r) => s + ((Number(r.pv1_power_w) || 0) + (Number(r.pv2_power_w) || 0)) / 1000 / 12, 0);
+      const telLoadKwh = telRows.reduce((s, r) => s + (Number(r.load_power_w) || 0) / 1000 / 12, 0);
       const generationKwh = Number(todayTotals.pv_gen_kwh) || parseFloat(telGenKwh.toFixed(2));
       const gridExportKwh = Number(todayTotals.grid_export_kwh) || 0;
 
@@ -259,6 +263,9 @@ export default function ConsumptionPage() {
         <MetricCard title="Grid-Drawn"    value={data?.gridImportKwh ?? 0}     suffix=" kWh" icon={Zap}
           trend={{ direction: "neutral", value: `₹${((data?.gridImportKwh ?? 0) * 6.80).toFixed(0)} est. cost` }} delay={2} />
       </div>
+      <p className="-mt-4 text-xs text-muted-foreground cursor-help" title={SOLAR_DAY_HINT}>
+        {SOLAR_DAY_CAPTION}
+      </p>
 
       {/* Load Profile Chart */}
       <GlassCard glow="green">
