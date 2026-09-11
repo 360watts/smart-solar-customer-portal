@@ -7,6 +7,14 @@ if (!process.env.API_BASE_URL) {
   );
 }
 
+if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+  throw new Error(
+    "NEXT_PUBLIC_API_BASE_URL is required but not set (browser-side data client, " +
+    "src/lib/api.ts — must match API_BASE_URL). " +
+    "Add it to .env.local (local dev) or your deployment environment.",
+  );
+}
+
 if (!process.env.EMPLOYEE_APP_URL) {
   console.warn(
     "[360watts] EMPLOYEE_APP_URL is not set. " +
@@ -52,7 +60,9 @@ const SECURITY_HEADERS = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://d2nmne41sxmvw4.cloudfront.net",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      // Browser calls the Django API directly now (src/lib/api.ts,
+      // useAssistantStream.ts) — see docs/DIRECT_API_MIGRATION_2026-09.md.
+      `connect-src 'self' ${process.env.NEXT_PUBLIC_API_BASE_URL}`,
       // Contact section embeds a Google Maps iframe (ContactSection.tsx) —
       // output=embed redirects through maps.google.com to www.google.com/maps/embed.
       "frame-src https://www.google.com https://maps.google.com",
@@ -76,21 +86,16 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "d2nmne41sxmvw4.cloudfront.net" },
     ],
   },
-  // Forward Cache-Control headers from the Django backend through the BFF proxy
-  // to allow Cloudflare to cache read-only API responses at the edge.
+  // The forecast/energy-summary Cache-Control rules that used to live here
+  // (for Cloudflare to cache at the edge in front of the /api/backend/ proxy)
+  // moved to the Django views themselves — the browser calls api.360watts.com
+  // directly now, this app is no longer in that request path at all. See
+  // docs/DIRECT_API_MIGRATION_2026-09.md.
   async headers() {
     return [
       {
         source: "/:path*",
         headers: SECURITY_HEADERS,
-      },
-      {
-        source: "/api/backend/sites/:siteId/forecast/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=900, stale-while-revalidate=60" }],
-      },
-      {
-        source: "/api/backend/sites/:siteId/energy-summary/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=180, stale-while-revalidate=30" }],
       },
     ];
   },

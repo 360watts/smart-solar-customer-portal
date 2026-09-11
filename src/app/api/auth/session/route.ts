@@ -16,6 +16,7 @@ export async function GET() {
     let response = NextResponse.json({
       status: "authenticated" as const,
       session: result.session,
+      accessToken: result.accessToken,
     });
     response = applySessionCookies(response, result.tokens ?? {});
     // Only re-seed the session cache cookie on real backend round-trips
