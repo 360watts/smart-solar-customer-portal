@@ -1,11 +1,66 @@
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
+
+import { getApiToken, notifySessionExpired, setApiToken } from "@/lib/apiToken";
+import { loadSession } from "@/lib/auth";
+
+// Talks directly to the Django API in Mumbai (ap-south-1) — see
+// docs/DIRECT_API_MIGRATION_2026-09.md for why this replaced the old
+// same-origin /api/backend/* proxy: every read here carries real-time
+// generation data + customer PII, and that proxy ran as a Vercel serverless
+// function in the US by default, an MNRE data-residency gap. Auth (login/
+// refresh/logout) still goes through this app's own server — only data
+// reads/writes go direct. `withCredentials` stays true for parity with the
+// staff frontend's client even though this instance doesn't rely on cookies
+// (auth is via the Authorization header below).
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 
 const api = axios.create({
-  baseURL: "",
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
+
+api.interceptors.request.use((config) => {
+  const token = getApiToken();
+  if (token) {
+    config.headers.set("Authorization", `Bearer ${token}`);
+  }
+  return config;
+});
+
+// On a 401, the in-memory access token has expired (~55 min) or was never
+// set (e.g. a hard page reload raced AuthProvider's mount-time session
+// fetch). Refresh once via this app's own session route (which holds the
+// refresh token server-side) and retry the original request; if that still
+// fails, the session is genuinely gone. Exported (not inlined into the
+// interceptor registration) so it's unit-testable without axios internals —
+// see api.test.ts.
+export async function handle401(error: unknown, retry: (config: AxiosRequestConfig) => unknown) {
+  const config = axios.isAxiosError(error)
+    ? (error.config as (AxiosRequestConfig & { _retried?: boolean }) | undefined)
+    : undefined;
+  if (!axios.isAxiosError(error) || error.response?.status !== 401 || !config || config._retried) {
+    return Promise.reject(error);
+  }
+  config._retried = true;
+
+  try {
+    const result = await loadSession();
+    if (result.status !== "authenticated" || !result.accessToken) {
+      setApiToken(null);
+      notifySessionExpired();
+      return Promise.reject(error);
+    }
+    setApiToken(result.accessToken);
+    return retry(config);
+  } catch {
+    notifySessionExpired();
+    return Promise.reject(error);
+  }
+}
+
+api.interceptors.response.use((response) => response, (error) => handle401(error, (config) => api(config)));
 
 export default api;
 
@@ -271,25 +326,25 @@ function _mapIncidentDict(raw: RawIncidentDict): IncidentItem {
 
 export const portalApi = {
   getPortalOverview: (siteId: string, params?: { date?: string }, signal?: AbortSignal) =>
-    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/backend/sites/${siteId}/portal-overview/`, { params, ...sig(signal) }),
+    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/sites/${siteId}/portal-overview/`, { params, ...sig(signal) }),
 
   getPortalDevice: (siteId: string, signal?: AbortSignal) =>
-    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/backend/sites/${siteId}/portal-device/`, sig(signal)),
+    api.get<PortalSummaryMeta<Record<string, unknown>>>(`/api/sites/${siteId}/portal-device/`, sig(signal)),
 
   getTelemetry: (siteId: string, params?: { days?: number; aggregate?: string }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/telemetry/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/telemetry/`, { params, ...sig(signal) }),
 
   getEnergySummary: (siteId: string, params?: { granularity?: string; start?: string; end?: string; date?: string; summary?: string; combined?: string }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/energy-summary/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/energy-summary/`, { params, ...sig(signal) }),
 
   getHistory: (siteId: string, params?: { aggregate?: string }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/history/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/history/`, { params, ...sig(signal) }),
 
   getForecast: (siteId: string, params?: { date?: string; start_date?: string; end_date?: string }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/forecast/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/forecast/`, { params, ...sig(signal) }),
 
   getLoadForecast: (siteId: string, params?: { days?: number }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/load-forecast/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/load-forecast/`, { params, ...sig(signal) }),
 
   // `timeseries` in the response joins actuals to whatever prediction was
   // made for that slot (past) plus the live rolling forecast (future) — the
@@ -297,13 +352,13 @@ export const portalApi = {
   // which is what the "Load Forecast" chart needs to show forecast-vs-actual
   // for elapsed hours today, not just a forward-only forecast line.
   getLoadForecastAccuracy: (siteId: string, params?: { days?: number }, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/load-forecast-accuracy/`, { params, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/load-forecast-accuracy/`, { params, ...sig(signal) }),
 
   getWeather: (siteId: string, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/weather/`, sig(signal)),
+    api.get(`/api/sites/${siteId}/weather/`, sig(signal)),
 
   getSiteIncidents: async (siteId: string, opts?: { limit?: number; offset?: number; status?: string }, signal?: AbortSignal): Promise<SiteIncidentsResponse> => {
-    const resp = await api.get<RawSiteIncidentsResponse>(`/api/backend/sites/${siteId}/incidents/`, {
+    const resp = await api.get<RawSiteIncidentsResponse>(`/api/sites/${siteId}/incidents/`, {
       params: { limit: opts?.limit, offset: opts?.offset, status: opts?.status }, ...sig(signal),
     });
     const raw = resp.data;
@@ -311,7 +366,7 @@ export const portalApi = {
   },
 
   getSiteDataQualityGaps: async (siteId: string, start: string, end: string, signal?: AbortSignal): Promise<DataQualityGap[]> => {
-    const resp = await api.get<RawDataQualityGap[]>(`/api/backend/sites/${siteId}/data-quality-gaps/`, {
+    const resp = await api.get<RawDataQualityGap[]>(`/api/sites/${siteId}/data-quality-gaps/`, {
       params: { start, end }, ...sig(signal),
     });
     return (resp.data || []).map((g) => ({
@@ -320,7 +375,7 @@ export const portalApi = {
   },
 
   getSiteUptime: async (siteId: string, days = 30, signal?: AbortSignal): Promise<SiteUptimeResponse> => {
-    const resp = await api.get<RawSiteUptimeResponse>(`/api/backend/sites/${siteId}/uptime/`, { params: { days }, ...sig(signal) });
+    const resp = await api.get<RawSiteUptimeResponse>(`/api/sites/${siteId}/uptime/`, { params: { days }, ...sig(signal) });
     const raw = resp.data;
     return {
       rollingAvgUptimePct: raw.rolling_avg_uptime_pct,
@@ -332,72 +387,72 @@ export const portalApi = {
   },
 
   getGatewayStatus: (siteId: string, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/gateway-status/`, sig(signal)),
+    api.get(`/api/sites/${siteId}/gateway-status/`, sig(signal)),
 
   getEquipment: (siteId: string, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/equipment/`, sig(signal)),
+    api.get(`/api/sites/${siteId}/equipment/`, sig(signal)),
 
   getHardwareHealth: (siteId: string, days?: number, signal?: AbortSignal) =>
-    api.get(`/api/backend/sites/${siteId}/hardware-health/`, { params: { days }, ...sig(signal) }),
+    api.get(`/api/sites/${siteId}/hardware-health/`, { params: { days }, ...sig(signal) }),
 
   getSavings: (siteId: string, signal?: AbortSignal) =>
-    api.get<PortalSummaryMeta<{ savings: SavingsData | null }>>(`/api/backend/sites/${siteId}/portal-savings/`, sig(signal)),
+    api.get<PortalSummaryMeta<{ savings: SavingsData | null }>>(`/api/sites/${siteId}/portal-savings/`, sig(signal)),
 
   updateConsumerNumber: (siteId: string, value: string) =>
-    api.patch(`/api/backend/sites/${siteId}/eb-consumer-number/`, { eb_consumer_number: value }),
+    api.patch(`/api/sites/${siteId}/eb-consumer-number/`, { eb_consumer_number: value }),
 
   getProfile: () =>
-    api.get(`/api/backend/profile/`),
+    api.get(`/api/profile/`),
 
   updateProfile: (data: Record<string, unknown>) =>
-    api.patch(`/api/backend/profile/`, data),
+    api.patch(`/api/profile/`, data),
 
   uploadAvatar: (file: File) => {
     const form = new FormData();
     form.append("avatar", file);
-    return api.post(`/api/backend/profile-picture/`, form, {
+    return api.post(`/api/profile-picture/`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
   changePassword: (data: Record<string, unknown>) =>
-    api.put(`/api/backend/profile/change-password/`, data),
+    api.put(`/api/profile/change-password/`, data),
 
   requestEmailChangeOtp: (newEmail: string) =>
-    api.post(`/api/backend/profile/email/request-otp/`, { new_email: newEmail }),
+    api.post(`/api/profile/email/request-otp/`, { new_email: newEmail }),
 
   confirmEmailChangeOtp: (newEmail: string, otp: string) =>
-    api.post(`/api/backend/profile/email/confirm-otp/`, { new_email: newEmail, otp }),
+    api.post(`/api/profile/email/confirm-otp/`, { new_email: newEmail, otp }),
 
   requestPhoneChangeOtp: (newMobile: string) =>
-    api.post(`/api/backend/profile/phone/request-otp/`, { new_mobile: newMobile }),
+    api.post(`/api/profile/phone/request-otp/`, { new_mobile: newMobile }),
 
   confirmPhoneChangeOtp: (newMobile: string, otp: string) =>
-    api.post(`/api/backend/profile/phone/confirm-otp/`, { new_mobile: newMobile, otp }),
+    api.post(`/api/profile/phone/confirm-otp/`, { new_mobile: newMobile, otp }),
 
   getSupportInquiries: (signal?: AbortSignal) =>
-    api.get(`/api/backend/support-inquiries/`, sig(signal)),
+    api.get(`/api/support-inquiries/`, sig(signal)),
 
   createSupportInquiry: (category: string, message: string) =>
-    api.post(`/api/backend/support-inquiries/`, { category, message }),
+    api.post(`/api/support-inquiries/`, { category, message }),
 
   getSupportInquiry: (id: number, signal?: AbortSignal) =>
-    api.get(`/api/backend/support-inquiries/${id}/`, sig(signal)),
+    api.get(`/api/support-inquiries/${id}/`, sig(signal)),
 
   replySupportInquiry: (id: number, message: string) =>
-    api.post(`/api/backend/support-inquiries/${id}/reply/`, { message }),
+    api.post(`/api/support-inquiries/${id}/reply/`, { message }),
 
   markSupportInquiryResolved: (id: number, resolved: boolean) =>
-    api.post(`/api/backend/support-inquiries/${id}/resolved/`, { resolved }),
+    api.post(`/api/support-inquiries/${id}/resolved/`, { resolved }),
 
   escalateSupportInquiry: (id: number) =>
-    api.post(`/api/backend/support-inquiries/${id}/escalate/`),
+    api.post(`/api/support-inquiries/${id}/escalate/`),
 
   getSite: (siteId: string) =>
-    api.get(`/api/backend/sites/${siteId}/profile/`),
+    api.get(`/api/sites/${siteId}/profile/`),
 
   getMyBookings: (signal?: AbortSignal) =>
-    api.get<ServiceBooking[]>(`/api/backend/bookings/`, sig(signal)),
+    api.get<ServiceBooking[]>(`/api/bookings/`, sig(signal)),
 
   createServiceBooking: (
     data: {
@@ -407,38 +462,38 @@ export const portalApi = {
       preferred_date?: string;
       preferred_slot?: ServiceBooking["preferred_slot"];
     },
-  ) => api.post<ServiceBooking>(`/api/backend/bookings/`, data),
+  ) => api.post<ServiceBooking>(`/api/bookings/`, data),
 
   cancelServiceBooking: (bookingId: number) =>
-    api.post<ServiceBooking>(`/api/backend/bookings/${bookingId}/cancel/`),
+    api.post<ServiceBooking>(`/api/bookings/${bookingId}/cancel/`),
 
   getSiteMembers: (siteId: string, includeRevoked = false, signal?: AbortSignal) =>
-    api.get<SiteMember[]>(`/api/backend/sites/${siteId}/members/`, {
+    api.get<SiteMember[]>(`/api/sites/${siteId}/members/`, {
       params: includeRevoked ? { include_revoked: 1 } : undefined,
       ...sig(signal),
     }),
 
   inviteSiteMember: (siteId: string, email: string | null, role: SiteMember["role"]) =>
-    api.post<SiteMember>(`/api/backend/sites/${siteId}/members/`, { invite_email: email ?? undefined, role }),
+    api.post<SiteMember>(`/api/sites/${siteId}/members/`, { invite_email: email ?? undefined, role }),
 
   updateSiteMember: (siteId: string, memberId: number, data: { role?: string; status?: string }) =>
-    api.patch<SiteMember>(`/api/backend/sites/${siteId}/members/${memberId}/`, data),
+    api.patch<SiteMember>(`/api/sites/${siteId}/members/${memberId}/`, data),
 
   resendSiteInvite: (siteId: string, memberId: number) =>
     api.post<{ detail: string; invite_link: string; qr_code: string; expires_at: string }>(
-      `/api/backend/sites/${siteId}/members/${memberId}/resend/`,
+      `/api/sites/${siteId}/members/${memberId}/resend/`,
       {},
     ),
 
   getInviteDetails: (token: string, signal?: AbortSignal) =>
-    api.get<InviteDetails>(`/api/backend/site-invites/${token}/`, sig(signal)),
+    api.get<InviteDetails>(`/api/site-invites/${token}/`, sig(signal)),
 
   acceptInvite: (token: string) =>
-    api.post(`/api/backend/site-invites/${token}/accept/`),
+    api.post(`/api/site-invites/${token}/accept/`),
 
   getRecommendations: (siteId: string, signal?: AbortSignal) =>
-    api.get<CustomerRecommendation[]>(`/api/backend/sites/${siteId}/recommendations/`, sig(signal)),
+    api.get<CustomerRecommendation[]>(`/api/sites/${siteId}/recommendations/`, sig(signal)),
 
   updateRecommendation: (siteId: string, recId: number, state: "dismissed" | "acted_on") =>
-    api.patch<CustomerRecommendation>(`/api/backend/sites/${siteId}/recommendations/${recId}/`, { state }),
+    api.patch<CustomerRecommendation>(`/api/sites/${siteId}/recommendations/${recId}/`, { state }),
 };

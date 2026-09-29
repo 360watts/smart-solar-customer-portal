@@ -12,6 +12,7 @@ import {
   type AuthStatus,
   type AuthUser,
 } from "@/lib/auth";
+import { onSessionExpired, setApiToken } from "@/lib/apiToken";
 import { cacheClear } from "@/lib/portalCache";
 
 interface AuthContextValue {
@@ -47,9 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await loadSession();
       setUser(getUserFromSession(result.session));
       setStatus(result.status);
+      setApiToken(result.status === "authenticated" ? (result.accessToken ?? null) : null);
     } catch {
       setUser(null);
       setStatus("unauthenticated");
+      setApiToken(null);
     } finally {
       setLoading(false);
     }
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // different user logging into a shared site here within the TTL window
     // could briefly see the previous session's cached data.
     cacheClear();
+    setApiToken(null);
     setUser(null);
     setStatus("unauthenticated");
     router.push("/auth/login");
@@ -72,6 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     logoutRef.current = logout;
   });
+
+  // api.ts (direct backend client, no React access) calls this when a 401
+  // survives a session-refresh retry — route it through the same logout()
+  // flow as everything else instead of duplicating the redirect/cache-clear.
+  useEffect(() => {
+    onSessionExpired(() => void logoutRef.current());
+    return () => onSessionExpired(null);
+  }, []);
 
   // Wire up a global axios response interceptor so any BFF proxy 401
   // (session expired mid-use) automatically clears local state and redirects
@@ -107,7 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const nextUser = await loginWithPassword(email, password);
+    const { user: nextUser, accessToken } = await loginWithPassword(email, password);
+    setApiToken(accessToken ?? null);
     setUser(nextUser);
     setStatus("authenticated");
     router.push("/dashboard");

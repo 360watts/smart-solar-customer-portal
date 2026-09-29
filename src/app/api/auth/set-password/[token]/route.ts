@@ -58,7 +58,7 @@ export async function POST(
       return clearSessionCookies(response);
     }
 
-    let response = NextResponse.json({ session: result.session });
+    let response = NextResponse.json({ session: result.session, accessToken: result.accessToken });
     response = applySessionCookies(response, result.tokens ?? {});
     return applySessionCache(response, result.session);
   } catch (error) {

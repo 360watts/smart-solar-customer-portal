@@ -34,21 +34,22 @@ Copy `.env.example` to `.env.local` (gitignored). Key vars:
 - `auth/login/` — login flow
 - `unauthorized/` — shown when a staff account hits the customer portal (redirects via `EMPLOYEE_APP_URL`)
 - `api/auth/` — Next.js route handlers that proxy auth (login, refresh, logout) to the Django backend and set httpOnly cookies
-- `api/backend/` — generic authenticated proxy route(s) to the Django backend, keeping `API_BASE_URL` and tokens server-side
+- ~~`api/backend/`~~ — **removed 2026-09**, see `docs/DIRECT_API_MIGRATION_2026-09.md`. It proxied every data call through this app's own server, which on Vercel meant a US serverless function handling real-time generation data + PII on every page load — an MNRE data-residency violation. Data calls now go straight from the browser to `api.360watts.com`.
 
 ### Auth model
 - `src/lib/session.ts` — `CustomerSession` / `SessionMembership` types and session helpers
-- `src/lib/server-auth.ts` — server-side session/cookie reading (Route Handlers, Server Components)
+- `src/lib/server-auth.ts` — server-side session/cookie reading (Route Handlers, Server Components). Login/refresh/logout/register/password-setup are still fully server-mediated (unchanged by the 2026-09 migration) — only the resulting **access token** is also handed to the browser (see below), the refresh token never leaves this server's httpOnly cookie.
 - `src/lib/auth.ts` — client-side `AuthUser`/`AuthStatus` types, `AuthRequestError`
+- `src/lib/apiToken.ts` — in-memory (not persisted) store for the browser-side access token used by `src/lib/api.ts` to call the Django API directly
 - `src/lib/tokens.ts` — JWT access/refresh token handling
-- `src/contexts/AuthContext.tsx` — client auth context/provider consumed by portal pages
-- Tokens are httpOnly cookies set by `api/auth/*` route handlers — the browser never sees raw JWTs; `API_BASE_URL` is only read server-side
+- `src/contexts/AuthContext.tsx` — client auth context/provider consumed by portal pages; seeds/clears `apiToken.ts` on login/refresh/logout
+- The refresh token is an httpOnly cookie set by `api/auth/*` route handlers, never sent to the browser. The short-lived access token (~55 min) *is* sent to the browser in the `api/auth/*` JSON response bodies, held only in the `apiToken.ts` module var — never localStorage/sessionStorage/a cookie.
 
 ### Data layer
-- `src/lib/api.ts` — shared `axios` instance (`withCredentials: true`) plus response types (e.g. `SavingsData`) for backend payloads
+- `src/lib/api.ts` — shared `axios` instance pointed at `NEXT_PUBLIC_API_BASE_URL` (`api.360watts.com` directly, not this app), attaches `Authorization: Bearer` from `apiToken.ts` via a request interceptor, and on a 401 calls `GET /api/auth/session` once to refresh the token before retrying (`handle401`, unit-tested in `api.handle401.test.ts`) — plus response types (e.g. `SavingsData`) for backend payloads
 - `src/lib/portalCache.ts` — client-side caching for portal data fetches
 - `src/lib/careBooking.ts` + `src/lib/care/` — 360Care service booking flow
-- `src/lib/hooks/` — shared data-fetching/UI hooks
+- `src/lib/hooks/` — shared data-fetching/UI hooks (`useAssistantStream.ts` also calls the Django API directly now, same pattern)
 
 ### UI
 - `src/components/layout/` — `PortalSidebar.tsx` (shared portal chrome)
@@ -60,7 +61,7 @@ Copy `.env.example` to `.env.local` (gitignored). Key vars:
 
 ## Conventions
 
-- Never call the Django backend directly from client components — go through `api/auth/*` or `api/backend/*` Route Handlers so `API_BASE_URL` and tokens stay server-side
+- **Data reads/writes call the Django backend directly** from client components via `src/lib/api.ts` / `useAssistantStream.ts` (`NEXT_PUBLIC_API_BASE_URL`) — this reversed a prior "always proxy through this server" rule after that proxy was found to route real generation data through a US Vercel function (`docs/DIRECT_API_MIGRATION_2026-09.md`). **Auth stays server-mediated** — login/refresh/logout/register/password-setup go through `api/auth/*` Route Handlers, which is where the refresh token and `API_BASE_URL` (server-only var) stay; never read `API_BASE_URL` or the refresh-token cookie from a client component.
 - Prefer real API data over mocks in portal pages (recent history: mocks have been progressively replaced with live data across solar, savings, alerts pages)
 - Guard against SSR/client hydration mismatches when reading session/auth state (see `ccbf3de fix(portal): address critical reviewer findings — alerts loaded race, SSR hydration, device Promise.all` in git history)
 - Use `Promise.all` carefully for parallel device/API calls — a past bug involved unguarded parallel calls on the device page
@@ -69,7 +70,7 @@ Copy `.env.example` to `.env.local` (gitignored). Key vars:
 ## Cross-Repo Context
 
 Part of the 360Watts platform (see workspace-level `CLAUDE.md` in `360watts-data` for full platform picture):
-- Backend: `smart-solar-django-backend` (Django REST API, Railway-hosted)
+- Backend: `smart-solar-django-backend` (Django REST API at `api.360watts.com`; self-hosted on AWS Mumbai `ap-south-1` since 2026-09-08 — moved off Railway for MNRE data-residency compliance)
 - Staff dashboard: `smart-solar-react-frontend`
 - Mobile app: `smart-solar-fieldops-mobile`
 - Forecast data ultimately comes from `360watts-data` → `solar_forecasting`/`360watts-ml-core` → Lambda inference → Django backend → this portal

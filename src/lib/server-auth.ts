@@ -65,6 +65,13 @@ type SessionResolution =
       kind: "authenticated";
       session: CustomerSession;
       tokens?: Partial<TokenPair>;
+      /** The current, valid access token (refreshed or not) — handed to the
+       * browser so it can call the Django API directly (see src/lib/api.ts).
+       * Short-lived (~55 min) and never persisted client-side, only held in
+       * an in-memory module var (src/lib/apiToken.ts) — a much smaller
+       * exposure than putting the refresh token in reach of JS, which stays
+       * in this server's own httpOnly cookie untouched. */
+      accessToken: string;
     }
   | {
       kind: "redirect-employee";
@@ -309,6 +316,7 @@ export async function resolveSessionFromTokens(
     kind: "authenticated",
     session: buildCustomerSession(profile),
     tokens: refreshedTokens,
+    accessToken: workingAccess,
   };
 }
 
@@ -322,7 +330,7 @@ export async function resolveSessionFromCookies(): Promise<SessionResolution> {
     if (raw) {
       try {
         const session = JSON.parse(raw) as CustomerSession;
-        return { kind: "authenticated", session };
+        return { kind: "authenticated", session, accessToken: access };
       } catch {
         // Corrupt cookie — fall through to full resolution below.
       }
@@ -535,136 +543,3 @@ export async function hasSessionCookies(): Promise<boolean> {
   return Boolean(store.get(ACCESS_COOKIE)?.value || store.get(REFRESH_COOKIE)?.value);
 }
 
-// ── BFF proxy request builder ──────────────────────────────────────────────────
-
-// Headers from Django responses that are safe and useful to forward to the client.
-const FORWARDED_RESPONSE_HEADERS = [
-  "cache-control",
-  "x-request-id",
-  "x-ratelimit-limit",
-  "x-ratelimit-remaining",
-  "x-ratelimit-reset",
-  "retry-after",
-];
-
-/**
- * Resolves a usable access token from the request's cookies, refreshing it
- * first if only a refresh token is present. Shared by `buildBackendRequest`
- * and any route (e.g. the AI chat streaming proxy) that needs a token but
- * can't route through `buildBackendRequest`'s own `backendFetch` — that
- * helper hardcodes a 10s timeout meant for ordinary JSON calls, which would
- * kill a long-running SSE stream well before the backend's own 15s keepalive
- * ever lands.
- */
-export async function getValidAccessToken(): Promise<{
-  accessToken: string | null;
-  refreshedAccessToken?: string;
-  refreshedRefreshToken?: string;
-  refreshToken?: string;
-}> {
-  const store = await cookies();
-  const { access, refresh } = getActiveTokensFromStore(store);
-  let accessToken = access ?? null;
-  let refreshedAccessToken: string | undefined;
-  let refreshedRefreshToken: string | undefined;
-
-  if (!accessToken && refresh) {
-    const refreshed = await refreshAccessToken(refresh);
-    if (refreshed) {
-      accessToken = refreshed.access;
-      refreshedAccessToken = refreshed.access;
-      refreshedRefreshToken = refreshed.refresh;
-    }
-  }
-
-  return { accessToken, refreshedAccessToken, refreshedRefreshToken, refreshToken: refresh };
-}
-
-export async function buildBackendRequest(input: {
-  path: string;
-  method: string;
-  search: string;
-  body?: string | ArrayBuffer;
-  contentType?: string | null;
-  forwardHeaders?: Record<string, string>;
-}): Promise<{
-  response: Response;
-  refreshedAccessToken?: string;
-  refreshedRefreshToken?: string;
-  forwardHeaders: Record<string, string>;
-  /** True only when the 401 means the JWT itself has expired/invalid (clear cookies). */
-  tokenExpired?: boolean;
-}> {
-  const tokenResolution = await getValidAccessToken();
-  let accessToken = tokenResolution.accessToken;
-  let refreshedAccessToken = tokenResolution.refreshedAccessToken;
-  let refreshedRefreshToken = tokenResolution.refreshedRefreshToken;
-  const refresh = tokenResolution.refreshToken;
-
-  // GET /site-invites/<token>/ is AllowAny on the Django side — an invitee
-  // clicking a link/QR code has no session yet, so this must reach the
-  // backend without a token instead of being short-circuited to a 401 here.
-  const isPublicPath = input.method === "GET" && /^site-invites\/[^/]+\/?$/.test(input.path);
-
-  if (!accessToken && !isPublicPath) {
-    // No usable token at all — the session has genuinely expired.
-    return {
-      response: new Response(JSON.stringify({ detail: "Authentication required." }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      }),
-      forwardHeaders: {},
-      tokenExpired: true,
-    };
-  }
-
-  const send = (token: string | null) =>
-    backendFetch(`/api/${input.path}${input.search}`, {
-      method: input.method,
-      headers: {
-        ...(input.contentType ? { "Content-Type": input.contentType } : {}),
-        ...(input.forwardHeaders ?? {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: input.body,
-    });
-
-  let response = await send(accessToken);
-
-  if (response.status === 401 && refresh) {
-    const refreshed = await refreshAccessToken(refresh);
-    if (!refreshed) {
-      // Refresh failed — token is genuinely expired.
-      return { response, forwardHeaders: {}, tokenExpired: true };
-    }
-    accessToken = refreshed.access;
-    refreshedAccessToken = refreshed.access;
-    refreshedRefreshToken = refreshed.refresh;
-    response = await send(accessToken);
-
-    if (response.status === 401) {
-      // Still 401 after a successful token refresh — the endpoint is denying access
-      // to this specific resource (should ideally be 403), not expiring the session.
-      // Return 403 so the BFF does NOT clear session cookies.
-      return {
-        response: new Response(JSON.stringify({ detail: "Access denied." }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" },
-        }),
-        refreshedAccessToken,
-        refreshedRefreshToken,
-        forwardHeaders: {},
-        tokenExpired: false,
-      };
-    }
-  }
-
-  // Collect safe Django response headers to forward to the client.
-  const forwardHeaders: Record<string, string> = {};
-  for (const header of FORWARDED_RESPONSE_HEADERS) {
-    const value = response.headers.get(header);
-    if (value) forwardHeaders[header] = value;
-  }
-
-  return { response, refreshedAccessToken, refreshedRefreshToken, forwardHeaders, tokenExpired: false };
-}

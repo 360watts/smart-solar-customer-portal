@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AssistantMessage } from "@/components/assistant/types";
+import { getApiToken } from "@/lib/apiToken";
+
+// Same direct-to-Mumbai rationale as src/lib/api.ts — this used to go through
+// the /api/backend/ai/user-chat Vercel proxy.
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 
 const MAX_TURNS = 10;
 
@@ -149,9 +154,13 @@ export function useAssistantStream() {
       setStreaming(true);
 
       try {
-        const res = await fetch("/api/backend/ai/user-chat", {
+        const token = getApiToken();
+        const res = await fetch(`${API_BASE_URL}/api/ai/user-chat/`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             messages: historyForRequest.map((m) => ({ role: m.role, content: m.content })),
           }),

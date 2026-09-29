@@ -23,6 +23,8 @@ export interface AuthSessionResponse {
   session: CustomerSession | null;
   employeeAppUrl?: string | null;
   message?: string;
+  /** Present only when status is "authenticated" — see src/lib/apiToken.ts. */
+  accessToken?: string;
 }
 
 export class AuthRequestError extends Error {
@@ -60,6 +62,7 @@ async function parseAuthResponse(response: Response): Promise<AuthSessionRespons
     session: data.session ?? null,
     employeeAppUrl: data.employeeAppUrl ?? null,
     message: data.message,
+    accessToken: data.accessToken,
   };
 }
 
@@ -84,7 +87,7 @@ export async function loadSession(): Promise<AuthSessionResponse> {
 export async function loginWithPassword(
   email: string,
   password: string,
-): Promise<AuthUser> {
+): Promise<{ user: AuthUser; accessToken?: string }> {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     credentials: "same-origin",
@@ -96,6 +99,7 @@ export async function loginWithPassword(
     message?: string;
     session?: CustomerSession;
     employeeAppUrl?: string | null;
+    accessToken?: string;
   };
 
   if (!response.ok || !data.session) {
@@ -107,7 +111,7 @@ export async function loginWithPassword(
     );
   }
 
-  return mapSessionUser(data.session);
+  return { user: mapSessionUser(data.session), accessToken: data.accessToken };
 }
 
 export async function registerWithInvite(data: {
@@ -116,7 +120,7 @@ export async function registerWithInvite(data: {
   password: string;
   first_name?: string;
   last_name?: string;
-}): Promise<AuthUser> {
+}): Promise<{ user: AuthUser; accessToken?: string }> {
   const response = await fetch("/api/auth/register", {
     method: "POST",
     credentials: "same-origin",
@@ -127,13 +131,14 @@ export async function registerWithInvite(data: {
   const responseData = (await response.json().catch(() => ({}))) as {
     message?: string;
     session?: CustomerSession;
+    accessToken?: string;
   };
 
   if (!response.ok || !responseData.session) {
     throw new AuthRequestError(responseData.message ?? "Registration failed.", response.status);
   }
 
-  return mapSessionUser(responseData.session);
+  return { user: mapSessionUser(responseData.session), accessToken: responseData.accessToken };
 }
 
 export async function logoutSession(): Promise<void> {
