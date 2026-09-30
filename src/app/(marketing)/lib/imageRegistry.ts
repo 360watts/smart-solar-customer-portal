@@ -51,3 +51,9 @@ export const APP_IMAGES = {
   solutionsAppPhoneMonitor: "/image7.webp",
   solutionsAppPhoneModes: "/image10.webp",
 } as const;
+
+/** Screen opening of `phone1401` (x 652–1438, y 187–1890 of 2083²) mapped through an
+ *  object-cover crop into an aspect-[329/636] box; radius ≈ 100px source. Wrap the
+ *  `<Image fill>` screenshot in a div with this class — `fill` overrides inset/w/h on the img. */
+export const PHONE_SCREEN_BOX =
+  "absolute left-[13.85%] top-[8.98%] w-[72.94%] h-[81.76%] overflow-hidden rounded-[12.7%/5.9%]";

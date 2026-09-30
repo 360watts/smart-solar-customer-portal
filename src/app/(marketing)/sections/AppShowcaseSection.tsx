@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion } from "framer-motion";
-import { APP_IMAGES } from "../lib/imageRegistry";
+import { APP_IMAGES, PHONE_SCREEN_BOX } from "../lib/imageRegistry";
 import { appFeatures } from "../data";
 import { reduceMotion } from "../lib/motion";
 
@@ -238,13 +238,15 @@ export function AppShowcaseSection() {
                       transition: `opacity ${TRANSITION_DURATION}s cubic-bezier(0.22, 1, 0.36, 1), transform ${TRANSITION_DURATION}s cubic-bezier(0.22, 1, 0.36, 1)`,
                     }}
                   >
-                    <Image
-                      src={slide.image}
-                      alt={slide.alt}
-                      fill
-                      sizes="(min-width: 768px) 260px, 200px"
-                      className="absolute inset-[8%] left-[13%] w-[75%] h-[83%] object-cover rounded-[20px] pointer-events-none"
-                    />
+                    <div className={PHONE_SCREEN_BOX}>
+                      <Image
+                        src={slide.image}
+                        alt={slide.alt}
+                        fill
+                        sizes="(min-width: 768px) 180px, 130px"
+                        className="object-cover object-top pointer-events-none"
+                      />
+                    </div>
                     <Image
                       src={APP_IMAGES.phone1401}
                       alt="360watts mobile app"

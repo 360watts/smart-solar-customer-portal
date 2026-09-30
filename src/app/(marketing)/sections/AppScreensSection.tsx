@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { motion } from "framer-motion";
-import { APP_IMAGES } from "../lib/imageRegistry";
+import { APP_IMAGES, PHONE_SCREEN_BOX } from "../lib/imageRegistry";
 import { appScreens } from "../data";
 import { sectionMotionProps } from "../lib/motion";
 
@@ -93,7 +93,7 @@ export function AppScreensSection() {
           {appScreens.map((screen, i) => (
             <div key={i} className="text-center">
               <div className="relative w-60 sm:w-64 mx-auto aspect-[329/636] mb-4">
-                <Image src={screen.image} alt={screen.title} fill sizes="256px" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" />
+                <div className={PHONE_SCREEN_BOX}><Image src={screen.image} alt={screen.title} fill sizes="190px" className="object-cover object-top" /></div>
                 <Image src={APP_IMAGES.phone1401} alt="" fill sizes="256px" className="pointer-events-none object-cover" />
               </div>
               <h3 className="text-[18px] font-['Urbanist'] font-bold text-[#0a0a0a] tracking-[-0.5px] mb-2">{screen.title}</h3>
@@ -125,7 +125,7 @@ export function AppScreensSection() {
               <div key={i} className="shrink-0 w-screen h-full flex items-center justify-center px-6">
                 <div className="flex flex-col md:flex-row items-center gap-6 md:gap-16 max-w-5xl">
                   <div className="shrink-0 relative h-[50vh] md:h-[60vh] max-h-125 w-auto aspect-[329/636]">
-                    <Image src={screen.image} alt={screen.title} fill sizes="(min-width: 768px) 40vh, 50vh" className="absolute inset-[10%] w-[80%] h-[80%] object-cover rounded-[20px]" priority={i === 0} />
+                    <div className={PHONE_SCREEN_BOX}><Image src={screen.image} alt={screen.title} fill sizes="(min-width: 768px) 22vh, 18vh" className="object-cover object-top" priority={i === 0} /></div>
                     <Image src={APP_IMAGES.phone1401} alt="360watts app on phone" fill sizes="(min-width: 768px) 40vh, 50vh" className="pointer-events-none z-10 object-cover" />
                   </div>
                   <div className="text-center md:text-left max-w-sm">
