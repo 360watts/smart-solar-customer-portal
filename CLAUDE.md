@@ -75,6 +75,20 @@ Part of the 360Watts platform (see workspace-level `CLAUDE.md` in `360watts-data
 - Mobile app: `smart-solar-fieldops-mobile`
 - Forecast data ultimately comes from `360watts-data` → `solar_forecasting`/`360watts-ml-core` → Lambda inference → Django backend → this portal
 
-## No auto-commit
+## Production Fault Log
 
-Always confirm with the user before running `git commit` or `git push`.
+Faults, root causes and fixes are recorded in [`FAULT_LOG.md`](./FAULT_LOG.md) at the repo root (create it with the first entry).
+
+**Workflow:** discover fault → open GitHub Issue → fix (reference the issue # in commits) → append an entry to `FAULT_LOG.md` → close the issue.
+
+## Shared workflow rules (all 360watts repos)
+
+Keep this block identical in every repo's CLAUDE.md. When you change it, change it everywhere.
+
+- **No auto-commit or deploy:** confirm with the user before `git commit`, `git push`, merging to main, or deploying.
+- **No AI attribution in commits:** leave `Co-Authored-By: Claude ...` lines out of commit messages.
+- **Test scenario document for every new feature:** `docs/test-scenarios/<feature>.md`, written before the tests.
+  - Contents: given / when / then rows grouped by area, a type (unit / integration / live), a priority (P0–P3) and a status (`planned` → `written` → `passing` → `live-verified`).
+  - Include the edge cases found in design review, and a live-verification section.
+  - Update the Status column in the same change that adds or fixes a test.
+  - Example: `smart-solar-django-backend/docs/test-scenarios/inverter-settings-history.md`.

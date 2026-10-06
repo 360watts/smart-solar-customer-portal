@@ -7,18 +7,20 @@ import type { KeyboardEvent } from "react";
 
 interface AssistantComposerProps {
   disabled: boolean;
+  /** Plan doesn't include the assistant — input and send are inert. */
+  locked?: boolean;
   onSend: (text: string) => void;
 }
 
 const AssistantComposer = forwardRef<HTMLTextAreaElement, AssistantComposerProps>(function AssistantComposer(
-  { disabled, onSend },
+  { disabled, locked = false, onSend },
   ref,
 ) {
   const [value, setValue] = useState("");
 
   const submit = () => {
     const text = value.trim();
-    if (!text || disabled) return;
+    if (!text || disabled || locked) return;
     onSend(text);
     setValue("");
   };
@@ -41,7 +43,8 @@ const AssistantComposer = forwardRef<HTMLTextAreaElement, AssistantComposerProps
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         rows={1}
-        placeholder="Ask about your system…"
+        disabled={locked}
+        placeholder={locked ? "Available on Basic and Premium plans" : "Ask about your system…"}
         aria-label="Message the assistant"
         className="flex-1 resize-none rounded-lg bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none"
         style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
@@ -49,7 +52,7 @@ const AssistantComposer = forwardRef<HTMLTextAreaElement, AssistantComposerProps
       <m.button
         type="button"
         onClick={submit}
-        disabled={disabled || !value.trim()}
+        disabled={disabled || locked || !value.trim()}
         aria-label="Send message"
         whileTap={{ scale: 0.8, rotate: 12 }}
         transition={{ type: "spring", stiffness: 400, damping: 15 }}

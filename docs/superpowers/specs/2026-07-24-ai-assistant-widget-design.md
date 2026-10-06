@@ -2,7 +2,17 @@
 
 **Date:** 2026-07-24
 **Repo:** `smart-solar-customer-portal`
-**Status:** Implemented
+**Status:** Implemented — **partly superseded (2026-10-06)**
+
+> **Superseded details — the code differs from this spec in these places:**
+> - **No Vercel proxy.** `src/app/api/backend/ai/user-chat/route.ts`, `buildBackendRequest`/`getValidAccessToken` and the `maxDuration = 60` note were removed in the 2026-09 direct-API migration (`docs/DIRECT_API_MIGRATION_2026-09.md`). `useAssistantStream` calls `NEXT_PUBLIC_API_BASE_URL/api/ai/user-chat/` directly with the in-memory access token, refreshing once on 401 via `loadSession()`.
+> - **No sessionStorage / `useAssistantSession`.** Dropped on 2026-07-24; the conversation lives in memory only.
+> - **Plan gating exists.** The backend enforces `IsBasicOrAbove` (free tier gets 403). The "no plan-gating in the UI" section is obsolete: the orb is shown to everyone, but non-basic/premium plans get a locked preview (disabled prompts and composer, upgrade note) and no request is sent (`planAllowsAssistant`).
+> - **Provider.** The backend uses AWS Bedrock `ap-south-1`, not OpenRouter, so the `503 — OPENROUTER_API_KEY not configured` case is now `503` when `AI_CHAT_ENABLED` is off or the provider is unavailable. Errors handled: 401, 403, 429, 503, 400.
+> - **Icon / chips:** the orb is a `Sun` glyph and the fourth chip is "Will I generate enough tomorrow?" (the sparkle and "this month" wording in the body below is the pre-review text).
+> - **Streaming edge cases:** error bubbles are never sent back as history; a stream that drops or ends without `[DONE]` keeps the partial answer with a "(response cut off)" marker.
+>
+> Current backend behaviour: `smart-solar-django-backend/docs/AI_AGENTS.md`. Test scenarios: `docs/test-scenarios/ai-assistant.md`.
 
 **Post-review changes** (from an expert-designer + expert-developer parallel
 review before implementation):

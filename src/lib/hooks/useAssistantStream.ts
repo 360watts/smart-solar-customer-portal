@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AssistantMessage } from "@/components/assistant/types";
-import { getApiToken } from "@/lib/apiToken";
+import { getApiToken, setApiToken } from "@/lib/apiToken";
+import { loadSession } from "@/lib/auth";
 
 // Same direct-to-Mumbai rationale as src/lib/api.ts — this used to go through
 // the /api/backend/ai/user-chat Vercel proxy.
@@ -67,6 +68,15 @@ function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Conversation payload for the backend: error bubbles and empty placeholders
+ * are UI-only and must not be fed back to the model as if it had said them. */
+export function buildHistory(messages: AssistantMessage[]): { role: string; content: string }[] {
+  return messages
+    .filter((m) => !m.isError && m.content.trim() !== "")
+    .slice(-(MAX_TURNS * 2))
+    .map((m) => ({ role: m.role, content: m.content }));
+}
+
 const ERROR_COPY: Record<number, string> = {
   401: "Your session needs a refresh — please reload the page.",
   403: "The assistant isn't available for this account right now.",
@@ -79,6 +89,9 @@ export function useAssistantStream() {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Synchronous guard — the `streaming` state value captured by the callback
+  // is stale if two sends land in the same tick.
+  const streamingRef = useRef(false);
 
   // Always-current mirror of `messages`, read synchronously in sendMessage —
   // see the comment there for why this replaced reading state inside a
@@ -96,6 +109,8 @@ export function useAssistantStream() {
   const pendingTextRef = useRef("");
   const rafRef = useRef<number | null>(null);
   const activeIdRef = useRef<string | null>(null);
+  // True once any token of the current reply has arrived (flushed or not).
+  const receivedRef = useRef(false);
 
   const flushPending = useCallback(() => {
     rafRef.current = null;
@@ -134,38 +149,59 @@ export function useAssistantStream() {
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || streaming) return;
+      if (!trimmed || streamingRef.current) return;
+      streamingRef.current = true;
 
       const userMsg: AssistantMessage = { id: makeId(), role: "user", content: trimmed, ts: Date.now() };
       const assistantId = makeId();
       const assistantMsg: AssistantMessage = { id: assistantId, role: "assistant", content: "", ts: Date.now() };
       activeIdRef.current = assistantId;
+      // Drop anything left over from a previous (aborted/errored) stream so it
+      // can't flush into this reply.
+      pendingTextRef.current = "";
+      receivedRef.current = false;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
 
       // Read the current history from the ref (kept in sync below) rather
       // than trying to capture it as a side effect inside the setMessages
       // updater — that updater's execution isn't guaranteed to run before
       // the code right after this call, so the request could go out with
       // an empty/stale history on the very first message of a session.
-      const historyForRequest = [...messagesRef.current, userMsg].slice(-(MAX_TURNS * 2));
+      const historyForRequest = buildHistory([...messagesRef.current, userMsg]);
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
 
       const controller = new AbortController();
       abortRef.current = controller;
       setStreaming(true);
 
-      try {
+      const post = () => {
         const token = getApiToken();
-        const res = await fetch(`${API_BASE_URL}/api/ai/user-chat/`, {
+        return fetch(`${API_BASE_URL}/api/ai/user-chat/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({
-            messages: historyForRequest.map((m) => ({ role: m.role, content: m.content })),
-          }),
+          body: JSON.stringify({ messages: historyForRequest }),
           signal: controller.signal,
         });
+      };
+
+      try {
+        let res = await post();
+
+        // The access token lives ~55 min; this raw fetch bypasses api.ts's
+        // axios 401 interceptor, so refresh once here and retry.
+        if (res.status === 401) {
+          const session = await loadSession();
+          if (session.status === "authenticated" && session.accessToken) {
+            setApiToken(session.accessToken);
+            res = await post();
+          }
+        }
 
         if (!res.ok) {
           const copy = ERROR_COPY[res.status] ?? "Something went wrong. Please try again.";
@@ -183,6 +219,7 @@ export function useAssistantStream() {
         let buf = "";
         let sawAnyToken = false;
         let sawError = false;
+        let sawDone = false;
 
         readLoop: while (true) {
           const { done, value } = await reader.read();
@@ -192,13 +229,17 @@ export function useAssistantStream() {
           buf = remainder;
 
           for (const event of events) {
-            if (event.type === "done") continue;
+            if (event.type === "done") {
+              sawDone = true;
+              continue;
+            }
             if (event.type === "error") {
               replaceMessage(assistantId, { content: event.message, isError: true });
               sawError = true;
               break readLoop;
             }
             sawAnyToken = true;
+            receivedRef.current = true;
             pendingTextRef.current += event.text;
             scheduleFlush();
           }
@@ -216,14 +257,25 @@ export function useAssistantStream() {
 
         if (!sawAnyToken) {
           replaceMessage(assistantId, { content: "No response generated. Please try again." });
+        } else if (!sawDone) {
+          // Stream closed without the [DONE] sentinel — the reply is truncated.
+          replaceMessage(assistantId, { cutOff: true });
         }
       } catch {
+        // Anything already received (on screen or still pending) is a partial
+        // answer worth keeping; only an empty bubble is an error / removable.
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+        flushPending();
+        const hasPartial = receivedRef.current;
         if (controller.signal.aborted) {
-          // Deliberate cancel (unmount / panel close / new send) — not a user-facing error.
+          // Deliberate cancel (unmount / panel close) — not a user-facing error.
+          if (hasPartial) replaceMessage(assistantId, { cutOff: true });
+          else setMessages((prev) => prev.filter((m) => m.id !== assistantId));
           return;
         }
-        const hasPartial = pendingTextRef.current.length > 0;
-        flushPending();
         replaceMessage(
           assistantId,
           hasPartial
@@ -236,10 +288,11 @@ export function useAssistantStream() {
       } finally {
         activeIdRef.current = null;
         abortRef.current = null;
+        streamingRef.current = false;
         setStreaming(false);
       }
     },
-    [streaming, replaceMessage, flushPending, scheduleFlush],
+    [replaceMessage, flushPending, scheduleFlush],
   );
 
   const cancel = useCallback(() => {

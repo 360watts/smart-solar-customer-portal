@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeStreamFragment, parseSSEBuffer } from "./useAssistantStream";
+import { buildHistory, normalizeStreamFragment, parseSSEBuffer } from "./useAssistantStream";
 
 describe("normalizeStreamFragment", () => {
   it("passes through ordinary text", () => {
@@ -66,5 +66,28 @@ describe("parseSSEBuffer", () => {
     expect(first.events).toEqual([]);
     const second = parseSSEBuffer(first.remainder + "tial token\n");
     expect(second.events).toEqual([{ type: "token", text: "partial token" }]);
+  });
+});
+
+describe("buildHistory", () => {
+  const msg = (role: "user" | "assistant", content: string, isError?: boolean) => ({
+    id: content,
+    role,
+    content,
+    ts: 0,
+    isError,
+  });
+
+  it("drops error bubbles and empty placeholders", () => {
+    expect(
+      buildHistory([msg("user", "hi"), msg("assistant", "The assistant is temporarily unavailable.", true), msg("assistant", "")]),
+    ).toEqual([{ role: "user", content: "hi" }]);
+  });
+
+  it("keeps only the last 20 messages", () => {
+    const many = Array.from({ length: 30 }, (_, i) => msg("user", `m${i}`));
+    const out = buildHistory(many);
+    expect(out).toHaveLength(20);
+    expect(out[0].content).toBe("m10");
   });
 });

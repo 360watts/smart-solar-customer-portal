@@ -5,6 +5,7 @@ import { Battery, CalendarClock, Gauge, Sparkles } from "lucide-react";
 
 interface QuickPromptsProps {
   onSelect: (prompt: string) => void;
+  disabled?: boolean;
 }
 
 // Four real jobs-to-be-done, no overlap: today's snapshot, a status check,
@@ -19,17 +20,18 @@ const PROMPTS = [
   { icon: CalendarClock, label: "Will I generate enough tomorrow?" },
 ];
 
-export default function QuickPrompts({ onSelect }: QuickPromptsProps) {
+export default function QuickPrompts({ onSelect, disabled = false }: QuickPromptsProps) {
   return (
     <div className="flex flex-wrap gap-2 px-3.5 pb-3">
       {PROMPTS.map(({ icon: Icon, label }) => (
         <m.button
           key={label}
           type="button"
+          disabled={disabled}
           onClick={() => onSelect(label)}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium disabled:opacity-50"
           style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
         >
           <Icon size={12} />

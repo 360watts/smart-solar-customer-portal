@@ -3,6 +3,7 @@
 import { LazyMotion, domAnimation } from "framer-motion";
 import { useRef, useState } from "react";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { useAssistantStream } from "@/lib/hooks/useAssistantStream";
 import AssistantComposer from "./AssistantComposer";
 import AssistantHeader from "./AssistantHeader";
@@ -22,7 +23,15 @@ import QuickPrompts from "./QuickPrompts";
  * JS chunk — Framer Motion, react-markdown, the streaming hook — never
  * blocks the initial portal page load.
  */
+// The backend (IsBasicOrAbove) serves chat to basic/premium plans only. Other
+// plans still see the widget, but as a locked preview — no request is sent.
+export function planAllowsAssistant(planType: string | null | undefined): boolean {
+  return planType === "basic" || planType === "premium";
+}
+
 export default function AiAssistantWidget() {
+  const { user } = useAuth();
+  const locked = !planAllowsAssistant(user?.plan_type);
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const orbRef = useRef<HTMLButtonElement | null>(null);
@@ -53,8 +62,14 @@ export default function AiAssistantWidget() {
           onClose={handleClose}
         />
         <AssistantMessages messages={messages} streaming={streaming} />
-        {messages.length === 0 && <QuickPrompts onSelect={sendMessage} />}
-        <AssistantComposer ref={composerRef} disabled={streaming} onSend={sendMessage} />
+        {locked && (
+          <p className="px-3.5 pb-2 text-[12px]" style={{ color: "var(--muted-foreground)" }} role="status">
+            The assistant is part of the Basic and Premium plans. Contact 360Watts to upgrade and start asking
+            questions about your system.
+          </p>
+        )}
+        {messages.length === 0 && <QuickPrompts onSelect={sendMessage} disabled={locked} />}
+        <AssistantComposer ref={composerRef} disabled={streaming} locked={locked} onSend={sendMessage} />
       </AssistantPanel>
     </LazyMotion>
   );
