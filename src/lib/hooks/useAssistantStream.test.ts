@@ -91,3 +91,11 @@ describe("buildHistory", () => {
     expect(out[0].content).toBe("m10");
   });
 });
+
+describe("parseSSEBuffer follow-up chips", () => {
+  it("turns a `: suggest` comment frame into a suggest event, ignoring bad JSON", () => {
+    const ok = parseSSEBuffer(': suggest ["Per-site","Why lower?"]\n\ndata: [DONE]\n');
+    expect(ok.events).toEqual([{ type: "suggest", items: ["Per-site", "Why lower?"] }, { type: "done" }]);
+    expect(parseSSEBuffer(": suggest {oops\n").events).toEqual([]);
+  });
+});

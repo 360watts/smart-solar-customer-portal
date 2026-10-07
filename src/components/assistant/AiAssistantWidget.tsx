@@ -38,6 +38,7 @@ export default function AiAssistantWidget() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { messages, streaming, sendMessage, cancel } = useAssistantStream();
+  const followUps = messages[messages.length - 1]?.suggestions;
 
   const handleClose = () => {
     setOpen(false);
@@ -69,6 +70,7 @@ export default function AiAssistantWidget() {
           </p>
         )}
         {messages.length === 0 && <QuickPrompts onSelect={sendMessage} disabled={locked} />}
+        {!streaming && !locked && followUps && <QuickPrompts prompts={followUps} onSelect={sendMessage} />}
         <AssistantComposer ref={composerRef} disabled={streaming} locked={locked} onSend={sendMessage} />
       </AssistantPanel>
     </LazyMotion>

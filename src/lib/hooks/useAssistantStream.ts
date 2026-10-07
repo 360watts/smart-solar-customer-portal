@@ -13,6 +13,7 @@ const MAX_TURNS = 10;
 export type SSEEvent =
   | { type: "token"; text: string }
   | { type: "error"; message: string }
+  | { type: "suggest"; items: string[] }
   | { type: "done" };
 
 /** Same SSE token-cleanup rule as the staff frontend's AiChat.tsx
@@ -45,6 +46,16 @@ export function parseSSEBuffer(buf: string): { events: SSEEvent[]; remainder: st
   const events: SSEEvent[] = [];
 
   for (const line of lines) {
+    // `: suggest ["a","b"]` is an SSE comment frame (older clients ignore it).
+    if (line.startsWith(": suggest ")) {
+      try {
+        const items = (JSON.parse(line.slice(10)) as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 3);
+        if (items.length) events.push({ type: "suggest", items });
+      } catch {
+        /* malformed chip frame: show the answer without chips */
+      }
+      continue;
+    }
     if (!line.startsWith("data: ")) continue;
     const token = line.slice(6);
     if (token === "[DONE]") {
@@ -220,6 +231,7 @@ export function useAssistantStream() {
         let sawAnyToken = false;
         let sawError = false;
         let sawDone = false;
+        let suggestions: string[] = [];
 
         readLoop: while (true) {
           const { done, value } = await reader.read();
@@ -231,6 +243,10 @@ export function useAssistantStream() {
           for (const event of events) {
             if (event.type === "done") {
               sawDone = true;
+              continue;
+            }
+            if (event.type === "suggest") {
+              suggestions = event.items;
               continue;
             }
             if (event.type === "error") {
@@ -254,6 +270,7 @@ export function useAssistantStream() {
           rafRef.current = null;
         }
         flushPending();
+        if (suggestions.length) replaceMessage(assistantId, { suggestions });
 
         if (!sawAnyToken) {
           replaceMessage(assistantId, { content: "No response generated. Please try again." });
