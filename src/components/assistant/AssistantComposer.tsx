@@ -2,7 +2,7 @@
 
 import { m } from "framer-motion";
 import { Send } from "lucide-react";
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 interface AssistantComposerProps {
@@ -10,13 +10,18 @@ interface AssistantComposerProps {
   /** Plan doesn't include the assistant — input and send are inert. */
   locked?: boolean;
   onSend: (text: string) => void;
+  /** A tapped follow-up chip: put the text in the box (new `n` = new fill) for the customer to edit and send. */
+  draft?: { text: string; n: number };
 }
 
 const AssistantComposer = forwardRef<HTMLTextAreaElement, AssistantComposerProps>(function AssistantComposer(
-  { disabled, locked = false, onSend },
+  { disabled, locked = false, onSend, draft },
   ref,
 ) {
   const [value, setValue] = useState("");
+  useEffect(() => {
+    if (draft) setValue(draft.text);
+  }, [draft]);
 
   const submit = () => {
     const text = value.trim();
