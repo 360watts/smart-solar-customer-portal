@@ -43,6 +43,7 @@ const AssistantComposer = forwardRef<HTMLTextAreaElement, AssistantComposerProps
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
         rows={1}
+        maxLength={2000} // the API rejects a message over 4000 characters; stay well under it
         disabled={locked}
         placeholder={locked ? "Available on Basic and Premium plans" : "Ask about your system…"}
         aria-label="Message the assistant"
